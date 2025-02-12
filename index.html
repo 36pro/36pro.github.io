@@ -1,1 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class Materials Aggregation</title>
+    <style>
+        body {
+            text-align: center;
+            background-color: #1B4F72;
+            color: white;
+            font-family: sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        #header {
+            padding: 15px;
+            font-size: 24px;
+            background-color: #00005A;
+            color: white;
+            min-height: 1.5em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        #content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .button-row {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .button {
+            position: relative;
+            display: inline-block;
+            margin: 0;
+        }
+
+        .button a {
+            color: white;
+            font-family: Helvetica, sans-serif;
+            font-weight: bold;
+            font-size: 36px;
+            text-align: center;
+            text-decoration: none;
+            background-color: #FFA12B;
+            display: block;
+            position: relative;
+            padding: 20px 40px;
+            -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+            text-shadow: 0px 1px 0px #000;
+            filter: drop-shadow(color=#000, offx=0px, offy=1px);
+            -webkit-box-shadow: inset 0 1px 0 #FFE5C4, 0 10px 0 #915100;
+            -moz-box-shadow: inset 0 1px 0 #FFE5C4, 0 10px 0 #915100;
+            box-shadow: inset 0 1px 0 #FFE5C4, 0 10px 0 #915100;
+            -webkit-border-radius: 5px;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+        }
+
+        .button a:active {
+            top: 10px;
+            background-color: #F78900;
+            -webkit-box-shadow: inset 0 1px 0 #FFE5C4, inset 0 -3px 0 #915100;
+            -moz-box-shadow: inset 0 1px 0 #FFE5C4, inset 0 -3px px 0 #915100;
+            box-shadow: inset 0 1px 0 #FFE5C4, inset 0 -3px 0 #915100;
+        }
+
+        .button:after {
+            content: "";
+            height: 100%;
+            width: 100%;
+            padding: 4px;
+            position: absolute;
+            bottom: -15px;
+            left: -4px;
+            z-index: -1;
+            background-color: #2B1800;
+            -webkit-border-radius: 5px;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+        }
+
+        #footer {
+            padding: 10px;
+            background-color: #F9E79F;
+            font-size: 14px;
+            color: black;
+        }
+
+        @media (max-width: 768px) {
+            .button a {
+                font-size: 24px;
+                padding: 15px 30px;
+            }
+
+            #header {
+                font-size: 20px;
+            }
+
+            .button-row {
+                flex-direction: column;
+                margin-bottom: 10px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .button a {
+                font-size: 18px;
+                padding: 10px 20px;
+            }
+
+            #header {
+                font-size: 18px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="header">
+        Links to class materials and other stuff, All in one place!
+    </div>
+
+    <div id="content">
+    <div class="button-row">
+        <div class="button">
+            <a href="https://bupedubd-my.sharepoint.com/:f:/g/personal/nahid_alam_bup_edu_bd/EsuO9mJWp_BLlsuvo-43uPcBFWOtNDd4WndxlZ3lw2hAUw?e=h2jDGU" 
+               target="_blank" rel="noopener noreferrer">
+               SAB
+            </a>
+        </div>
+        <div class="button">
+            <a href="https://drive.google.com/drive/folders/11DWpMFvK7FftxP5cAYH90dJAsr3Jiike?usp=sharing" 
+               target="_blank" rel="noopener noreferrer">
+               HRM
+            </a>
+        </div>
+        <div class="button">
+            <a href="https://drive.google.com/drive/folders/1wopepezTb39Oj8psuTtFdzFUug41ikMm?usp=sharing" 
+               target="_blank" rel="noopener noreferrer">
+               BEL
+            </a>
+        </div>
+        <div class="button">
+            <a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ">
+               !
+            </a>
+        </div>
+    </div>
+</div>
+
+    <div id="footer">
+        Under Construction
+    </div>
+
+</body>
+
+</html>
 
