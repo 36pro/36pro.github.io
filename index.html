@@ -1,892 +1,4486 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bill Tracker</title>
-<style>
-  :root {
-    --bg:#f0efe9;--surface:#fff;--surface2:#f7f6f2;
-    --border:rgba(0,0,0,0.07);--border-s:rgba(0,0,0,0.13);
-    --text:#1a1a18;--muted:#6b6a66;--hint:#9e9c97;
-    --accent:#1a6ef5;--accent-bg:#e8f0fe;
-    --success:#1a8a44;--success-bg:#e6f4ec;
-    --warning:#9a6200;--warning-bg:#fef3e2;
-    --danger:#c0392b;--danger-bg:#fdecea;
-    --purple:#7c3aed;--purple-bg:#ede9fe;
-    --radius:9px;--mono:'JetBrains Mono','Fira Mono','Courier New',monospace;
-  }
-  @media(prefers-color-scheme:dark){
-    :root{
-      --bg:#141413;--surface:#1e1e1c;--surface2:#252523;
-      --border:rgba(255,255,255,0.07);--border-s:rgba(255,255,255,0.13);
-      --text:#f0efe8;--muted:#a09e99;--hint:#6b6966;
-      --accent:#4d8eff;--accent-bg:#0f2147;
-      --success:#4db87a;--success-bg:#0b2e1a;
-      --warning:#f0b429;--warning-bg:#2e1f00;
-      --danger:#e05c4a;--danger-bg:#2e0e0a;
-      --purple:#a78bfa;--purple-bg:#1e1047;
-    }
-  }
-  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-  html{font-size:16px}
-  body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>BILLZY</title>
 
-  /* HEADER */
-  .site-header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:54px;position:sticky;top:0;z-index:100}
-  .logo{font-size:15px;font-weight:800;letter-spacing:-.03em}
-  .logo span{color:var(--accent)}
-  .sync-row{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
-  .dot{width:8px;height:8px;border-radius:50%;background:var(--hint);flex-shrink:0;transition:background .3s}
-  .dot.ok{background:var(--success)}.dot.err{background:var(--danger)}.dot.spin{background:var(--warning);animation:blink 1s infinite}
-  @keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
-  .hdr-right{display:flex;align-items:center;gap:14px}
-  .hdr-refresh{background:transparent;border:none;color:var(--hint);cursor:pointer;font-size:17px;padding:4px 6px;border-radius:6px}
-  .hdr-refresh:hover{color:var(--text);background:var(--surface2)}
-
-  /* BANNER */
-  #banner{background:var(--warning-bg);border-bottom:1px solid rgba(154,98,0,.2);padding:.85rem 2rem;display:flex;gap:12px;flex-wrap:wrap;align-items:center}
-  #banner p{font-size:13px;color:var(--warning);flex:1;min-width:200px;line-height:1.5}
-  .banner-fields{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-  #banner input{font-size:13px;border:1px solid rgba(154,98,0,.35);border-radius:var(--radius);padding:7px 11px;background:var(--surface);color:var(--text)}
-  #inp-owner{width:150px}#inp-repo{width:150px}#inp-token{width:240px}
-  #btn-connect{font-size:13px;font-weight:700;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);padding:8px 16px;cursor:pointer;white-space:nowrap}
-  #btn-connect:hover{opacity:.88}
-
-  /* MAIN */
-  .main{max-width:1160px;margin:0 auto;padding:1.5rem 1.5rem 5rem}
-
-  /* TABS */
-  .tab-bar{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:1.5rem}
-  .tab{font-size:13px;font-weight:600;padding:7px 15px;border-radius:20px;border:1px solid var(--border-s);background:transparent;color:var(--muted);cursor:pointer;transition:all .12s;white-space:nowrap}
-  .tab:hover{background:var(--surface);color:var(--text)}
-  .tab.active{background:var(--accent-bg);border-color:var(--accent);color:var(--accent)}
-  .tab.db.active,.tab.stats.active,.tab.dash.active{background:var(--surface);border-color:var(--border-s);color:var(--text)}
-  .panel{display:none}.panel.active{display:block}
-
-  /* ── DASHBOARD ── */
-  .dash-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:10px}
-  .dash-title{font-size:18px;font-weight:800;letter-spacing:-.02em}
-  .dash-updated{font-size:12px;color:var(--hint)}
-
-  .dash-table{width:100%;border-collapse:collapse}
-  .dash-table thead th{
-    text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
-    color:var(--hint);padding:9px 14px;background:var(--surface2);border-bottom:1px solid var(--border);
-    white-space:nowrap
-  }
-  .dash-table thead th:first-child{border-radius:12px 0 0 0;padding-left:22px}
-  .dash-table thead th:last-child{border-radius:0 12px 0 0}
-  .dash-table tbody td:first-child > .dash-cell{padding-left:22px}
-  .dash-table tbody td{padding:0;border-bottom:1px solid var(--border);vertical-align:middle}
-  .dash-table tbody tr:last-child td{border-bottom:none}
-  .dash-table tbody tr:hover .dash-cell{background:var(--surface2)}
-
-  .dash-wrap{border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--surface)}
-
-  .dash-cell{padding:13px 14px;transition:background .1s}
-
-  /* bill name column */
-  .dash-bill-name{font-size:14px;font-weight:700;letter-spacing:-.01em}
-  .dash-company{font-size:11px;color:var(--hint);margin-top:1px}
-  .dash-type-pill{display:inline-block;font-size:9px;font-weight:800;padding:2px 7px;border-radius:20px;text-transform:uppercase;letter-spacing:.05em;margin-top:4px}
-
-  /* days since */
-  .days-badge{display:inline-block;font-size:13px;font-weight:700;padding:3px 10px;border-radius:20px}
-  .dfresh{background:var(--success-bg);color:var(--success)}
-  .dold{background:var(--warning-bg);color:var(--warning)}
-  .dvery-old{background:var(--danger-bg);color:var(--danger)}
-  .dnone{color:var(--hint);font-size:13px;font-weight:500}
-
-  /* last month paid */
-  .month-paid{font-size:13px;font-weight:600;color:var(--text)}
-  .month-na{font-size:12px;color:var(--hint);font-style:italic}
-
-  /* due date */
-  .due-overdue{font-size:13px;font-weight:800;color:var(--danger)}
-  .due-soon{font-size:13px;font-weight:700;color:var(--warning)}
-  .due-ok{font-size:13px;font-weight:600;color:var(--success)}
-  .due-na{font-size:12px;color:var(--hint);font-style:italic}
-  .due-sub{font-size:11px;color:var(--hint);margin-top:2px}
-
-  /* pay button in dashboard */
-  .dash-pay-btn{
-    display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;
-    color:var(--accent);border:1.5px solid var(--accent);border-radius:7px;
-    padding:6px 12px;text-decoration:none;transition:background .12s;white-space:nowrap;background:transparent;cursor:pointer
-  }
-  .dash-pay-btn:hover{background:var(--accent-bg)}
-  .dash-pay-btn.physical{color:var(--muted);border-color:var(--border-s);cursor:default;opacity:.7}
-  .dash-pay-btn.physical:hover{background:transparent}
-
-  /* BILL CARD */
-  .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.75rem;margin-bottom:1.25rem}
-  .card-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.25rem;gap:12px}
-  .card-title{font-size:20px;font-weight:800;letter-spacing:-.02em}
-  .card-company{font-size:13px;color:var(--muted);margin-top:3px}
-  .acct-block{display:inline-flex;align-items:center;gap:10px;margin-top:8px;background:var(--surface2);border:1px solid var(--border-s);border-radius:var(--radius);padding:8px 14px}
-  .acct-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--hint)}
-  .acct-num{font-family:var(--mono);font-size:17px;font-weight:700;color:var(--text);letter-spacing:.05em}
-  .acct-copy{background:transparent;border:none;color:var(--hint);cursor:pointer;padding:2px 4px;border-radius:4px;font-size:13px;line-height:1}
-  .acct-copy:hover{color:var(--accent);background:var(--accent-bg)}
-  .acct-copy.copied{color:var(--success)}
-  .pill{font-size:10px;font-weight:800;padding:4px 10px;border-radius:20px;white-space:nowrap;flex-shrink:0;text-transform:uppercase;letter-spacing:.05em}
-  .prepaid{background:var(--success-bg);color:var(--success)}
-  .monthly{background:var(--accent-bg);color:var(--accent)}
-
-  /* STAT BOXES */
-  .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:1.25rem}
-  .sbox{background:var(--surface2);border-radius:var(--radius);padding:14px 16px}
-  .slabel{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--hint);margin-bottom:5px}
-  .sval{font-size:16px;font-weight:700}
-  .sval.acc{color:var(--accent);font-family:var(--mono)}
-  .sval.dim{color:var(--muted);font-weight:600;font-size:14px}
-  .dbadge{display:inline-block;font-size:13px;font-weight:700;padding:3px 10px;border-radius:20px}
-
-  /* ACTION BUTTONS */
-  .action-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1.25rem;align-items:center}
-  .pay-link{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:var(--accent);border:1.5px solid var(--accent);border-radius:var(--radius);padding:8px 14px;text-decoration:none;transition:background .12s;white-space:nowrap}
-  .pay-link:hover{background:var(--accent-bg)}
-  .logo-btn{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:var(--muted);border:1px solid var(--border-s);border-radius:var(--radius);padding:8px 14px;background:var(--surface2);cursor:pointer;text-decoration:none;transition:all .12s;white-space:nowrap}
-  .logo-btn:hover{color:var(--text);background:var(--surface)}
-  .note-btn{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:var(--purple);border:1px solid var(--purple);border-radius:var(--radius);padding:8px 14px;background:transparent;cursor:pointer;transition:all .12s;white-space:nowrap}
-  .note-btn:hover{background:var(--purple-bg)}
-  .note-indicator{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--purple);margin-left:2px;vertical-align:middle}
-
-  /* FORM */
-  .form-sep{border-top:1px solid var(--border);padding-top:1.25rem}
-  .form-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:12px}
-  .frow{display:grid;gap:12px;margin-bottom:12px}
-  .frow.c2{grid-template-columns:1fr 1fr}
-  .frow.c3{grid-template-columns:1fr 1fr 1fr}
-  @media(max-width:540px){.frow.c2,.frow.c3{grid-template-columns:1fr}}
-  .field label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--hint);margin-bottom:5px}
-  .field input,.field select{width:100%;font-size:14px;border:1px solid var(--border-s);border-radius:var(--radius);padding:9px 12px;background:var(--surface2);color:var(--text);transition:border-color .12s;font-family:inherit}
-  .field input:focus,.field select:focus{outline:none;border-color:var(--accent)}
-  .field input::placeholder{color:var(--hint)}
-  .save-btn{width:100%;padding:11px;font-size:14px;font-weight:800;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .12s}
-  .save-btn:hover{opacity:.88}.save-btn:active{transform:scale(.99)}.save-btn:disabled{opacity:.5;cursor:not-allowed}
-  .ok-msg{display:none;margin-top:10px;padding:8px 14px;background:var(--success-bg);color:var(--success);border:1px solid rgba(26,138,68,.25);border-radius:var(--radius);font-size:13px;font-weight:700;text-align:center}
-  .err-msg{display:none;margin-top:10px;padding:8px 14px;background:var(--danger-bg);color:var(--danger);border:1px solid rgba(192,57,43,.25);border-radius:var(--radius);font-size:13px;text-align:center}
-  .spin-ring{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
-  @keyframes spin{to{transform:rotate(360deg)}}
-
-  /* DATABASE */
-  .db-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:8px}
-  .db-title{font-size:18px;font-weight:800;letter-spacing:-.02em}
-  .db-ctrls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:1.25rem}
-  .db-ctrls input,.db-ctrls select{font-size:13px;border:1px solid var(--border-s);border-radius:var(--radius);padding:7px 11px;background:var(--surface);color:var(--text);font-family:inherit}
-  .db-ctrls input{width:180px}
-  .db-meta{font-size:12px;color:var(--hint);margin-left:auto;white-space:nowrap}
-  .icon-btn{font-size:13px;color:var(--muted);background:var(--surface);border:1px solid var(--border-s);border-radius:var(--radius);padding:7px 13px;cursor:pointer;display:flex;align-items:center;gap:5px}
-  .icon-btn:hover{color:var(--text)}
-  .tbl-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:12px}
-  table{width:100%;border-collapse:collapse;font-size:14px}
-  thead th{text-align:left;font-size:11px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.05em;padding:10px 14px;background:var(--surface2);border-bottom:1px solid var(--border);white-space:nowrap}
-  thead th:first-child{border-radius:12px 0 0 0}thead th:last-child{border-radius:0 12px 0 0}
-  tbody td{padding:11px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
-  tbody tr:last-child td{border-bottom:none}
-  tbody tr:hover td{background:var(--surface2)}
-  .amt-cell{font-family:var(--mono);color:var(--accent);font-weight:700}
-  .del-btn{background:transparent;border:none;color:var(--hint);cursor:pointer;padding:3px 7px;border-radius:5px;font-size:15px;line-height:1}
-  .del-btn:hover{color:var(--danger);background:var(--danger-bg)}
-  .empty{text-align:center;padding:4rem 1rem;color:var(--hint);font-size:14px}
-
-  /* STATS */
-  .stats-page-title{font-size:18px;font-weight:800;letter-spacing:-.02em;margin-bottom:1.5rem}
-  .stats-section{margin-bottom:2rem}
-  .stats-section-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--hint);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
-  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:1rem}
-  .kpi{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 18px}
-  .kpi-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--hint);margin-bottom:6px}
-  .kpi-val{font-size:22px;font-weight:800;letter-spacing:-.02em;color:var(--text)}
-  .kpi-val.accent{color:var(--accent)}
-  .kpi-sub{font-size:12px;color:var(--muted);margin-top:3px}
-  .bar-chart{display:flex;flex-direction:column;gap:8px}
-  .bar-row{display:grid;grid-template-columns:160px 1fr 100px;align-items:center;gap:10px}
-  .bar-name{font-size:13px;font-weight:600;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .bar-track{background:var(--surface2);border-radius:20px;height:10px;overflow:hidden}
-  .bar-fill{height:100%;border-radius:20px;background:var(--accent);transition:width .4s ease}
-  .bar-amt{font-size:13px;font-weight:700;font-family:var(--mono);color:var(--accent)}
-  .month-chart{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.25rem;overflow-x:auto}
-  .month-chart-inner{display:flex;align-items:flex-end;gap:6px;min-width:500px;height:160px}
-  .mc-col{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;min-width:40px}
-  .mc-bar-wrap{flex:1;display:flex;align-items:flex-end;width:100%}
-  .mc-bar{width:100%;border-radius:5px 5px 0 0;background:var(--accent);min-height:3px;transition:height .4s}
-  .mc-label{font-size:10px;color:var(--hint);font-weight:600;white-space:nowrap}
-  .mc-amt{font-size:10px;color:var(--muted);font-family:var(--mono)}
-  .gap-table{width:100%;border-collapse:collapse;font-size:13px}
-  .gap-table th{text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--hint);padding:7px 12px;background:var(--surface2);border-bottom:1px solid var(--border)}
-  .gap-table td{padding:9px 12px;border-bottom:1px solid var(--border)}
-  .gap-table tr:last-child td{border-bottom:none}
-  .gap-table tr:hover td{background:var(--surface2)}
-  .gap-big{color:var(--danger);font-weight:700}.gap-ok{color:var(--success);font-weight:700}
-
-  /* NOTE MODAL */
-  .overlay{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.35);backdrop-filter:blur(2px)}
-  .overlay.open{display:flex;align-items:center;justify-content:center}
-  .modal{background:var(--surface);border-radius:14px;padding:1.5rem;width:380px;max-width:90vw;box-shadow:0 16px 48px rgba(0,0,0,.2)}
-  .modal h3{font-size:16px;font-weight:800;margin-bottom:4px}
-  .modal p{font-size:13px;color:var(--muted);margin-bottom:12px}
-  .modal textarea{width:100%;font-size:14px;font-family:inherit;border:1px solid var(--border-s);border-radius:var(--radius);padding:10px 12px;background:var(--surface2);color:var(--text);resize:vertical;min-height:100px;line-height:1.6}
-  .modal textarea:focus{outline:none;border-color:var(--purple)}
-  .modal-btns{display:flex;gap:8px;margin-top:12px}
-  .modal-save{flex:1;padding:9px;font-size:13px;font-weight:700;background:var(--purple);color:#fff;border:none;border-radius:var(--radius);cursor:pointer}
-  .modal-save:hover{opacity:.88}
-  .modal-cancel{padding:9px 14px;font-size:13px;color:var(--muted);background:var(--surface2);border:1px solid var(--border-s);border-radius:var(--radius);cursor:pointer}
-  .modal-cancel:hover{color:var(--text)}
-</style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+
+<style>
+
+:root{
+  --bg:#020817;
+  --surface:#0b1730;
+  --surface2:#102448;
+  --border:#1d3969;
+
+  --accent:#63ff68;
+  --accent2:#22d3ee;
+
+  --danger:#ff6077;
+  --warning:#ffb84d;
+
+  --text:#f4f7ff;
+  --muted:#91a5c6;
+
+  --shadow:0 0 35px rgba(0,0,0,.35);
+}
+
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
+body{
+  font-family:Inter,system-ui;
+
+  background:
+  radial-gradient(circle at top,#09162e 0%,#020817 58%);
+
+  color:var(--text);
+
+  height:100vh;
+
+  overflow:hidden;
+
+  margin:0;
+  padding:0;
+}
+
+.page{
+  width:100%;
+  height:100vh;
+
+  display:flex;
+  flex-direction:column;
+
+  padding-top:0;
+}
+
+.dashboardPage{
+  padding-top:0;
+
+  overflow-y:auto;
+  overflow-x:hidden;
+
+  padding-bottom:40px;
+}
+
+.databasePage{
+  padding-top:0;
+
+  overflow-y:auto;
+  overflow-x:hidden;
+
+  padding-bottom:40px;
+}
+
+.statsPage{
+  padding-top:0;
+
+  overflow-y:auto;
+  overflow-x:hidden;
+
+  padding-bottom:40px;
+}
+
+/* smoother scrolling */
+
+.dashboardPage::-webkit-scrollbar,
+.databasePage::-webkit-scrollbar,
+.statsPage::-webkit-scrollbar{
+  width:10px;
+}
+
+.dashboardPage::-webkit-scrollbar-track,
+.databasePage::-webkit-scrollbar-track,
+.statsPage::-webkit-scrollbar-track{
+  background:rgba(255,255,255,.03);
+}
+
+.dashboardPage::-webkit-scrollbar-thumb,
+.databasePage::-webkit-scrollbar-thumb,
+.statsPage::-webkit-scrollbar-thumb{
+  background:rgba(99,255,104,.25);
+
+  border-radius:999px;
+}
+
+.dashboardPage::-webkit-scrollbar-thumb:hover,
+.databasePage::-webkit-scrollbar-thumb:hover,
+.statsPage::-webkit-scrollbar-thumb:hover{
+  background:rgba(99,255,104,.45);
+}
+
+.billPage{
+  padding-top:0;
+
+  overflow:hidden;
+}
+
+.hidden{
+  display:none !important;
+}
+
+.container{
+  width:min(1450px,95%);
+
+  margin:0 auto;
+
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-start;
+
+  padding-top:0;
+  position:relative;
+}
+
+.logo{
+  text-align:center;
+
+  color:var(--accent);
+
+  font-size:4rem;
+  font-weight:900;
+
+  letter-spacing:2px;
+
+  line-height:1;
+
+  margin:0;
+  padding:6px 0 0 0;
+
+  transform:translateY(-4px);
+
+  text-shadow:
+  0 0 16px rgba(99,255,104,.4),
+  0 0 45px rgba(99,255,104,.12);
+}
+
+.glow{
+  width:100%;
+  height:2px;
+
+  margin-top:6px;
+
+  background:linear-gradient(
+  90deg,
+  transparent,
+  rgba(99,255,104,.9),
+  transparent
+  );
+
+  box-shadow:
+  0 0 18px rgba(99,255,104,.45);
+}
+
+.backBtn{
+  margin-top:8px !important;
+}
+
+.heroGrid{
+  margin-top:14px !important;
+}
+
+.billGrid{
+  margin-top:18px !important;
+}
+
+.topBar{
+  margin-top:10px !important;
+}
+
+.dashboardTop,
+.databaseTop,
+.statsTop{
+  margin-top:14px !important;
+}
+
+.databaseToolbar,
+.kpiGrid,
+.dashboardTable{
+  margin-top:16px !important;
+}
+
+/* HERO */
+
+.heroGrid{
+  margin-top:20px;
+
+  display:grid;
+  grid-template-columns:
+  repeat(3,minmax(0,1fr));
+
+  gap:28px;
+}
+
+.heroCard{
+  height:145px;
+
+  border-radius:28px;
+
+  background:linear-gradient(
+  135deg,
+  rgba(16,34,68,.95),
+  rgba(5,14,32,.95)
+  );
+
+  border:1px solid var(--border);
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:28px;
+
+  cursor:pointer;
+
+  transition:.25s ease;
+
+  box-shadow:var(--shadow);
+}
+
+.heroCard:hover{
+  transform:translateY(-4px);
+  border-color:#2d62c0;
+}
+
+.heroIcon{
+  width:110px;
+  height:110px;
+
+  border-radius:26px;
+
+  background:rgba(255,255,255,.03);
+
+  border:1px solid rgba(255,255,255,.05);
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  font-size:3rem;
+}
+
+.heroTitle{
+  font-size:3.4rem;
+  font-weight:800;
+}
+
+/* BILL GRID */
+
+.billGrid{
+  margin-top:24px;
+
+  display:grid;
+
+  grid-template-columns:
+  repeat(24,minmax(0,1fr));
+
+  gap:24px;
+
+  width:100%;
+}
+
+.billGrid .billCard:nth-child(5){
+  grid-column: 4 / span 6;
+}
+
+.billGrid .billCard:nth-child(6){
+  grid-column: 10 / span 6;
+}
+
+.billGrid .billCard:nth-child(7){
+  grid-column: 16 / span 6;
+}
+
+.billCard{
+  grid-column: span 6;
+  height:245px;
+
+  border-radius:28px;
+
+  background:linear-gradient(
+  180deg,
+  rgba(13,28,54,.96),
+  rgba(5,14,32,.96)
+  );
+
+  border:1px solid var(--border);
+
+  box-shadow:var(--shadow);
+
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+
+  padding:22px 18px;
+
+  cursor:pointer;
+
+  transition:.25s;
+}
+
+.billCard:hover{
+  transform:translateY(-4px);
+  border-color:#2e63c0;
+}
+
+.billIcon{
+  width:92px;
+  height:92px;
+
+  border-radius:50%;
+
+  background:
+  radial-gradient(circle at top,
+  rgba(255,255,255,.07),
+  rgba(255,255,255,.02));
+
+  border:1px solid rgba(255,255,255,.05);
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  font-size:3rem;
+
+  margin-bottom:20px;
+}
+
+.billName{
+  text-align:center;
+
+  font-size:2rem;
+  line-height:1.05;
+
+  font-weight:800;
+}
+
+.billStatus{
+  margin-top:auto;
+
+  color:#a5b5c9;
+
+  text-align:center;
+
+  font-size:1.35rem;
+  font-weight:700;
+}
+
+.billSub{
+  margin-top:5px;
+
+  color:var(--muted);
+
+  font-size:1.05rem;
+}
+
+/* DETAIL PAGE */
+
+.billPage{
+  padding-top:5px;
+}
+
+.backBtn{
+  margin-top:12px;
+
+  width:max-content;
+
+  padding:14px 22px;
+
+  border-radius:14px;
+
+  background:rgba(255,255,255,.03);
+
+  border:1px solid var(--border);
+
+  cursor:pointer;
+
+  transition:.2s;
+
+  font-weight:600;
+}
+
+.backBtn:hover{
+  border-color:#2d63c2;
+}
+
+.topBar{
+  margin-top:14px;
+
+  background:linear-gradient(
+  90deg,
+  rgba(17,35,71,.96),
+  rgba(5,14,32,.96)
+  );
+
+  border:1px solid var(--border);
+
+  border-radius:22px;
+
+  padding:18px 24px;
+
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+}
+
+.leftInfo{
+  display:flex;
+  align-items:center;
+  gap:20px;
+}
+
+.bigIcon{
+  width:88px;
+  height:88px;
+
+  border-radius:22px;
+
+  background:#08111f;
+
+  border:1px solid rgba(255,255,255,.05);
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  font-size:2.7rem;
+}
+
+.billTitle{
+  font-size:2.1rem;
+  line-height:1.05;
+
+  font-weight:800;
+}
+
+.mono{
+  font-family:"JetBrains Mono",monospace;
+}
+
+.account{
+  font-size:2.2rem;
+  font-weight:800;
+}
+
+.billType{
+  color:var(--accent);
+
+  font-size:2.2rem;
+  font-weight:900;
+}
+
+.portalBtn{
+  margin-top:16px;
+
+  width:max-content;
+
+  padding:13px 18px;
+
+  border-radius:12px;
+
+  background:#0b1730;
+
+  border:1px solid var(--border);
+
+  color:#79c7ff;
+
+  font-weight:600;
+}
+
+.statsGrid{
+  margin-top:18px;
+
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+
+  gap:18px;
+}
+
+.statCard{
+  background:linear-gradient(
+  180deg,
+  rgba(13,28,54,.96),
+  rgba(5,14,32,.96)
+  );
+
+  border:1px solid var(--border);
+
+  border-radius:18px;
+
+  padding:20px;
+}
+
+.statLabel{
+  color:#d5e2fb;
+  font-size:1rem;
+}
+
+.statValue{
+  margin-top:10px;
+
+  font-size:1.8rem;
+  font-weight:700;
+}
+
+.red{
+  color:var(--danger);
+}
+
+.green{
+  color:var(--accent);
+}
+
+.formSection{
+  margin-top:18px;
+}
+
+.sectionTitle{
+  margin-bottom:14px;
+
+  color:#d8e4ff;
+
+  font-weight:700;
+}
+
+.formGrid.prepaid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:24px;
+}
+
+.formGrid.postpaid{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:24px;
+}
+
+.inputCard{
+  background:rgba(255,255,255,.03);
+
+  border:1px solid var(--border);
+
+  border-radius:18px;
+
+  padding:20px;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+}
+
+.inputLabel{
+  margin-bottom:12px;
+  color:#d8e4ff;
+}
+
+.inputValue{
+  font-size:1.9rem;
+  font-weight:800;
+}
+
+.saveBtn{
+  margin-top:18px;
+
+  width:100%;
+  height:60px;
+
+  border:none;
+
+  border-radius:18px;
+
+  background:linear-gradient(
+  90deg,
+  #63ff68,
+  #43dc64
+  );
+
+  color:#001707;
+
+  font-size:1.7rem;
+  font-weight:900;
+
+  cursor:pointer;
+
+  box-shadow:
+  0 0 28px rgba(99,255,104,.22);
+}
+
+@media(max-width:1400px){
+
+  body{
+    overflow:auto;
+  }
+
+  .page{
+    height:auto;
+  }
+
+  .billGrid{
+    grid-template-columns:repeat(2,1fr);
+  }
+
+  .billCard,
+  .billGrid .billCard:nth-child(5),
+  .billGrid .billCard:nth-child(6),
+  .billGrid .billCard:nth-child(7){
+    grid-column:auto;
+  }
+
+}
+
+@media(max-width:900px){
+
+  body{
+    overflow:auto;
+  }
+
+  .page{
+    height:auto;
+    overflow:visible;
+    padding-bottom:50px;
+  }
+
+  .heroGrid{
+    grid-template-columns:1fr;
+  }
+
+  .billGrid{
+    grid-template-columns:1fr;
+  }
+
+  .statsGrid{
+    grid-template-columns:1fr;
+  }
+
+  .topBar{
+    flex-direction:column;
+    align-items:flex-start;
+  }
+
+  .formGrid.prepaid,
+  .formGrid.postpaid{
+    grid-template-columns:1fr;
+  }
+
+}
+
+/* DASHBOARD */
+
+.dashboardPage{
+  padding-top:8px;
+}
+
+.dashboardTop{
+  margin-top:20px;
+
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:20px;
+}
+
+.dashboardTitleWrap{
+  display:flex;
+  align-items:center;
+  gap:22px;
+}
+
+.dashboardTitle{
+  font-size:2.7rem;
+  font-weight:900;
+}
+
+.dashboardDate{
+  color:var(--muted);
+
+  font-size:1rem;
+}
+
+.summaryBadges{
+  display:flex;
+  align-items:center;
+  gap:16px;
+}
+
+.summaryBadge{
+  min-width:160px;
+
+  padding:16px 18px;
+
+  border-radius:18px;
+
+  display:flex;
+  align-items:center;
+  gap:16px;
+
+  border:1px solid rgba(255,255,255,.05);
+
+  background:rgba(255,255,255,.03);
+}
+
+.summaryCount{
+  width:42px;
+  height:42px;
+
+  border-radius:12px;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  font-weight:900;
+  font-size:1.2rem;
+}
+
+.summaryText{
+  font-weight:700;
+}
+
+.badgeDanger{
+  background:rgba(255,96,119,.12);
+}
+
+.badgeDanger .summaryCount{
+  background:rgba(255,96,119,.18);
+  color:var(--danger);
+}
+
+.badgeWarning{
+  background:rgba(255,184,77,.12);
+}
+
+.badgeWarning .summaryCount{
+  background:rgba(255,184,77,.18);
+  color:var(--warning);
+}
+
+.dashboardTable{
+  margin-top:24px;
+
+  border-radius:24px;
+
+  overflow:hidden;
+
+  border:1px solid var(--border);
+
+  background:linear-gradient(
+  180deg,
+  rgba(13,28,54,.96),
+  rgba(5,14,32,.96)
+  );
+
+  box-shadow:var(--shadow);
+}
+
+.tableHeader,
+.tableRow{
+  display:grid;
+
+  grid-template-columns:
+  2fr
+  .8fr
+  1.6fr
+  1.4fr
+  1fr
+  .8fr;
+
+  align-items:center;
+
+  gap:16px;
+}
+
+.tableHeader{
+  padding:20px 24px;
+
+  border-bottom:1px solid rgba(255,255,255,.06);
+
+  color:#dbe7ff;
+
+  font-weight:700;
+
+  font-size:.95rem;
+}
+
+.tableRow{
+  padding:22px 24px;
+
+  border-bottom:1px solid rgba(255,255,255,.05);
+
+  transition:.2s;
+}
+
+.tableRow:last-child{
+  border-bottom:none;
+}
+
+.tableRow:hover{
+  background:rgba(255,255,255,.02);
+}
+
+.billCell{
+  display:flex;
+  align-items:center;
+  gap:16px;
+
+  padding-left:22px;
+}
+
+.billMiniIcon{
+  width:52px;
+  height:52px;
+
+  border-radius:16px;
+
+  background:rgba(255,255,255,.03);
+
+  border:1px solid rgba(255,255,255,.05);
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  font-size:1.4rem;
+}
+
+.billMain{
+  font-weight:800;
+  font-size:1.05rem;
+}
+
+.billCompany{
+  margin-top:4px;
+
+  color:var(--muted);
+
+  font-size:.92rem;
+}
+
+.typePill{
+  width:max-content;
+
+  padding:8px 14px;
+
+  border-radius:999px;
+
+  font-size:.82rem;
+  font-weight:700;
+}
+
+.typePrepaid{
+  background:rgba(99,255,104,.12);
+  color:var(--accent);
+}
+
+.typePostpaid{
+  background:rgba(34,211,238,.12);
+  color:var(--accent2);
+}
+
+.paymentInfo{
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+}
+
+.paymentTop{
+  font-weight:700;
+}
+
+.paymentSub{
+  color:var(--muted);
+  font-size:.9rem;
+}
+
+.successText{
+  color:var(--accent);
+}
+
+.warningText{
+  color:var(--warning);
+}
+
+.dangerText{
+  color:var(--danger);
+}
+
+.mutedText{
+  color:var(--muted);
+  font-style:italic;
+}
+
+.statusPill{
+  width:max-content;
+
+  padding:8px 14px;
+
+  border-radius:999px;
+
+  font-size:.82rem;
+  font-weight:700;
+}
+
+.statusSoon{
+  background:rgba(255,184,77,.12);
+  color:var(--warning);
+}
+
+.statusUpcoming{
+  background:rgba(99,255,104,.12);
+  color:var(--accent);
+}
+
+.statusOverdue{
+  background:rgba(255,96,119,.12);
+  color:var(--danger);
+}
+
+.statusBalance{
+  background:rgba(255,255,255,.06);
+  color:var(--muted);
+}
+
+.tableRow > div:nth-child(5){
+  display:flex;
+  justify-content:flex-start;
+}
+
+.payBtn{
+  border:none;
+
+  padding:12px 18px;
+
+  border-radius:12px;
+
+  background:linear-gradient(
+  90deg,
+  #1d4ed8,
+  #2563eb
+  );
+
+  color:white;
+
+  font-weight:700;
+
+  cursor:pointer;
+
+  transition:.2s;
+}
+
+.payBtn:hover{
+  transform:translateY(-2px);
+}
+
+@media(max-width:1200px){
+
+  .dashboardTable{
+    overflow:auto;
+  }
+
+  .tableHeader,
+  .tableRow{
+    min-width:1100px;
+  }
+
+}
+
+/* STATS PAGE */
+
+.statsPage{
+  padding-top:8px;
+}
+
+.statsTop{
+  margin-top:20px;
+
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+.statsTitle{
+  font-size:2.7rem;
+  font-weight:900;
+}
+
+.kpiGrid{
+  margin-top:22px;
+
+  display:grid;
+
+  grid-template-columns:
+  repeat(4,1fr);
+
+  gap:18px;
+}
+
+.kpiCard{
+  background:linear-gradient(
+  180deg,
+  rgba(13,28,54,.96),
+  rgba(5,14,32,.96)
+  );
+
+  border:1px solid var(--border);
+
+  border-radius:22px;
+
+  padding:22px;
+
+  box-shadow:var(--shadow);
+}
+
+.kpiLabel{
+  color:var(--muted);
+
+  font-size:.95rem;
+}
+
+.kpiValue{
+  margin-top:14px;
+
+  font-size:2rem;
+  font-weight:900;
+
+  color:#f5f9ff;
+
+  font-family:"JetBrains Mono",monospace;
+}
+
+.kpiSub{
+  margin-top:10px;
+
+  color:var(--muted);
+
+  font-size:.9rem;
+}
+
+.statsGridMain{
+  margin-top:20px;
+
+  display:grid;
+
+  grid-template-columns:
+  1fr 1fr;
+
+  gap:20px;
+}
+
+.chartCard{
+  background:linear-gradient(
+  180deg,
+  rgba(13,28,54,.96),
+  rgba(5,14,32,.96)
+  );
+
+  border:1px solid var(--border);
+
+  border-radius:22px;
+
+  padding:22px;
+
+  box-shadow:var(--shadow);
+}
+
+.chartTitle{
+  font-size:1.1rem;
+  font-weight:800;
+
+  margin-bottom:20px;
+}
+
+.horizontalBars{
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+}
+
+.barRow{
+  display:grid;
+  grid-template-columns:110px 1fr 90px;
+
+  align-items:center;
+
+  gap:14px;
+}
+
+.barLabel{
+  font-size:.95rem;
+  font-weight:700;
+}
+
+.barTrack{
+  width:100%;
+  height:12px;
+
+  border-radius:999px;
+
+  background:rgba(255,255,255,.06);
+
+  overflow:hidden;
+}
+
+.barFill{
+  height:100%;
+
+  border-radius:999px;
+}
+
+.barAccent{
+  background:linear-gradient(
+  90deg,
+  #3b82f6,
+  #60a5fa
+  );
+}
+
+.barSuccess{
+  background:linear-gradient(
+  90deg,
+  #63ff68,
+  #43dc64
+  );
+}
+
+.barAmount{
+  text-align:right;
+
+  font-size:.95rem;
+  font-weight:800;
+
+  font-family:"JetBrains Mono",monospace;
+}
+
+.monthChart{
+  height:300px;
+
+  display:flex;
+  align-items:flex-end;
+  gap:14px;
+
+  overflow-x:auto;
+
+  padding-bottom:12px;
+}
+
+.monthBarWrap{
+  min-width:52px;
+
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:10px;
+}
+
+.monthValue{
+  color:var(--muted);
+
+  font-size:.75rem;
+
+  font-family:"JetBrains Mono",monospace;
+}
+
+.monthBar{
+  width:42px;
+
+  border-radius:14px 14px 0 0;
+
+  background:linear-gradient(
+  180deg,
+  #60a5fa,
+  #2563eb
+  );
+}
+
+.monthLabel{
+  font-size:.8rem;
+
+  color:var(--muted);
+}
+
+.gapTable{
+  display:flex;
+  flex-direction:column;
+}
+
+.gapHeader,
+.gapRow{
+  display:grid;
+
+  grid-template-columns:
+  1.4fr
+  1fr
+  .8fr;
+
+  align-items:center;
+
+  gap:14px;
+}
+
+.gapHeader{
+  padding-bottom:14px;
+
+  border-bottom:1px solid rgba(255,255,255,.06);
+
+  color:#dce8ff;
+
+  font-weight:700;
+}
+
+.gapRow{
+  padding:16px 0;
+
+  border-bottom:1px solid rgba(255,255,255,.05);
+}
+
+.gapDanger{
+  color:var(--danger);
+  font-weight:800;
+}
+
+.gapSuccess{
+  color:var(--accent);
+  font-weight:800;
+}
+
+@media(max-width:1200px){
+
+  .kpiGrid{
+    grid-template-columns:1fr 1fr;
+  }
+
+}
+
+@media(max-width:900px){
+
+  .kpiGrid{
+    grid-template-columns:1fr;
+  }
+
+  .statsGridMain{
+    grid-template-columns:1fr;
+  }
+
+}
+
+/* DATABASE PAGE */
+
+.databasePage{
+  padding-top:8px;
+}
+
+.databaseTop{
+  margin-top:20px;
+
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:24px;
+}
+
+.databaseTitle{
+  font-size:2.7rem;
+  font-weight:900;
+}
+
+.databaseToolbar{
+  margin-top:22px;
+
+  background:linear-gradient(
+  180deg,
+  rgba(13,28,54,.96),
+  rgba(5,14,32,.96)
+  );
+
+  border:1px solid var(--border);
+
+  border-radius:22px;
+
+  padding:18px;
+
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:20px;
+}
+
+.toolbarLeft{
+  display:flex;
+  align-items:center;
+  gap:16px;
+}
+
+.searchBox{
+  width:260px;
+  height:50px;
+
+  border-radius:14px;
+
+  border:1px solid var(--border);
+
+  background:rgba(255,255,255,.03);
+
+  padding:0 16px;
+
+  color:white;
+}
+
+.filterSelect{
+  height:50px;
+
+  border-radius:14px;
+
+  border:1px solid var(--border);
+
+  background:#0b1730;
+
+  color:white;
+
+  padding:0 16px;
+}
+
+.toolbarRight{
+  display:flex;
+  align-items:center;
+  gap:16px;
+}
+
+.recordInfo{
+  text-align:right;
+}
+
+.recordCount{
+  font-weight:800;
+}
+
+.totalAmount{
+  color:var(--accent);
+
+  font-weight:800;
+
+  font-family:"JetBrains Mono",monospace;
+}
+
+.toolbarBtn{
+  height:50px;
+
+  padding:0 18px;
+
+  border-radius:14px;
+
+  border:1px solid var(--border);
+
+  background:rgba(255,255,255,.03);
+
+  color:white;
+
+  cursor:pointer;
+
+  font-weight:700;
+
+  transition:.2s;
+}
+
+.toolbarBtn:hover{
+  border-color:#2d63c2;
+}
+
+.databaseTable{
+  margin-top:20px;
+
+  border-radius:24px;
+
+  overflow:hidden;
+
+  border:1px solid var(--border);
+
+  background:linear-gradient(
+  180deg,
+  rgba(13,28,54,.96),
+  rgba(5,14,32,.96)
+  );
+
+  box-shadow:var(--shadow);
+}
+
+.dbHeader,
+.dbRow{
+  display:grid;
+
+  grid-template-columns:
+  1fr
+  1.2fr
+  1fr
+  1.2fr
+  1fr
+  1.2fr
+  1fr;
+
+  align-items:center;
+
+  gap:14px;
+}
+
+.dbHeader{
+  padding:18px 24px;
+
+  border-bottom:1px solid rgba(255,255,255,.06);
+
+  color:#dbe7ff;
+
+  font-weight:700;
+
+  font-size:.95rem;
+}
+
+.dbRow{
+  padding:20px 24px;
+
+  border-bottom:1px solid rgba(255,255,255,.05);
+
+  transition:.2s;
+}
+
+.dbRow:last-child{
+  border-bottom:none;
+}
+
+.dbRow:hover{
+  background:rgba(255,255,255,.02);
+}
+
+.amountCell{
+  color:var(--accent);
+
+  font-family:"JetBrains Mono",monospace;
+
+  font-weight:700;
+}
+
+.noteMuted{
+  color:var(--muted);
+}
+
+.actionsCell{
+  display:flex;
+  align-items:center;
+  gap:16px;
+}
+
+.editBtn,
+.deleteBtn{
+  border:none;
+
+  background:none;
+
+  cursor:pointer;
+
+  font-size:1.15rem;
+
+  transition:.2s;
+}
+
+.editBtn{
+  color:#8ab4ff;
+}
+
+.deleteBtn{
+  color:#ff8a9c;
+}
+
+.deleteBtn:hover{
+  color:var(--danger);
+  transform:scale(1.15);
+}
+
+.emptyState{
+  height:240px;
+
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+
+  gap:16px;
+
+  color:var(--muted);
+}
+
+.emptyIcon{
+  font-size:4rem;
+  opacity:.7;
+}
+
+.emptyTitle{
+  font-size:1.4rem;
+  font-weight:800;
+
+  color:#dce7ff;
+}
+
+@media(max-width:1300px){
+
+  .databaseToolbar{
+    flex-direction:column;
+    align-items:flex-start;
+  }
+
+  .databaseTable{
+    overflow:auto;
+  }
+
+  .dbHeader,
+  .dbRow{
+    min-width:1200px;
+  }
+
+}
+
+/* SETTINGS & MODAL */
+
+.settingsBtn{
+  position:absolute;
+  top:18px;
+  right:24px;
+  width:46px;
+  height:46px;
+  border-radius:12px;
+  border:1px solid var(--border);
+  background:rgba(255,255,255,.03);
+  color:var(--text);
+  font-size:1.4rem;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transition:.25s ease;
+  z-index:100;
+}
+
+.settingsBtn:hover{
+  border-color:#2d63c2;
+  transform:rotate(45deg);
+  background:rgba(255,255,255,.07);
+}
+
+.modalOverlay{
+  position:fixed;
+  inset:0;
+  background:rgba(2,8,23,.82);
+  backdrop-filter:blur(8px);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:1000;
+  transition: opacity 0.25s ease;
+}
+
+.modalContent{
+  width:min(500px,90%);
+  background:linear-gradient(180deg, rgba(13,28,54,.98), rgba(5,14,32,.98));
+  border:1px solid var(--border);
+  border-radius:24px;
+  padding:28px;
+  box-shadow:var(--shadow);
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+}
+
+.modalHeader{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+.modalHeader h3{
+  font-size:1.5rem;
+  font-weight:800;
+  color:#f4f7ff;
+}
+
+.closeModalBtn{
+  border:none;
+  background:none;
+  color:var(--muted);
+  font-size:1.4rem;
+  cursor:pointer;
+  transition:.2s;
+}
+
+.closeModalBtn:hover{
+  color:var(--danger);
+}
+
+.modalDesc{
+  font-size:.92rem;
+  color:var(--muted);
+  line-height:1.4;
+}
+
+.formField{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  margin-bottom:10px;
+}
+
+.formField label{
+  font-size:.88rem;
+  font-weight:600;
+  color:#d8e4ff;
+}
+
+.formField input{
+  height:44px;
+  border-radius:12px;
+  border:1px solid var(--border);
+  background:rgba(255,255,255,.03);
+  color:white;
+  padding:0 14px;
+  font-size:.95rem;
+  transition:.2s;
+}
+
+.formField input:focus{
+  border-color:#2d63c2;
+  outline:none;
+}
+
+.modalFooter{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:14px;
+  margin-top:10px;
+}
+
+.testBtn,
+.saveModalBtn{
+  height:46px;
+  border-radius:12px;
+  font-size:.95rem;
+  font-weight:700;
+  cursor:pointer;
+  transition:.2s;
+  padding:0 18px;
+}
+
+.testBtn{
+  border:1px solid var(--border);
+  background:transparent;
+  color:#79c7ff;
+}
+
+.testBtn:hover{
+  border-color:#2d63c2;
+  background:rgba(255,255,255,.02);
+}
+
+.saveModalBtn{
+  border:none;
+  background:linear-gradient(90deg, #63ff68, #43dc64);
+  color:#001707;
+  box-shadow:0 0 20px rgba(99,255,104,.15);
+}
+
+.saveModalBtn:hover{
+  transform:translateY(-1px);
+  box-shadow:0 0 24px rgba(99,255,104,.25);
+}
+
+</style>
 </head>
+
 <body>
 
-<header class="site-header">
-  <div class="logo">utility<span>.</span>bills</div>
-  <div class="hdr-right">
-    <button class="hdr-refresh" onclick="loadData()" title="Refresh">↻</button>
-    <div class="sync-row">
-      <div class="dot" id="dot"></div>
-      <span id="sync-lbl">Not connected</span>
+<!-- SETTINGS MODAL -->
+<div id="settingsModal" class="modalOverlay hidden">
+  <div class="modalContent">
+    <div class="modalHeader">
+      <h3>GitHub Sync Settings</h3>
+      <button class="closeModalBtn" onclick="closeSettingsModal()">✕</button>
     </div>
-  </div>
-</header>
-
-<div id="banner">
-  <p>Enter your GitHub details once to connect. Data saves to a file in your repo.</p>
-  <div class="banner-fields">
-    <input id="inp-owner" placeholder="GitHub username" autocomplete="off">
-    <input id="inp-repo"  placeholder="Repo name" autocomplete="off">
-    <input id="inp-token" placeholder="Personal access token" type="password" autocomplete="off">
-    <button id="btn-connect" onclick="connect()">Connect</button>
-  </div>
-</div>
-
-<div class="overlay" id="note-overlay" onclick="closeNoteModal(event)">
-  <div class="modal">
-    <h3>📝 Note</h3>
-    <p id="note-modal-bill-name"></p>
-    <textarea id="note-modal-text" placeholder="e.g. Pay via bKash merchant 01700-000000. Usually due around the 10th."></textarea>
-    <div class="modal-btns">
-      <button class="modal-cancel" onclick="closeNoteModal()">Cancel</button>
-      <button class="modal-save" onclick="saveNote()">Save note</button>
-    </div>
-  </div>
-</div>
-
-<main class="main">
-  <div class="tab-bar" id="tab-bar"></div>
-  <div id="panels"></div>
-</main>
-
-<script>
-const BILLS = [
-  { id:'rupnagar_desco',   name:'Rupnagar Desco',   type:'prepaid', hasDue:false, account:'14010368',         company:'Desco',            payUrl:'https://prepaid.desco.org.bd/customer/#/customer-info', logoUrl:'https://www.desco.org.bd/',       payMethod:'Desco Portal'   },
-  { id:'rupnagar_gas',     name:'Rupnagar Gas',     type:'prepaid', hasDue:false, account:'110407082016',     company:'Titas Gas',        payUrl:'https://www.titasgasbd.com/',                           logoUrl:'https://www.titasgasbd.com/',     payMethod:'bKash'          },
-  { id:'uttara_desco',     name:'Uttara Desco',     type:'prepaid', hasDue:false, account:'25038654',         company:'Desco',            payUrl:'https://prepaid.desco.org.bd/customer/#/customer-info', logoUrl:'https://www.desco.org.bd/',       payMethod:'Desco Portal'   },
-  { id:'uttara_water',     name:'Uttara Water',     type:'monthly', hasDue:true,  account:'901798991',        company:'Dhaka Wasa',       payUrl:'https://123.49.33.108/index.php?type_name=member&page_name=acc_index&panel_index=1', logoUrl:'https://www.dwasa.org.bd/', payMethod:'Wasa Portal' },
-  { id:'matuail_gas',      name:'Matuail Gas',      type:'monthly', hasDue:true,  account:'10826719',         company:'Titas Gas',        payUrl:null,                                                    logoUrl:'https://www.titasgasbd.com/',     payMethod:'Bank Physical'  },
-  { id:'noakhali_palli',   name:'Noakhali Palli',   type:'monthly', hasDue:true,  account:'103-102-312-7100', company:'Palli Bidyut',     payUrl:null,                                                    logoUrl:null,                              payMethod:'bKash'          },
-  { id:'internet_inspire', name:'Internet Inspire', type:'prepaid', hasDue:true,  account:'rpmehedi6',        company:'Inspire Broadband',payUrl:'https://portal.inspire.com.bd/account',                  logoUrl:'https://inspireit.com.bd/',       payMethod:'Inspire Portal' },
-];
-
-const MONTHS     = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-const DATA_FILE  = 'data.json';
-
-let DB   = [];
-let NOTES = {};
-let GH   = { owner:'', repo:'', token:'', sha:'' };
-let activeTab = '__dash__';
-let noteModalBillId = null;
-
-// ── INIT ──────────────────────────────────────────────────────
-window.addEventListener('DOMContentLoaded', () => {
-  const saved = localStorage.getItem('bt_gh');
-  if (saved) {
-    Object.assign(GH, JSON.parse(saved));
-    document.getElementById('inp-owner').value = GH.owner;
-    document.getElementById('inp-repo').value  = GH.repo;
-    document.getElementById('inp-token').value = GH.token;
-    document.getElementById('banner').style.display = 'none';
-  }
-  NOTES = JSON.parse(localStorage.getItem('bt_notes') || '{}');
-  buildUI();
-  if (GH.owner) loadData();
-});
-
-// ── CONNECT ───────────────────────────────────────────────────
-function connect() {
-  const owner = document.getElementById('inp-owner').value.trim();
-  const repo  = document.getElementById('inp-repo').value.trim();
-  const token = document.getElementById('inp-token').value.trim();
-  if (!owner || !repo || !token) { alert('Please fill in all three fields.'); return; }
-  GH.owner = owner; GH.repo = repo; GH.token = token;
-  localStorage.setItem('bt_gh', JSON.stringify({ owner, repo, token }));
-  document.getElementById('banner').style.display = 'none';
-  setSyncStatus('spin', 'Connecting…');
-  loadData();
-}
-
-// ── GITHUB ────────────────────────────────────────────────────
-function ghHeaders() {
-  return { 'Authorization':`token ${GH.token}`, 'Accept':'application/vnd.github.v3+json', 'Content-Type':'application/json' };
-}
-async function loadData() {
-  setSyncStatus('spin', 'Loading…');
-  try {
-    const res = await fetch(`https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${DATA_FILE}`, { headers: ghHeaders() });
-    if (res.status === 404) { DB = []; GH.sha = ''; setSyncStatus('ok','Connected — no data yet'); rebuildActive(); return; }
-    if (!res.ok) throw new Error(`GitHub API ${res.status}`);
-    const json = await res.json();
-    GH.sha = json.sha;
-    DB = JSON.parse(atob(json.content.replace(/\n/g,'')));
-    setSyncStatus('ok', 'Synced · ' + new Date().toLocaleTimeString());
-    rebuildActive();
-  } catch(e) { setSyncStatus('err','Load failed'); console.error(e); }
-}
-async function saveData() {
-  const content = btoa(unescape(encodeURIComponent(JSON.stringify(DB, null, 2))));
-  const body = { message:`bill tracker update ${new Date().toISOString()}`, content, ...(GH.sha?{sha:GH.sha}:{}) };
-  const res = await fetch(`https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${DATA_FILE}`, { method:'PUT', headers:ghHeaders(), body:JSON.stringify(body) });
-  if (!res.ok) { const err=await res.json(); throw new Error(err.message||`GitHub API ${res.status}`); }
-  const json = await res.json();
-  GH.sha = json.content.sha;
-}
-function setSyncStatus(state, label) {
-  document.getElementById('dot').className = 'dot '+(state||'');
-  document.getElementById('sync-lbl').textContent = label;
-}
-
-// ── UI BUILD ──────────────────────────────────────────────────
-function buildUI() {
-  const bar    = document.getElementById('tab-bar');
-  const panels = document.getElementById('panels');
-  bar.innerHTML = ''; panels.innerHTML = '';
-
-  // Dashboard tab — first
-  const dashBtn = el('button','tab dash active','🏠 Dashboard');
-  dashBtn.dataset.id = '__dash__';
-  dashBtn.onclick = () => switchTab('__dash__');
-  bar.appendChild(dashBtn);
-  const dashPanel = el('div','panel active'); dashPanel.id='panel___dash__'; panels.appendChild(dashPanel);
-
-  // Bill tabs
-  BILLS.forEach(b => {
-    const btn = el('button','tab', b.name);
-    btn.dataset.id = b.id; btn.onclick = () => switchTab(b.id);
-    bar.appendChild(btn);
-    const p = el('div','panel'); p.id='panel_'+b.id; panels.appendChild(p);
-  });
-
-  // Stats tab
-  const stBtn = el('button','tab stats','📊 Stats');
-  stBtn.dataset.id='__stats__'; stBtn.onclick=()=>switchTab('__stats__');
-  bar.appendChild(stBtn);
-  const stPanel = el('div','panel'); stPanel.id='panel___stats__'; panels.appendChild(stPanel);
-
-  // DB tab
-  const dbBtn = el('button','tab db','⊞ Database');
-  dbBtn.dataset.id='__db__'; dbBtn.onclick=()=>switchTab('__db__');
-  bar.appendChild(dbBtn);
-  const dbPanel = el('div','panel'); dbPanel.id='panel___db__'; panels.appendChild(dbPanel);
-
-  renderDash();
-}
-
-function el(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text)e.textContent=text;return e;}
-
-function switchTab(id) {
-  activeTab = id;
-  document.querySelectorAll('.tab').forEach(b   => b.classList.toggle('active', b.dataset.id===id));
-  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id==='panel_'+id));
-  if (id==='__dash__')  renderDash();
-  else if (id==='__db__')    renderDB();
-  else if (id==='__stats__') renderStats();
-  else { const b=BILLS.find(x=>x.id===id); if(b) renderBill(b); }
-}
-function rebuildActive() {
-  if (activeTab==='__dash__')  { renderDash(); return; }
-  if (activeTab==='__db__')    { renderDB(); return; }
-  if (activeTab==='__stats__') { renderStats(); return; }
-  const b = BILLS.find(x=>x.id===activeTab); if(b) renderBill(b);
-}
-
-// ── HELPERS ───────────────────────────────────────────────────
-function fmt(d){ if(!d)return'—'; return new Date(d).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}); }
-function fmtShort(d){ if(!d)return'—'; return new Date(d).toLocaleDateString('en-GB',{day:'2-digit',month:'short'}); }
-
-function getLastEntry(billId) {
-  const entries = DB.filter(e=>e.billId===billId).sort((a,b)=>new Date(b.payDate)-new Date(a.payDate));
-  return entries[0] || null;
-}
-function getDaysSince(billId) {
-  const last = getLastEntry(billId);
-  if (!last) return null;
-  return Math.floor((Date.now()-new Date(last.payDate))/86400000);
-}
-
-// Get the last billMonth string recorded (for monthly/inspire)
-function getLastPaidMonth(billId) {
-  const entries = DB.filter(e=>e.billId===billId && e.billMonth)
-                    .sort((a,b)=>new Date(b.payDate)-new Date(a.payDate));
-  return entries[0]?.billMonth || null;
-}
-
-// Parse "Month YYYY" string into a Date at start of that month
-function parseMonthStr(s) {
-  if (!s) return null;
-  const parts = s.split(' ');
-  if (parts.length < 2) return null;
-  const mo = MONTHS.indexOf(parts[0]);
-  const yr = parseInt(parts[1]);
-  if (mo < 0 || isNaN(yr)) return null;
-  return new Date(yr, mo, 1);
-}
-
-// Compute next due date for monthly/inspire bills:
-// Due = 1st of the month AFTER the last paid month.
-// If no record, return null.
-function getNextDue(b) {
-  if (!b.hasDue) return null;
-  const lastMonthStr = getLastPaidMonth(b.id);
-  // For prepaid types that have hasDue (internet_inspire), also check payDate-based entries
-  // We rely on billMonth for all hasDue bills since they all track billing month
-  if (!lastMonthStr) {
-    // No record at all — due is unknown
-    return null;
-  }
-  const lastMonthDate = parseMonthStr(lastMonthStr);
-  if (!lastMonthDate) return null;
-  // Due = 1st of next month after lastMonthDate
-  const due = new Date(lastMonthDate.getFullYear(), lastMonthDate.getMonth()+1, 1);
-  return due;
-}
-
-function daysUntil(d) { return Math.floor((d - Date.now())/86400000); }
-
-function copyAcct(id, num) {
-  navigator.clipboard.writeText(num).catch(()=>{});
-  const btn = document.getElementById('copy_'+id);
-  if (btn) { btn.textContent='✓'; btn.classList.add('copied'); setTimeout(()=>{btn.textContent='⎘';btn.classList.remove('copied');},1500); }
-}
-
-// ── DASHBOARD ─────────────────────────────────────────────────
-function renderDash() {
-  const panel = document.getElementById('panel___dash__');
-  if (!panel) return;
-
-  const now = new Date();
-
-  const rows = BILLS.map(b => {
-    const daysSince = getDaysSince(b.id);
-    const lastEntry = getLastEntry(b.id);
-    const lastMonthStr = getLastPaidMonth(b.id);
-    const due = getNextDue(b);
-
-    // ── Days since cell ──
-    let daysSinceHtml;
-    if (daysSince === null) {
-      daysSinceHtml = '<span class="dnone">No record</span>';
-    } else if (daysSince <= 7) {
-      daysSinceHtml = `<span class="days-badge dfresh">${daysSince}d ago</span>`;
-    } else if (daysSince <= 30) {
-      daysSinceHtml = `<span class="days-badge dold">${daysSince}d ago</span>`;
-    } else {
-      daysSinceHtml = `<span class="days-badge dvery-old">${daysSince}d ago</span>`;
-    }
-
-    // ── Last month paid cell ──
-    let lastMonthHtml;
-    if (b.type === 'monthly' || b.id === 'internet_inspire') {
-      lastMonthHtml = lastMonthStr
-        ? `<span class="month-paid">${lastMonthStr}</span>`
-        : `<span class="month-na">No record</span>`;
-    } else {
-      lastMonthHtml = `<span class="month-na">N/A (prepaid)</span>`;
-    }
-
-    // ── Next due cell ──
-    let dueHtml;
-    if (!b.hasDue) {
-      dueHtml = '<span class="due-na">Balance-based</span>';
-    } else if (!due) {
-      dueHtml = '<span class="due-na">No record yet</span>';
-    } else {
-      const d = daysUntil(due);
-      const dueDateStr = due.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
-      if (d < 0) {
-        dueHtml = `<div class="due-overdue">⚠ Overdue</div><div class="due-sub">${dueDateStr} · ${Math.abs(d)}d overdue</div>`;
-      } else if (d === 0) {
-        dueHtml = `<div class="due-overdue">Due today!</div><div class="due-sub">${dueDateStr}</div>`;
-      } else if (d <= 7) {
-        dueHtml = `<div class="due-soon">Due in ${d}d</div><div class="due-sub">${dueDateStr}</div>`;
-      } else {
-        dueHtml = `<div class="due-ok">Due in ${d}d</div><div class="due-sub">${dueDateStr}</div>`;
-      }
-    }
-
-    // ── Pay button ── always reads "Pay now", routes to that bill's tab
-    const payHtml = `<button class="dash-pay-btn" onclick="switchTab('${b.id}')">
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15,3 21,3 21,9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-        Pay now
-      </button>`;
-
-    const typePillClass = b.type==='prepaid'?'prepaid':'monthly';
-
-    return `<tr>
-      <td class="dash-cell">
-        <div class="dash-bill-name">${b.name}</div>
-        <div class="dash-company">${b.company}</div>
-        <div class="dash-type-pill ${typePillClass}">${b.type}</div>
-      </td>
-      <td class="dash-cell">${daysSinceHtml}
-        ${lastEntry ? `<div style="font-size:11px;color:var(--hint);margin-top:3px">${fmtShort(lastEntry.payDate)}</div>` : ''}
-      </td>
-      <td class="dash-cell">${lastMonthHtml}</td>
-      <td class="dash-cell">${dueHtml}</td>
-      <td class="dash-cell">${payHtml}</td>
-    </tr>`;
-  }).join('');
-
-  // Summary counts for the header
-  const overdue = BILLS.filter(b => {
-    if (!b.hasDue) return false;
-    const due = getNextDue(b);
-    return due && daysUntil(due) < 0;
-  }).length;
-  const dueSoon = BILLS.filter(b => {
-    if (!b.hasDue) return false;
-    const due = getNextDue(b);
-    if (!due) return false;
-    const d = daysUntil(due);
-    return d >= 0 && d <= 7;
-  }).length;
-
-  const alertBadge = overdue > 0
-    ? `<span style="font-size:12px;font-weight:700;background:var(--danger-bg);color:var(--danger);padding:3px 10px;border-radius:20px">${overdue} overdue</span>`
-    : '';
-  const soonBadge = dueSoon > 0
-    ? `<span style="font-size:12px;font-weight:700;background:var(--warning-bg);color:var(--warning);padding:3px 10px;border-radius:20px">${dueSoon} due soon</span>`
-    : '';
-
-  panel.innerHTML = `
-<div class="dash-header">
-  <div>
-    <div class="dash-title">Dashboard</div>
-    <div class="dash-updated" style="margin-top:3px">All 7 bills at a glance · ${now.toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short',year:'numeric'})}</div>
-  </div>
-  <div style="display:flex;gap:8px;align-items:center">${alertBadge}${soonBadge}</div>
-</div>
-<div class="dash-wrap">
-  <table class="dash-table">
-    <thead>
-      <tr>
-        <th>Bill</th>
-        <th>Last payment</th>
-        <th>Last month paid</th>
-        <th>Next due</th>
-        <th>Action</th>
-      </tr>
-    </thead>
-    <tbody>${rows}</tbody>
-  </table>
-</div>`;
-}
-
-// ── BILL PANEL ────────────────────────────────────────────────
-function renderBill(b) {
-  const panel = document.getElementById('panel_'+b.id);
-  if (!panel) return;
-  const lastEntry = getLastEntry(b.id);
-  const daysSince = getDaysSince(b.id);
-  const note = NOTES[b.id] || '';
-
-  const dayHtml = daysSince === null
-    ? '<span class="dnone">No record yet</span>'
-    : daysSince <= 14
-      ? `<span class="dbadge dfresh">${daysSince}d ago</span>`
-      : `<span class="dbadge dold">${daysSince}d ago</span>`;
-
-  const lastAmt  = lastEntry ? `৳ ${parseFloat(lastEntry.amount).toLocaleString('en-IN',{minimumFractionDigits:2})}` : '—';
-  const lastDate = lastEntry ? fmt(lastEntry.payDate) : '—';
-
-  const now = new Date();
-  const monthOpts = [now.getFullYear(), now.getFullYear()-1].flatMap(yr =>
-    MONTHS.map((m,i) => `<option value="${m} ${yr}"${i===now.getMonth()&&yr===now.getFullYear()?' selected':''}>${m} ${yr}</option>`)
-  ).join('');
-
-  const needsMonth = b.type==='monthly' || b.id==='internet_inspire';
-  const monthField = needsMonth ? `
-    <div class="field"><label>Bill month</label>
-    <select id="mon_${b.id}">${monthOpts}</select></div>` : '';
-  const cols = needsMonth ? 'c3' : 'c2';
-
-  const payBtn = b.payUrl
-    ? `<a href="${b.payUrl}" class="pay-link" target="_blank" rel="noopener">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15,3 21,3 21,9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-        Pay ${b.name}
-      </a>`
-    : `<span class="pay-link" style="opacity:.5;cursor:default;pointer-events:none">🏦 ${b.payMethod}</span>`;
-
-  const logoBtn = b.logoUrl
-    ? `<a href="${b.logoUrl}" class="logo-btn" target="_blank" rel="noopener">🏢 ${b.company}</a>`
-    : `<span class="logo-btn" style="opacity:.5">🏢 ${b.company}</span>`;
-
-  const noteIndicator = note ? '<span class="note-indicator"></span>' : '';
-  const notePreview = note ? `<div style="font-size:12px;color:var(--purple);margin-bottom:1rem;font-style:italic">📝 ${note}</div>` : '';
-
-  panel.innerHTML = `
-<div class="card">
-  <div class="card-head">
-    <div>
-      <div class="card-title">${b.name}</div>
-      <div class="card-company">${b.company}</div>
-      <div class="acct-block">
-        <span class="acct-label">Account</span>
-        <span class="acct-num">${b.account}</span>
-        <button class="acct-copy" id="copy_${b.id}" onclick="copyAcct('${b.id}','${b.account}')" title="Copy">⎘</button>
+    <div class="modalBody">
+      <p class="modalDesc">Save and retrieve payments directly from your GitHub repository to access your data from anywhere.</p>
+      
+      <div class="formField">
+        <label>GitHub Personal Access Token (PAT)</label>
+        <input type="password" id="ghToken" placeholder="ghp_xxxxxxxxxxxx">
+        <span style="font-size:0.78rem; color:var(--muted); margin-top:2px; line-height:1.2;">Needs <code>repo</code> scope (classic tokens) or Contents Read/Write (fine-grained tokens).</span>
+      </div>
+      
+      <div class="formField">
+        <label>GitHub Username / Owner</label>
+        <input type="text" id="ghOwner" placeholder="e.g. Octocat">
+      </div>
+      
+      <div class="formField">
+        <label>Repository Name</label>
+        <input type="text" id="ghRepo" placeholder="e.g. billzy-data">
+        <span style="font-size:0.78rem; color:var(--muted); margin-top:2px; line-height:1.2;">The repository must exist on GitHub.</span>
+      </div>
+      
+      <div class="formField">
+        <label>File Path (in repository)</label>
+        <input type="text" id="ghPath" value="data.json" placeholder="data.json">
+      </div>
+      
+      <div class="formField">
+        <label>Branch Name</label>
+        <input type="text" id="ghBranch" value="main" placeholder="main">
       </div>
     </div>
-    <span class="pill ${b.type}">${b.type}</span>
-  </div>
-  <div class="stat-grid">
-    <div class="sbox"><div class="slabel">Days since payment</div><div class="sval">${dayHtml}</div></div>
-    <div class="sbox"><div class="slabel">Last amount</div><div class="sval acc">${lastAmt}</div></div>
-    <div class="sbox"><div class="slabel">Last pay date</div><div class="sval dim">${lastDate}</div></div>
-    <div class="sbox"><div class="slabel">Pay via</div><div class="sval dim" style="font-size:15px">${b.payMethod}</div></div>
-  </div>
-  <div class="action-row">
-    ${payBtn}${logoBtn}
-    <button class="note-btn" onclick="openNoteModal('${b.id}')">📝 Note${noteIndicator}</button>
-  </div>
-  ${notePreview}
-  <div class="form-sep">
-    <div class="form-title">Record a payment</div>
-    <div class="frow ${cols}">
-      <div class="field"><label>Amount paid (৳)</label>
-        <input type="number" id="amt_${b.id}" placeholder="0.00" step="0.01" min="0"></div>
-      <div class="field"><label>Date paid</label>
-        <input type="date" id="dt_${b.id}"></div>
-      ${monthField}
+    <div class="modalFooter">
+      <button class="testBtn" onclick="testGitHubConnection()">Test Connection</button>
+      <button class="saveModalBtn" onclick="saveGitSettings()">Save Settings</button>
     </div>
-    <button class="save-btn" id="sbtn_${b.id}" onclick="handleSave('${b.id}')">Save payment</button>
-    <div class="ok-msg"  id="ok_${b.id}">✓ Saved to GitHub</div>
-    <div class="err-msg" id="er_${b.id}"></div>
   </div>
-</div>`;
+</div>
 
-  const di = document.getElementById('dt_'+b.id);
-  if (di) di.value = new Date().toISOString().split('T')[0];
+<!-- EDIT MODAL -->
+<div id="editModal" class="modalOverlay hidden">
+  <div class="modalContent">
+    <div class="modalHeader">
+      <h3>Edit Payment Record</h3>
+      <button class="closeModalBtn" onclick="closeEditModal()">✕</button>
+    </div>
+    <div class="modalBody">
+      <div class="formField">
+        <label>Bill Name</label>
+        <input type="text" id="editBillName" disabled style="opacity: 0.7; background: rgba(255,255,255,0.05);">
+      </div>
+      
+      <div class="formField">
+        <label>Amount Paid (৳)</label>
+        <input type="number" id="editAmount" placeholder="Enter amount...">
+      </div>
+      
+      <div class="formField">
+        <label>Date Paid</label>
+        <input type="date" id="editDate" onclick="try { this.showPicker(); } catch(e) {}" style="cursor:pointer;">
+      </div>
+      
+      <div id="editMonthContainer" class="formField hidden">
+        <label>Bill Month</label>
+        <select id="editMonth" style="width:100%; height:44px; background:#0b1730; color:white; border:1px solid var(--border); border-radius:12px; padding:0 10px; font-size:.95rem;">
+        </select>
+      </div>
+    </div>
+    <div class="modalFooter">
+      <button class="testBtn" onclick="closeEditModal()" style="color:var(--muted);">Cancel</button>
+      <button class="saveModalBtn" onclick="saveEditedRecord()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- LANDING PAGE -->
+
+<section id="landingPage" class="page">
+
+<div class="container">
+
+<button class="settingsBtn" onclick="openSettingsModal()" title="GitHub Settings">⚙</button>
+
+<div class="logo">BILLZY</div>
+<div class="glow"></div>
+
+<div class="heroGrid">
+
+<div class="heroCard" onclick="openDashboard()">
+<div class="heroIcon">▦</div>
+<div class="heroTitle">Dashboard</div>
+</div>
+
+<div class="heroCard" onclick="openStats()">
+  <div class="heroIcon">▥</div>
+  <div class="heroTitle">Stats</div>
+</div>
+
+<div class="heroCard" onclick="openDatabase()">
+  <div class="heroIcon">🗄</div>
+  <div class="heroTitle">Database</div>
+</div>
+
+</div>
+
+<div class="billGrid">
+
+<div class="billCard" onclick="openPage('rupnagarDesco')">
+<div class="billIcon">⚡</div>
+
+<div class="billName">
+Rupnagar<br>DESCO
+</div>
+
+<div class="billStatus">
+Last Paid 2000
+<div class="billSub">24 Days Ago</div>
+</div>
+</div>
+
+<div class="billCard" onclick="openPage('rupnagarGas')">
+<div class="billIcon">🔥</div>
+
+<div class="billName">
+Rupnagar<br>Gas
+</div>
+
+<div class="billStatus">
+Last Paid 2014
+<div class="billSub">5 Days Ago</div>
+</div>
+</div>
+
+<div class="billCard" onclick="openPage('uttaraDesco')">
+<div class="billIcon">🗼</div>
+
+<div class="billName">
+Uttara<br>DESCO
+</div>
+
+<div class="billStatus">
+Next Due in 15 Days
+</div>
+</div>
+
+<div class="billCard" onclick="openPage('uttaraWater')">
+<div class="billIcon">💧</div>
+
+<div class="billName">
+Uttara<br>Water
+</div>
+
+<div class="billStatus">
+Next Due in 15 Days
+</div>
+</div>
+
+<div class="billCard" onclick="openPage('matuailGas')">
+<div class="billIcon">🔥</div>
+
+<div class="billName">
+Matuail<br>Gas
+</div>
+
+<div class="billStatus">
+Next Due in 30 Days
+</div>
+</div>
+
+<div class="billCard" onclick="openPage('noakhaliPalli')">
+<div class="billIcon">⚡</div>
+
+<div class="billName">
+Noakhali<br>Palli
+</div>
+
+<div class="billStatus">
+Next Due in 30 Days
+</div>
+</div>
+
+<div class="billCard" onclick="openPage('inspireBroadband')">
+<div class="billIcon">📶</div>
+
+<div class="billName">
+Inspire<br>Broadband
+</div>
+
+<div class="billStatus">
+Next Due in 30 Days
+</div>
+</div>
+
+</div>
+
+</div>
+
+</section>
+
+<script>
+
+function openPage(id){
+
+document.getElementById('landingPage').classList.add('hidden');
+
+const pages=document.querySelectorAll('.billPage,.dashboardPage,.databasePage,.statsPage');
+
+pages.forEach(page=>{
+page.classList.add('hidden');
+});
+
+document.getElementById(id).classList.remove('hidden');
+
 }
 
-// ── NOTE MODAL ────────────────────────────────────────────────
-function openNoteModal(billId) {
-  noteModalBillId = billId;
-  const b = BILLS.find(x=>x.id===billId);
-  document.getElementById('note-modal-bill-name').textContent = b.name;
-  document.getElementById('note-modal-text').value = NOTES[billId]||'';
-  document.getElementById('note-overlay').classList.add('open');
-  setTimeout(()=>document.getElementById('note-modal-text').focus(),50);
-}
-function closeNoteModal(e) {
-  if (e && e.target!==document.getElementById('note-overlay')) return;
-  document.getElementById('note-overlay').classList.remove('open');
-  noteModalBillId = null;
-}
-function saveNote() {
-  if (!noteModalBillId) return;
-  const text = document.getElementById('note-modal-text').value.trim();
-  if (text) NOTES[noteModalBillId]=text; else delete NOTES[noteModalBillId];
-  localStorage.setItem('bt_notes',JSON.stringify(NOTES));
-  document.getElementById('note-overlay').classList.remove('open');
-  const b = BILLS.find(x=>x.id===noteModalBillId);
-  noteModalBillId = null;
-  if (b) renderBill(b);
+function goHome(){
+
+const pages=document.querySelectorAll('.billPage,.dashboardPage,.databasePage,.statsPage');
+
+pages.forEach(page=>{
+page.classList.add('hidden');
+});
+
+document.getElementById('landingPage').classList.remove('hidden');
+
 }
 
-// ── SAVE PAYMENT ──────────────────────────────────────────────
-async function handleSave(billId) {
-  const b     = BILLS.find(x=>x.id===billId);
-  const amtEl = document.getElementById('amt_'+billId);
-  const dtEl  = document.getElementById('dt_'+billId);
-  const monEl = document.getElementById('mon_'+billId);
-  const btn   = document.getElementById('sbtn_'+billId);
-  const okMsg = document.getElementById('ok_'+billId);
-  const erMsg = document.getElementById('er_'+billId);
+function openDashboard(){
 
-  const amount    = parseFloat(amtEl.value);
-  const payDate   = dtEl.value;
-  const billMonth = monEl ? monEl.value : null;
+document.getElementById('landingPage').classList.add('hidden');
 
-  if (!amount||amount<=0){amtEl.focus();return;}
-  if (!payDate){dtEl.focus();return;}
-  if (!GH.owner){alert('Please connect to GitHub first.');return;}
+const pages=document.querySelectorAll('.billPage,.dashboardPage,.databasePage,.statsPage');
 
-  btn.disabled=true; btn.innerHTML='<span class="spin-ring"></span> Saving…';
-  okMsg.style.display='none'; erMsg.style.display='none';
+pages.forEach(page=>{
+page.classList.add('hidden');
+});
 
-  const row = {
-    uid:       Date.now().toString(36)+Math.random().toString(36).slice(2,6),
-    billId:    b.id, billName:b.name, billType:b.type,
-    billMonth: billMonth||'',
-    amount:    amount.toFixed(2), payDate,
-    savedAt:   new Date().toISOString()
-  };
+document.getElementById('dashboardPage').classList.remove('hidden');
 
+}
+
+function openDatabase(){
+
+document.getElementById('landingPage').classList.add('hidden');
+
+const pages=document.querySelectorAll('.billPage,.dashboardPage,.databasePage,.statsPage');
+
+pages.forEach(page=>{
+page.classList.add('hidden');
+});
+
+document.getElementById('databasePage').classList.remove('hidden');
+
+}
+
+function openStats(){
+
+document.getElementById('landingPage').classList.add('hidden');
+
+const pages=document.querySelectorAll(
+'.billPage,.dashboardPage,.databasePage,.statsPage'
+);
+
+pages.forEach(page=>{
+page.classList.add('hidden');
+});
+
+document.getElementById('statsPage').classList.remove('hidden');
+
+}
+
+const billPages = [
+
+{
+id:'rupnagarDesco',
+icon:'⚡',
+name:'Rupnagar<br>DESCO',
+account:'140-10-368',
+type:'Prepaid',
+portal:'Open DESCO Portal ↗',
+stats:[
+['Days Since Payment','10 Days Ago','red'],
+['Last Amount','৳ 1,515','green mono'],
+['Last pay date','23 Jun 2026',''],
+['Pay via','Bkash/Bank','']
+],
+form:'prepaid'
+},
+
+{
+id:'rupnagarGas',
+icon:'🔥',
+name:'Rupnagar<br>Gas',
+account:'110-407-082-016',
+type:'Prepaid',
+portal:'Open Gas Portal ↗',
+stats:[
+['Days Since Payment','5 Days Ago','red'],
+['Last Amount','৳ 2,014','green mono'],
+['Last pay date','27 Jun 2026',''],
+['Pay via','Bkash/Nagad','']
+],
+form:'prepaid'
+},
+
+{
+id:'uttaraDesco',
+icon:'🗼',
+name:'Uttara<br>DESCO',
+account:'250-38-654',
+type:'Prepaid',
+portal:'Open DESCO Portal ↗',
+stats:[
+['Days Since Payment','14 Days Ago','red'],
+['Last Amount','৳ 2,340','green mono'],
+['Last pay date','18 Jun 2026',''],
+['Pay via','Bank/Card','']
+],
+form:'prepaid'
+},
+
+{
+id:'uttaraWater',
+icon:'💧',
+name:'Uttara<br>Water',
+account:'901-798-991',
+type:'Postpaid',
+portal:'Open Wasa Portal ↗',
+stats:[
+['Next Bill Due in','8 Days','red'],
+['Last Amount','৳ 1,515','green mono'],
+['Last pay date','23 Jun 2026',''],
+['Last Payment Made for','June 26','']
+],
+form:'postpaid'
+},
+
+{
+id:'matuailGas',
+icon:'🔥',
+name:'Matuail<br>Gas',
+account:'108-26-719',
+type:'Postpaid',
+portal:'Open Gas Portal ↗',
+stats:[
+['Next Bill Due in','30 Days','red'],
+['Last Amount','৳ 2,650','green mono'],
+['Last pay date','01 Jun 2026',''],
+['Last Payment Made for','June 26','']
+],
+form:'postpaid'
+},
+
+{
+id:'noakhaliPalli',
+icon:'⚡',
+name:'Noakhali<br>Palli',
+account:'103-102-312-7100',
+type:'Postpaid',
+portal:'Open Palli Bidyut Portal ↗',
+stats:[
+['Next Bill Due in','30 Days','red'],
+['Last Amount','৳ 3,120','green mono'],
+['Last pay date','05 Jun 2026',''],
+['Last Payment Made for','June 26','']
+],
+form:'postpaid'
+},
+
+{
+id:'inspireBroadband',
+icon:'📶',
+name:'Inspire<br>Broadband',
+account:'rpmehedi6',
+type:'Prepaid',
+portal:'Open Inspire Portal ↗',
+stats:[
+['Days Since Payment','2 Days Ago','red'],
+['Last Amount','৳ 1,200','green mono'],
+['Last pay date','30 Jun 2026',''],
+['Pay via','Bkash/Card','']
+],
+form:'prepaid'
+}
+
+];
+
+let paymentsData = [];
+let githubFileSha = '';
+
+// Load GitHub settings from localStorage
+function getGHSettings() {
+  const token = localStorage.getItem('billzy_gh_token');
+  const owner = localStorage.getItem('billzy_gh_owner');
+  const repo = localStorage.getItem('billzy_gh_repo');
+  const path = localStorage.getItem('billzy_gh_path') || 'data.json';
+  const branch = localStorage.getItem('billzy_gh_branch') || 'main';
+  
+  if (token && owner && repo) {
+    return { token, owner, repo, path, branch };
+  }
+  return null;
+}
+
+// Fetch payments from GitHub or local source
+async function fetchPayments() {
+  const gh = getGHSettings();
+  if (gh) {
+    const url = `https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/${gh.path}?ref=${gh.branch}`;
+    try {
+      const res = await fetch(url, {
+        headers: {
+          'Authorization': `token ${gh.token}`,
+          'Accept': 'application/vnd.github.v3+json'
+        }
+      });
+      if (res.status === 404) {
+        console.log('data.json not found on GitHub yet. Starting with empty/fallback data.');
+        githubFileSha = '';
+        await fetchLocalFallback();
+      } else {
+        if (!res.ok) {
+          throw new Error(`GitHub returned status ${res.status}`);
+        }
+        const data = await res.json();
+        githubFileSha = data.sha;
+        const decodedContent = decodeURIComponent(escape(atob(data.content.replace(/\s/g, ''))));
+        paymentsData = JSON.parse(decodedContent);
+        console.log('Loaded payments from GitHub successfully:', paymentsData.length);
+      }
+    } catch (err) {
+      console.error('Error fetching from GitHub, falling back to localStorage/mock:', err);
+      alert(`Failed to connect to GitHub: ${err.message}\n\nUsing offline data. Please check your settings.`);
+      await fetchLocalFallback();
+    }
+  } else {
+    await fetchLocalFallback();
+  }
+  
+  // Hydrate all pages with the loaded paymentsData
+  hydrateAllPages();
+}
+
+async function fetchLocalFallback() {
   try {
-    DB.push(row);
-    await saveData();
-    amtEl.value='';
-    okMsg.style.display='block';
-    setTimeout(()=>okMsg.style.display='none',3000);
-    setSyncStatus('ok','Saved · '+new Date().toLocaleTimeString());
-    renderBill(b);
-  } catch(e) {
-    DB.pop();
-    erMsg.textContent='Failed: '+e.message;
-    erMsg.style.display='block';
-    setTimeout(()=>erMsg.style.display='none',5000);
-    setSyncStatus('err','Save failed');
-    console.error(e);
-    btn.disabled=false; btn.textContent='Save payment';
+    const res = await fetch('./data.json');
+    if (res.ok) {
+      paymentsData = await res.json();
+    } else {
+      paymentsData = [];
+    }
+  } catch (err) {
+    paymentsData = [];
+  }
+  
+  // Merge any payments from localStorage
+  const localSaved = localStorage.getItem('billzy_local_payments');
+  if (localSaved) {
+    const localList = JSON.parse(localSaved);
+    // Merge only if UIDs are unique
+    localList.forEach(p => {
+      if (!paymentsData.some(item => item.uid === p.uid)) {
+        paymentsData.push(p);
+      }
+    });
   }
 }
 
-// ── DATABASE ──────────────────────────────────────────────────
-function renderDB() {
-  const panel = document.getElementById('panel___db__');
-  if (!panel) return;
-  const fBill = panel.querySelector('#dbf-bill')?.value||'';
-  const fType = panel.querySelector('#dbf-type')?.value||'';
-  const fSrch = panel.querySelector('#dbf-srch')?.value||'';
-
-  let rows = [...DB].sort((a,b)=>new Date(b.payDate)-new Date(a.payDate));
-  if (fBill) rows=rows.filter(r=>r.billId===fBill);
-  if (fType) rows=rows.filter(r=>r.billType===fType);
-  if (fSrch){const q=fSrch.toLowerCase();rows=rows.filter(r=>r.billName.toLowerCase().includes(q)||(r.billMonth||'').toLowerCase().includes(q));}
-  const total = rows.reduce((s,r)=>s+parseFloat(r.amount||0),0);
-
-  panel.innerHTML = `
-<div class="db-top">
-  <span class="db-title">Payment history</span>
-  <div style="display:flex;gap:8px">
-    <button class="icon-btn" onclick="loadData()">↻ Refresh</button>
-    <button class="icon-btn" onclick="exportCSV()">↓ Export CSV</button>
-  </div>
-</div>
-<div class="db-ctrls">
-  <input id="dbf-srch" placeholder="Search…" value="${fSrch}" oninput="renderDB()">
-  <select id="dbf-bill" onchange="renderDB()">
-    <option value="">All bills</option>
-    ${BILLS.map(b=>`<option value="${b.id}"${fBill===b.id?' selected':''}>${b.name}</option>`).join('')}
-  </select>
-  <select id="dbf-type" onchange="renderDB()">
-    <option value="">All types</option>
-    <option value="prepaid"${fType==='prepaid'?' selected':''}>Prepaid</option>
-    <option value="monthly"${fType==='monthly'?' selected':''}>Monthly</option>
-  </select>
-  <span class="db-meta">${rows.length} record${rows.length!==1?'s':''} &nbsp;·&nbsp; ৳ ${total.toLocaleString('en-IN',{minimumFractionDigits:2})} total</span>
-</div>
-${rows.length===0?`<div class="empty">No payments recorded yet</div>`:`
-<div class="tbl-wrap"><table>
-<thead><tr><th>#</th><th>Bill</th><th>Type</th><th>Month / Period</th><th>Amount (৳)</th><th>Date paid</th><th>Days ago</th><th></th></tr></thead>
-<tbody>
-${rows.map((r,i)=>{
-  const days=Math.floor((Date.now()-new Date(r.payDate))/86400000);
-  return`<tr>
-  <td style="color:var(--hint);font-size:12px">${rows.length-i}</td>
-  <td style="font-weight:700">${r.billName}</td>
-  <td><span class="pill ${r.billType}">${r.billType}</span></td>
-  <td style="color:var(--muted)">${r.billMonth||'—'}</td>
-  <td class="amt-cell">৳ ${parseFloat(r.amount).toLocaleString('en-IN',{minimumFractionDigits:2})}</td>
-  <td>${fmt(r.payDate)}</td>
-  <td style="color:var(--hint)">${days===0?'Today':days+'d'}</td>
-  <td><button class="del-btn" onclick="handleDelete('${r.uid}')" title="Delete">✕</button></td>
-</tr>`;}).join('')}
-</tbody></table></div>`}`;
-}
-
-async function handleDelete(uid) {
-  if (!confirm('Delete this payment record?')) return;
-  const prev=[...DB]; DB=DB.filter(r=>r.uid!==uid);
-  setSyncStatus('spin','Deleting…');
-  try { await saveData(); setSyncStatus('ok','Deleted · '+new Date().toLocaleTimeString()); renderDB(); }
-  catch(e){ DB=prev; setSyncStatus('err','Delete failed'); alert('Failed: '+e.message); }
-}
-
-function exportCSV() {
-  if (!DB.length) return;
-  const hdr=['#','Bill','Type','Month/Period','Amount (BDT)','Date Paid','Saved At'];
-  const rows=DB.map((r,i)=>[i+1,r.billName,r.billType,r.billMonth||'',r.amount,r.payDate,r.savedAt]);
-  const csv=[hdr,...rows].map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
-  const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'})),download:`bill_payments_${new Date().toISOString().split('T')[0]}.csv`});
-  a.click();
-}
-
-// ── STATS ─────────────────────────────────────────────────────
-function renderStats() {
-  const panel = document.getElementById('panel___stats__');
-  if (!panel) return;
-  if (!DB.length) { panel.innerHTML=`<div class="stats-page-title">Stats</div><div class="empty">No payment data yet.</div>`; return; }
-  const now=new Date(); const thisYear=now.getFullYear();
-  const totalSpend  = DB.reduce((s,r)=>s+parseFloat(r.amount||0),0);
-  const ytdSpend    = DB.filter(r=>new Date(r.payDate).getFullYear()===thisYear).reduce((s,r)=>s+parseFloat(r.amount||0),0);
-  const avgPayment  = totalSpend/DB.length;
-  const maxEntry    = DB.reduce((a,b)=>parseFloat(a.amount)>parseFloat(b.amount)?a:b,DB[0]);
-  const spendByBill = BILLS.map(b=>({name:b.name,total:DB.filter(r=>r.billId===b.id).reduce((s,r)=>s+parseFloat(r.amount||0),0)})).filter(x=>x.total>0).sort((a,b)=>b.total-a.total);
-  const maxBill = spendByBill[0]?.total||1;
-  const ytdByBill = BILLS.map(b=>({name:b.name,total:DB.filter(r=>r.billId===b.id&&new Date(r.payDate).getFullYear()===thisYear).reduce((s,r)=>s+parseFloat(r.amount||0),0)})).filter(x=>x.total>0).sort((a,b)=>b.total-a.total);
-  const maxYtd = ytdByBill[0]?.total||1;
-  const monthTotals=[];
-  for(let i=11;i>=0;i--){
-    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
-    const yr=d.getFullYear(),mo=d.getMonth();
-    const label=MONTHS[mo].slice(0,3)+' '+String(yr).slice(2);
-    const total=DB.filter(r=>{const pd=new Date(r.payDate);return pd.getFullYear()===yr&&pd.getMonth()===mo;}).reduce((s,r)=>s+parseFloat(r.amount||0),0);
-    monthTotals.push({label,total});
+// Save a payment
+async function savePaymentRecord(billId, amount, payDate, billMonth) {
+  const bill = billPages.find(b => b.id === billId);
+  const billName = bill ? bill.name.replace('<br>', ' ') : billId;
+  const billType = bill ? bill.type.toLowerCase() : 'prepaid';
+  
+  const newRecord = {
+    uid: 'mr' + Math.random().toString(36).substr(2, 10),
+    billId: billId,
+    billName: billName,
+    billType: billType,
+    billMonth: billMonth || '',
+    amount: parseFloat(amount).toFixed(2),
+    payDate: payDate,
+    savedAt: new Date().toISOString()
+  };
+  
+  // Append new record
+  paymentsData.unshift(newRecord);
+  
+  const gh = getGHSettings();
+  if (gh) {
+    const url = `https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/${gh.path}`;
+    const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(paymentsData, null, 2))));
+    
+    try {
+      // Get the latest SHA before writing
+      const shaRes = await fetch(url + `?ref=${gh.branch}`, {
+        headers: {
+          'Authorization': `token ${gh.token}`,
+          'Accept': 'application/vnd.github.v3+json'
+        }
+      });
+      if (shaRes.ok) {
+        const shaData = await shaRes.json();
+        githubFileSha = shaData.sha;
+      } else {
+        githubFileSha = '';
+      }
+      
+      const res = await fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `token ${gh.token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/vnd.github.v3+json'
+        },
+        body: JSON.stringify({
+          message: `Add payment record for ${billName}`,
+          content: contentBase64,
+          ...(githubFileSha ? { sha: githubFileSha } : {}),
+          branch: gh.branch
+        })
+      });
+      
+      if (!res.ok) {
+        throw new Error(`GitHub returned status ${res.status}`);
+      }
+      console.log('Saved payment to GitHub successfully!');
+    } catch (err) {
+      console.error('Failed to save to GitHub, caching locally:', err);
+      alert('Failed to save to GitHub repository. Saving to local browser cache instead.');
+      saveToLocalStorage(newRecord);
+    }
+  } else {
+    saveToLocalStorage(newRecord);
   }
-  const maxMonth=Math.max(...monthTotals.map(m=>m.total),1);
-  const gapData=BILLS.map(b=>{
-    const entries=DB.filter(r=>r.billId===b.id).map(r=>new Date(r.payDate)).sort((a,b)=>a-b);
-    if(entries.length<2)return{name:b.name,maxGap:null,lastPaid:entries[0]||null};
-    let maxGap=0;
-    for(let i=1;i<entries.length;i++){const gap=Math.floor((entries[i]-entries[i-1])/86400000);if(gap>maxGap)maxGap=gap;}
-    return{name:b.name,maxGap,lastPaid:entries[entries.length-1]};
+  
+  // Re-hydrate
+  hydrateAllPages();
+}
+
+function saveToLocalStorage(newRecord) {
+  let localList = [];
+  const localSaved = localStorage.getItem('billzy_local_payments');
+  if (localSaved) {
+    localList = JSON.parse(localSaved);
+  }
+  localList.unshift(newRecord);
+  localStorage.setItem('billzy_local_payments', JSON.stringify(localList));
+}
+
+// Delete a payment
+async function deletePaymentRecord(uid) {
+  if (!confirm('Are you sure you want to delete this payment record?')) return;
+  
+  paymentsData = paymentsData.filter(p => p.uid !== uid);
+  
+  // Remove from localStorage if cached
+  const localSaved = localStorage.getItem('billzy_local_payments');
+  if (localSaved) {
+    let localList = JSON.parse(localSaved);
+    localList = localList.filter(p => p.uid !== uid);
+    localStorage.setItem('billzy_local_payments', JSON.stringify(localList));
+  }
+  
+  const gh = getGHSettings();
+  if (gh) {
+    const url = `https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/${gh.path}`;
+    const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(paymentsData, null, 2))));
+    
+    try {
+      const shaRes = await fetch(url + `?ref=${gh.branch}`, {
+        headers: {
+          'Authorization': `token ${gh.token}`,
+          'Accept': 'application/vnd.github.v3+json'
+        }
+      });
+      if (shaRes.ok) {
+        const shaData = await shaRes.json();
+        githubFileSha = shaData.sha;
+      } else {
+        githubFileSha = '';
+      }
+      
+      const res = await fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `token ${gh.token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/vnd.github.v3+json'
+        },
+        body: JSON.stringify({
+          message: `Delete payment record ${uid}`,
+          content: contentBase64,
+          ...(githubFileSha ? { sha: githubFileSha } : {}),
+          branch: gh.branch
+        })
+      });
+      
+      if (!res.ok) {
+        throw new Error(`GitHub returned status ${res.status}`);
+      }
+      console.log('Deleted record on GitHub successfully!');
+    } catch (err) {
+      console.error('Failed to sync deletion to GitHub:', err);
+      alert('Record deleted from browser cache. Could not sync with GitHub repository.');
+    }
+  }
+  
+  hydrateAllPages();
+}
+
+// Settings modal functions
+function openSettingsModal() {
+  document.getElementById('settingsModal').classList.remove('hidden');
+  
+  // Populate inputs
+  document.getElementById('ghToken').value = localStorage.getItem('billzy_gh_token') || '';
+  document.getElementById('ghOwner').value = localStorage.getItem('billzy_gh_owner') || '';
+  document.getElementById('ghRepo').value = localStorage.getItem('billzy_gh_repo') || '';
+  document.getElementById('ghPath').value = localStorage.getItem('billzy_gh_path') || 'data.json';
+  document.getElementById('ghBranch').value = localStorage.getItem('billzy_gh_branch') || 'main';
+}
+
+function closeSettingsModal() {
+  document.getElementById('settingsModal').classList.add('hidden');
+}
+
+function saveGitSettings() {
+  try {
+    const token = document.getElementById('ghToken').value.trim();
+    const owner = document.getElementById('ghOwner').value.trim();
+    const repo = document.getElementById('ghRepo').value.trim();
+    const path = document.getElementById('ghPath').value.trim() || 'data.json';
+    const branch = document.getElementById('ghBranch').value.trim() || 'main';
+    
+    if (token) localStorage.setItem('billzy_gh_token', token);
+    else localStorage.removeItem('billzy_gh_token');
+    
+    if (owner) localStorage.setItem('billzy_gh_owner', owner);
+    else localStorage.removeItem('billzy_gh_owner');
+    
+    if (repo) localStorage.setItem('billzy_gh_repo', repo);
+    else localStorage.removeItem('billzy_gh_repo');
+    
+    localStorage.setItem('billzy_gh_path', path);
+    localStorage.setItem('billzy_gh_branch', branch);
+    
+    closeSettingsModal();
+    fetchPayments().catch(err => {
+      console.error(err);
+    });
+  } catch (err) {
+    alert("Error saving settings: " + err.message);
+  }
+}
+
+let activeEditUid = null;
+
+function openEditModal(uid) {
+  const p = paymentsData.find(item => item.uid === uid);
+  if (!p) return;
+  
+  activeEditUid = uid;
+  document.getElementById('editBillName').value = p.billName;
+  document.getElementById('editAmount').value = parseFloat(p.amount);
+  document.getElementById('editDate').value = p.payDate;
+  
+  const monthContainer = document.getElementById('editMonthContainer');
+  const monthSelect = document.getElementById('editMonth');
+  
+  if (p.billType === 'postpaid') {
+    monthContainer.classList.remove('hidden');
+    monthSelect.innerHTML = getBillingMonthOptions().map(opt => 
+      `<option value="${opt}" ${p.billMonth === opt ? 'selected' : ''}>${opt}</option>`
+    ).join('');
+  } else {
+    monthContainer.classList.add('hidden');
+  }
+  
+  document.getElementById('editModal').classList.remove('hidden');
+}
+
+function closeEditModal() {
+  document.getElementById('editModal').classList.add('hidden');
+  activeEditUid = null;
+}
+
+async function saveEditedRecord() {
+  if (!activeEditUid) return;
+  
+  const amountVal = document.getElementById('editAmount').value.trim();
+  const dateVal = document.getElementById('editDate').value.trim();
+  const monthVal = document.getElementById('editMonth').value;
+  
+  if (!amountVal || parseFloat(amountVal) <= 0) {
+    alert('Please enter a valid amount.');
+    return;
+  }
+  if (!dateVal) {
+    alert('Please select a valid date.');
+    return;
+  }
+  
+  const recordIndex = paymentsData.findIndex(item => item.uid === activeEditUid);
+  if (recordIndex === -1) return;
+  
+  const record = paymentsData[recordIndex];
+  record.amount = parseFloat(amountVal).toFixed(2);
+  record.payDate = dateVal;
+  record.billMonth = record.billType === 'postpaid' ? monthVal : '';
+  
+  const saveBtn = document.querySelector('#editModal .saveModalBtn');
+  saveBtn.innerText = 'Saving...';
+  saveBtn.disabled = true;
+  
+  const gh = getGHSettings();
+  if (gh) {
+    const url = `https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/${gh.path}`;
+    const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(paymentsData, null, 2))));
+    
+    try {
+      // Get the latest SHA before writing
+      const shaRes = await fetch(url + `?ref=${gh.branch}`, {
+        headers: {
+          'Authorization': `token ${gh.token}`,
+          'Accept': 'application/vnd.github.v3+json'
+        }
+      });
+      if (shaRes.ok) {
+        const shaData = await shaRes.json();
+        githubFileSha = shaData.sha;
+      }
+      
+      const res = await fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `token ${gh.token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/vnd.github.v3+json'
+        },
+        body: JSON.stringify({
+          message: `Update payment record for ${record.billName}`,
+          content: contentBase64,
+          ...(githubFileSha ? { sha: githubFileSha } : {}),
+          branch: gh.branch
+        })
+      });
+      
+      if (!res.ok) {
+        throw new Error(`GitHub returned status ${res.status}`);
+      }
+      console.log('Updated payment on GitHub successfully!');
+    } catch (err) {
+      console.error('Failed to update on GitHub, caching locally:', err);
+      alert('Failed to save to GitHub repository. Saving to local browser cache instead.');
+      updateLocalStorageRecord(record);
+    }
+  } else {
+    updateLocalStorageRecord(record);
+  }
+  
+  closeEditModal();
+  saveBtn.innerText = 'Save Changes';
+  saveBtn.disabled = false;
+  
+  hydrateAllPages();
+}
+
+function updateLocalStorageRecord(record) {
+  const localSaved = localStorage.getItem('billzy_local_payments');
+  if (localSaved) {
+    let localList = JSON.parse(localSaved);
+    const idx = localList.findIndex(item => item.uid === record.uid);
+    if (idx !== -1) {
+      localList[idx] = record;
+      localStorage.setItem('billzy_local_payments', JSON.stringify(localList));
+    }
+  }
+}
+
+async function testGitHubConnection() {
+  const token = document.getElementById('ghToken').value.trim();
+  const owner = document.getElementById('ghOwner').value.trim();
+  const repo = document.getElementById('ghRepo').value.trim();
+  const path = document.getElementById('ghPath').value.trim() || 'data.json';
+  const branch = document.getElementById('ghBranch').value.trim() || 'main';
+  
+  if (!token || !owner || !repo) {
+    alert('Please fill out Token, Owner, and Repository fields.');
+    return;
+  }
+  
+  const testBtn = document.querySelector('.testBtn');
+  testBtn.innerText = 'Connecting...';
+  
+  const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
+  try {
+    const res = await fetch(url, {
+      headers: {
+        'Authorization': `token ${token}`,
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    });
+    if (res.ok) {
+      alert('Connection successful! Repository and file found.');
+    } else if (res.status === 404) {
+      alert('Repository connected successfully, but ' + path + ' was not found. Saving settings will create this file on your first transaction!');
+    } else {
+      alert(`Connection failed! GitHub returned status ${res.status}: ${res.statusText}`);
+    }
+  } catch (err) {
+    alert('Network error trying to connect to GitHub REST API.');
+  } finally {
+    testBtn.innerText = 'Test Connection';
+  }
+}
+
+// Helpers
+function getPortalUrl(billId) {
+  if (billId === 'matuailGas') return null;
+  if (billId === 'rupnagarDesco' || billId === 'uttaraDesco') return 'https://prepaid.desco.org.bd/customer/#/customer-info';
+  if (billId === 'uttaraWater') return 'https://123.49.33.108/index.php?type_name=member&page_name=acc_index&panel_index=1';
+  if (billId === 'inspireBroadband') return 'https://portal.inspire.com.bd/account';
+  if (billId.includes('Gas') || billId.includes('gas')) return 'https://www.titasgas.org.bd/';
+  if (billId.includes('Water')) return 'https://dwasa.org.bd/';
+  if (billId.includes('Palli')) return 'http://www.reb.gov.bd/';
+  return null;
+}
+
+function formatDateFriendly(dateStr) {
+  if (!dateStr) return '-';
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return dateStr;
+  const day = date.getDate();
+  const month = date.toLocaleString('default', { month: 'short' });
+  const year = date.getFullYear();
+  return `${day} ${month} ${year}`;
+}
+
+function formatDateFriendlyShort(dateStr) {
+  if (!dateStr) return '-';
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return dateStr;
+  const day = date.getDate();
+  const month = date.toLocaleString('default', { month: 'short' });
+  return `${day} ${month}`;
+}
+
+function parseBillMonth(billMonthStr) {
+  if (!billMonthStr) return null;
+  const cleanStr = billMonthStr.replace(/\s+/g, ' ').trim();
+  const parts = cleanStr.split(' ');
+  if (parts.length < 2) return null;
+  const monthName = parts[0];
+  let yearStr = parts[1];
+  if (yearStr.length === 2) {
+    yearStr = '20' + yearStr;
+  }
+  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const monthIndex = monthNames.findIndex(m => m.toLowerCase().startsWith(monthName.toLowerCase()));
+  if (monthIndex === -1) return null;
+  return new Date(parseInt(yearStr), monthIndex, 1);
+}
+
+function getBillingMonthOptions() {
+  const options = [];
+  const now = new Date();
+  for (let i = -3; i <= 3; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+    const monthStr = d.toLocaleString('default', { month: 'long' });
+    const yearStr = d.getFullYear();
+    options.push(`${monthStr} ${yearStr}`);
+  }
+  return options;
+}
+
+// Rendering UI dynamically
+function renderBillPages() {
+  document.querySelectorAll('.billPage').forEach(el => el.remove());
+  
+  const localDate = new Date();
+  const offset = localDate.getTimezoneOffset();
+  const localISODate = new Date(localDate.getTime() - (offset * 60 * 1000)).toISOString().split('T')[0];
+  
+  billPages.forEach(bill => {
+    const billPayments = paymentsData.filter(p => p.billId === bill.id);
+    const lastPayment = billPayments[0];
+    
+    let stats = [];
+    if (bill.type === 'Prepaid') {
+      const lastAmountText = lastPayment ? `৳ ${parseFloat(lastPayment.amount).toLocaleString()}` : '-';
+      const lastDateText = lastPayment ? formatDateFriendly(lastPayment.payDate) : '-';
+      
+      let elapsedText = '-';
+      let elapsedClass = '';
+      if (lastPayment) {
+        const days = Math.floor((new Date() - new Date(lastPayment.payDate)) / (1000 * 60 * 60 * 24));
+        elapsedText = `${days} Days Ago`;
+        if (days > 25) elapsedClass = 'red';
+      }
+      
+      stats = [
+        ['Days Since Payment', elapsedText, elapsedClass],
+        ['Last Amount', lastAmountText, 'green mono'],
+        ['Last pay date', lastDateText, ''],
+        ['Pay via', bill.id === 'rupnagarDesco' || bill.id === 'uttaraDesco' ? 'Bkash/Bank' : 'Bkash/Nagad', '']
+      ];
+    } else { // Postpaid
+      let nextDueText = '-';
+      let nextDueClass = '';
+      
+      let dueDay = 15;
+      if (bill.id === 'uttaraWater') dueDay = 1;
+      if (bill.id === 'matuailGas') dueDay = 27;
+      if (bill.id === 'noakhaliPalli') dueDay = 3;
+      
+      const now = new Date();
+      const nextDue = new Date(now.getFullYear(), now.getMonth(), dueDay);
+      const currentMonthStr = nextDue.toLocaleString('default', { month: 'long' }) + ' ' + String(nextDue.getFullYear()).substr(-2);
+      const isPaidForCurrentMonth = billPayments.some(p => p.billMonth.toLowerCase() === currentMonthStr.toLowerCase() || p.billMonth.toLowerCase().includes(nextDue.toLocaleString('default', { month: 'long' }).toLowerCase()));
+      
+      if (isPaidForCurrentMonth) {
+        nextDue.setMonth(nextDue.getMonth() + 1);
+        nextDueText = formatDateFriendly(nextDue.toISOString().split('T')[0]);
+      } else {
+        const diffTime = nextDue - now;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        if (diffDays < 0) {
+          nextDueText = `Overdue by ${Math.abs(diffDays)} days`;
+          nextDueClass = 'red';
+        } else {
+          nextDueText = `In ${diffDays} days`;
+          nextDueClass = diffDays <= 5 ? 'red' : 'warning';
+        }
+      }
+      
+      const lastAmountText = lastPayment ? `৳ ${parseFloat(lastPayment.amount).toLocaleString()}` : '-';
+      const lastDateText = lastPayment ? formatDateFriendly(lastPayment.payDate) : '-';
+      const lastMonthText = lastPayment && lastPayment.billMonth ? lastPayment.billMonth : '-';
+      
+      stats = [
+        ['Next Bill Due', nextDueText, nextDueClass],
+        ['Last Amount', lastAmountText, 'green mono'],
+        ['Last pay date', lastDateText, ''],
+        ['Last Payment Made for', lastMonthText, '']
+      ];
+    }
+    
+    const section = document.createElement('section');
+    section.className = 'page billPage hidden';
+    section.id = bill.id;
+    
+    const lastMonthDate = new Date(localDate.getFullYear(), localDate.getMonth() - 1, 1);
+    const lastMonthLabel = `${lastMonthDate.toLocaleString('default', { month: 'long' })} ${lastMonthDate.getFullYear()}`;
+    const billingMonthHtml = bill.form === 'postpaid' ? `
+      <div class="inputCard">
+        <div class="inputLabel">Bill Month</div>
+        <select class="inputMonthSelect" style="width:100%; height:40px; background:#0b1730; color:white; border:1px solid var(--border); border-radius:12px; padding:0 10px; font-size:1.1rem; font-weight:700;">
+          ${getBillingMonthOptions().map(opt => `<option value="${opt}" ${opt === lastMonthLabel ? 'selected' : ''}>${opt}</option>`).join('')}
+        </select>
+      </div>
+    ` : '';
+    
+    const portalUrl = getPortalUrl(bill.id);
+    const portalBtnHtml = portalUrl ? `
+      <div class="portalBtn" style="cursor:pointer;" onclick="window.open('${portalUrl}', '_blank')">
+        ${bill.portal}
+      </div>
+    ` : '';
+    
+    section.innerHTML = `
+      <div class="container">
+        <div class="logo">BILLZY</div>
+        <div class="glow"></div>
+        <div class="backBtn" onclick="goHome()">
+          ← Back to Home
+        </div>
+        <div class="topBar">
+          <div class="leftInfo">
+            <div class="bigIcon">${bill.icon}</div>
+            <div class="billTitle">${bill.name}</div>
+          </div>
+          <div class="account mono">AC NO: ${bill.account}</div>
+          <div class="billType">${bill.type}</div>
+        </div>
+        ${portalBtnHtml}
+        <div class="statsGrid">
+          ${stats.map(stat => `
+            <div class="statCard">
+              <div class="statLabel">${stat[0]}</div>
+              <div class="statValue ${stat[2]}">${stat[1]}</div>
+            </div>
+          `).join('')}
+        </div>
+        <div class="formSection">
+          <div class="sectionTitle">Record Payment</div>
+          <div class="formGrid ${bill.form}">
+            <div class="inputCard">
+              <div class="inputLabel">Amount Paid (৳)</div>
+              <input type="number" class="inputAmountVal" value="" placeholder="Enter amount..." style="width:100%; height:40px; background:transparent; border:none; color:white; font-size:1.9rem; font-weight:800; font-family:'JetBrains Mono',monospace; outline:none;">
+            </div>
+            <div class="inputCard">
+              <div class="inputLabel">Date Paid</div>
+              <input type="date" class="inputDateVal" value="${localISODate}" onclick="try { this.showPicker(); } catch(e) {}" style="width:100%; height:40px; background:transparent; border:none; color:white; font-size:1.5rem; font-weight:800; font-family:'JetBrains Mono',monospace; outline:none; cursor:pointer;">
+            </div>
+            ${billingMonthHtml}
+          </div>
+          <button class="saveBtn" onclick="submitPaymentForm('${bill.id}')">Save Payment</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(section);
   });
-
-  panel.innerHTML=`
-<div class="stats-page-title">Stats</div>
-<div class="stats-section">
-  <div class="stats-section-title">Overview</div>
-  <div class="kpi-grid">
-    <div class="kpi"><div class="kpi-label">Total spend (all time)</div><div class="kpi-val accent">৳ ${totalSpend.toLocaleString('en-IN',{minimumFractionDigits:2})}</div><div class="kpi-sub">${DB.length} payments recorded</div></div>
-    <div class="kpi"><div class="kpi-label">${thisYear} year-to-date</div><div class="kpi-val accent">৳ ${ytdSpend.toLocaleString('en-IN',{minimumFractionDigits:2})}</div><div class="kpi-sub">${DB.filter(r=>new Date(r.payDate).getFullYear()===thisYear).length} payments this year</div></div>
-    <div class="kpi"><div class="kpi-label">Average payment</div><div class="kpi-val">৳ ${avgPayment.toLocaleString('en-IN',{minimumFractionDigits:2})}</div><div class="kpi-sub">across all bills</div></div>
-    <div class="kpi"><div class="kpi-label">Largest payment</div><div class="kpi-val">৳ ${parseFloat(maxEntry.amount).toLocaleString('en-IN',{minimumFractionDigits:2})}</div><div class="kpi-sub">${maxEntry.billName} · ${fmt(maxEntry.payDate)}</div></div>
-  </div>
-</div>
-<div class="stats-section">
-  <div class="stats-section-title">Total spend per bill (all time)</div>
-  <div class="bar-chart">${spendByBill.map(b=>`<div class="bar-row"><div class="bar-name">${b.name}</div><div class="bar-track"><div class="bar-fill" style="width:${(b.total/maxBill*100).toFixed(1)}%"></div></div><div class="bar-amt">৳ ${b.total.toLocaleString('en-IN',{minimumFractionDigits:2})}</div></div>`).join('')}</div>
-</div>
-<div class="stats-section">
-  <div class="stats-section-title">${thisYear} year-to-date by bill</div>
-  <div class="bar-chart">${ytdByBill.length?ytdByBill.map(b=>`<div class="bar-row"><div class="bar-name">${b.name}</div><div class="bar-track"><div class="bar-fill" style="width:${(b.total/maxYtd*100).toFixed(1)}%;background:var(--success)"></div></div><div class="bar-amt" style="color:var(--success)">৳ ${b.total.toLocaleString('en-IN',{minimumFractionDigits:2})}</div></div>`).join(''):'<div style="color:var(--hint);font-size:13px">No payments this year yet</div>'}</div>
-</div>
-<div class="stats-section">
-  <div class="stats-section-title">Monthly spend — last 12 months</div>
-  <div class="month-chart"><div class="month-chart-inner">
-    ${monthTotals.map(m=>`<div class="mc-col"><div class="mc-amt">${m.total>0?'৳'+Math.round(m.total/1000)+'k':''}</div><div class="mc-bar-wrap"><div class="mc-bar" style="height:${m.total>0?(m.total/maxMonth*100).toFixed(1):0}%"></div></div><div class="mc-label">${m.label}</div></div>`).join('')}
-  </div></div>
-</div>
-<div class="stats-section">
-  <div class="stats-section-title">Longest gap without payment (per bill)</div>
-  <div class="tbl-wrap"><table class="gap-table">
-    <thead><tr><th>Bill</th><th>Longest gap</th><th>Last paid</th></tr></thead>
-    <tbody>${gapData.map(g=>`<tr><td style="font-weight:700">${g.name}</td><td>${g.maxGap===null?'<span style="color:var(--hint)">Not enough data</span>':`<span class="${g.maxGap>60?'gap-big':'gap-ok'}">${g.maxGap}d</span>`}</td><td style="color:var(--muted)">${g.lastPaid?fmt(g.lastPaid):'—'}</td></tr>`).join('')}</tbody>
-  </table></div>
-</div>`;
 }
+
+function renderLandingPageCards() {
+  const grid = document.querySelector('.billGrid');
+  if (!grid) return;
+  
+  grid.innerHTML = '';
+  
+  function getDaysColor(days) {
+    if (days < 5) return '#63ff68';      // Very green
+    if (days < 10) return '#a3ff63';     // Bit green
+    if (days < 18) return '#ffe663';     // Yellowish green / Yellow
+    if (days < 25) return '#ff9f63';     // Orange
+    return '#ff6368';                    // Red (reddest at 30 days)
+  }
+  
+  
+  
+  billPages.forEach(bill => {
+    const billPayments = paymentsData.filter(p => p.billId === bill.id);
+    const lastPayment = billPayments[0];
+    
+    let statusHtml = '';
+    if (lastPayment) {
+      if (bill.id === 'noakhaliPalli' || bill.id === 'uttaraWater' || bill.id === 'matuailGas') {
+        let subText = `Paid for ${lastPayment.billMonth || 'N/A'}`;
+        let subColor = '#7ee787'; // Green
+        
+        const paidMonthDate = parseBillMonth(lastPayment.billMonth);
+        if (paidMonthDate) {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          
+          // Next unpaid month becomes overdue on the 1st of the month after it
+          // e.g. paid June -> unpaid July -> overdue August 1st
+          const overdueDate = new Date(paidMonthDate.getFullYear(), paidMonthDate.getMonth() + 2, 1);
+          
+          if (today >= overdueDate) {
+            const diffTime = today - overdueDate;
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            const overdueDays = diffDays + 1;
+            subText = `Paid for ${lastPayment.billMonth} • Overdue ${overdueDays}d`;
+            subColor = '#ff6368'; // Red
+          }
+        }
+        
+        statusHtml = `
+          Last Paid <span style="color:#63ff68; font-weight:700;">৳ ${parseInt(lastPayment.amount).toLocaleString()}</span>
+          <div class="billSub" style="color:${subColor}; font-weight:600; margin-top: 4px;">${subText}</div>
+        `;
+      } else if (bill.id === 'inspireBroadband') {
+        const payDateObj = new Date(lastPayment.payDate);
+        const expiryDate = new Date(payDateObj.getFullYear(), payDateObj.getMonth(), payDateObj.getDate() + 30);
+        
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        expiryDate.setHours(0, 0, 0, 0);
+        
+        const diffTime = expiryDate - today;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        let subText = '';
+        let subColor = '';
+        if (diffDays < 0) {
+          subText = `Overdue by ${Math.abs(diffDays)} Days`;
+          subColor = '#ff6368'; // Red
+        } else {
+          subText = `Next Due in ${diffDays} Days`;
+          subColor = diffDays <= 5 ? '#ffe663' : '#7ee787'; // Yellow or Green
+        }
+        
+        statusHtml = `
+          Last Paid <span style="color:#63ff68; font-weight:700;">৳ ${parseInt(lastPayment.amount).toLocaleString()}</span>
+          <div class="billSub" style="color:${subColor}; font-weight:600; margin-top: 4px;">${subText}</div>
+        `;
+      } else {
+        const days = Math.floor((new Date() - new Date(lastPayment.payDate)) / (1000 * 60 * 60 * 24));
+        statusHtml = `
+          Last Paid <span style="color:#63ff68; font-weight:700;">৳ ${parseInt(lastPayment.amount).toLocaleString()}</span>
+          <div class="billSub" style="color:${getDaysColor(days)}; font-weight:600; margin-top: 4px;">${days === 0 ? 'Today' : `${days} Days Ago`}</div>
+        `;
+      }
+    } else {
+      statusHtml = `
+        No Payments Record
+        <div class="billSub" style="color:var(--muted); margin-top: 4px;">-</div>
+      `;
+    }
+    
+    const card = document.createElement('div');
+    card.className = 'billCard';
+    card.onclick = () => openPage(bill.id);
+    card.innerHTML = `
+      <div class="billIcon">${bill.icon}</div>
+      <div class="billName">${bill.name}</div>
+      <div class="billStatus">${statusHtml}</div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function renderDashboardPage() {
+  const table = document.querySelector('.dashboardTable');
+  if (!table) return;
+  
+  const headerHtml = `
+    <div class="tableHeader">
+      <div>Bill</div>
+      <div>Type</div>
+      <div>Last Payment</div>
+      <div>Next Due</div>
+      <div>Status</div>
+      <div>Action</div>
+    </div>
+  `;
+  
+  let rowsHtml = '';
+  let overdueCount = 0;
+  let dueSoonCount = 0;
+  
+  const now = new Date();
+  
+  billPages.forEach(bill => {
+    const billPayments = paymentsData.filter(p => p.billId === bill.id);
+    const lastPayment = billPayments[0];
+    
+    let lastPayTop = 'Never';
+    let lastPaySub = '-';
+    let lastPayClass = 'mutedText';
+    
+    if (lastPayment) {
+      const days = Math.floor((now - new Date(lastPayment.payDate)) / (1000 * 60 * 60 * 24));
+      lastPayTop = days === 0 ? 'Today' : `${days} days ago`;
+      lastPaySub = formatDateFriendlyShort(lastPayment.payDate);
+      
+      if (days <= 5) lastPayClass = 'successText';
+      else if (days <= 15) lastPayClass = 'warningText';
+      else lastPayClass = 'dangerText';
+    }
+    
+    let nextDueTop = '-';
+    let nextDueSub = '';
+    let nextDueClass = '';
+    let statusText = 'Upcoming';
+    let statusClass = 'statusUpcoming';
+    
+    if (bill.type === 'Prepaid') {
+      if (bill.id === 'rupnagarGas' || bill.id === 'uttaraDesco' || bill.id === 'rupnagarDesco') {
+        nextDueTop = 'Balance-based';
+        statusText = 'Balance-based';
+        statusClass = 'statusBalance';
+      } else {
+        if (lastPayment) {
+          const nextDueDate = new Date(lastPayment.payDate);
+          nextDueDate.setDate(nextDueDate.getDate() + 30);
+          
+          const diffTime = nextDueDate - now;
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          
+          nextDueTop = formatDateFriendly(nextDueDate.toISOString().split('T')[0]);
+          if (diffDays < 0) {
+            nextDueSub = `Overdue by ${Math.abs(diffDays)} days`;
+            nextDueClass = 'dangerText';
+            statusText = 'Overdue';
+            statusClass = 'statusOverdue';
+            overdueCount++;
+          } else if (diffDays <= 5) {
+            nextDueSub = `In ${diffDays} days`;
+            nextDueClass = 'warningText';
+            statusText = 'Due soon';
+            statusClass = 'statusSoon';
+            dueSoonCount++;
+          } else {
+            nextDueSub = `In ${diffDays} days`;
+            nextDueClass = 'successText';
+            statusText = 'Upcoming';
+            statusClass = 'statusUpcoming';
+          }
+        } else {
+          nextDueTop = 'Immediate';
+          statusText = 'Overdue';
+          statusClass = 'statusOverdue';
+          overdueCount++;
+        }
+      }
+    } else { // Postpaid
+      if (lastPayment) {
+        const paidMonthDate = parseBillMonth(lastPayment.billMonth);
+        if (paidMonthDate) {
+          // Next unpaid month becomes overdue on the 1st of the month after next
+          // e.g. paid June -> overdue August 1st
+          const nextDueDate = new Date(paidMonthDate.getFullYear(), paidMonthDate.getMonth() + 2, 1);
+          
+          nextDueTop = formatDateFriendly(nextDueDate.toISOString().split('T')[0]);
+          
+          const diffTime = nextDueDate - now;
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          
+          if (diffDays < 0) {
+            nextDueSub = `Overdue by ${Math.abs(diffDays)} days`;
+            nextDueClass = 'dangerText';
+            statusText = 'Overdue';
+            statusClass = 'statusOverdue';
+            overdueCount++;
+          } else if (diffDays <= 5) {
+            nextDueSub = `In ${diffDays} days`;
+            nextDueClass = 'warningText';
+            statusText = 'Due soon';
+            statusClass = 'statusSoon';
+            dueSoonCount++;
+          } else {
+            nextDueSub = `In ${diffDays} days`;
+            nextDueClass = 'successText';
+            statusText = 'Upcoming';
+            statusClass = 'statusUpcoming';
+          }
+        } else {
+          nextDueTop = 'Immediate';
+          statusText = 'Overdue';
+          statusClass = 'statusOverdue';
+          overdueCount++;
+        }
+      } else {
+        nextDueTop = 'Immediate';
+        statusText = 'Overdue';
+        statusClass = 'statusOverdue';
+        overdueCount++;
+      }
+    }
+    
+    const company = bill.id.includes('Desco') || bill.id.includes('desco') ? 'DESCO' :
+                    bill.id.includes('Gas') || bill.id.includes('gas') ? 'Gas Utility' :
+                    bill.id.includes('Water') ? 'WASA' :
+                    bill.id.includes('Palli') ? 'Palli Bidyut' : 'Inspire';
+    
+    rowsHtml += `
+      <div class="tableRow">
+        <div class="billCell">
+          <div class="billMiniIcon">${bill.icon}</div>
+          <div>
+            <div class="billMain">${bill.name.replace('<br>', ' ')}</div>
+            <div class="billCompany">${company}</div>
+          </div>
+        </div>
+        <div>
+          <div class="typePill ${bill.type === 'Prepaid' ? 'typePrepaid' : 'typePostpaid'}">
+            ${bill.type}
+          </div>
+        </div>
+        <div class="paymentInfo">
+          <div class="paymentTop ${lastPayClass}">${lastPayTop}</div>
+          <div class="paymentSub">${lastPaySub}</div>
+        </div>
+        <div class="paymentInfo">
+          <div class="paymentTop ${nextDueClass}">${nextDueTop}</div>
+          <div class="paymentSub">${nextDueSub}</div>
+        </div>
+        <div>
+          <div class="statusPill ${statusClass}">${statusText}</div>
+        </div>
+        <div>
+          <button class="payBtn" onclick="openPage('${bill.id}')">Pay now</button>
+        </div>
+      </div>
+    `;
+  });
+  
+  table.innerHTML = headerHtml + rowsHtml;
+  
+  const dateEl = document.querySelector('.dashboardDate');
+  if (dateEl) {
+    const options = { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' };
+    dateEl.innerText = now.toLocaleDateString('en-US', options);
+  }
+  
+  const overdueBadge = document.querySelector('.badgeDanger .summaryCount');
+  if (overdueBadge) overdueBadge.innerText = overdueCount;
+  
+  const dueSoonBadge = document.querySelector('.badgeWarning .summaryCount');
+  if (dueSoonBadge) dueSoonBadge.innerText = dueSoonCount;
+}
+
+function renderDatabasePage() {
+  const table = document.querySelector('.databaseTable');
+  if (!table) return;
+  
+  const searchBox = document.querySelector('.searchBox');
+  const searchVal = searchBox ? searchBox.value.toLowerCase() : '';
+  
+  const filterSelects = document.querySelectorAll('.filterSelect');
+  const billFilter = filterSelects[0] ? filterSelects[0].value : 'All Bills';
+  const typeFilter = filterSelects[1] ? filterSelects[1].value : 'All Types';
+  
+  const headerHtml = `
+    <div class="dbHeader">
+      <div>Date</div>
+      <div>Bill</div>
+      <div>Type</div>
+      <div>Amount (৳)</div>
+      <div>Month</div>
+      <div>Note</div>
+      <div>Actions</div>
+    </div>
+  `;
+  
+  const filtered = paymentsData.filter(p => {
+    const matchesSearch = p.billName.toLowerCase().includes(searchVal) || 
+                          p.payDate.includes(searchVal) || 
+                          p.amount.includes(searchVal) ||
+                          (p.billMonth && p.billMonth.toLowerCase().includes(searchVal));
+                          
+    const matchesBill = billFilter === 'All Bills' || p.billName.replace('<br>', ' ').toLowerCase() === billFilter.replace('<br>', ' ').toLowerCase();
+    const matchesType = typeFilter === 'All Types' || p.billType.toLowerCase() === typeFilter.toLowerCase();
+    
+    return matchesSearch && matchesBill && matchesType;
+  });
+  
+  let rowsHtml = '';
+  let totalAmountSum = 0;
+  
+  filtered.forEach(p => {
+    totalAmountSum += parseFloat(p.amount);
+    
+    rowsHtml += `
+      <div class="dbRow">
+        <div>${formatDateFriendly(p.payDate)}</div>
+        <div>${p.billName}</div>
+        <div style="text-transform: capitalize;">${p.billType}</div>
+        <div class="amountCell">৳ ${parseFloat(p.amount).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</div>
+        <div>${p.billMonth || '-'}</div>
+        <div class="noteMuted">-</div>
+        <div class="actionsCell">
+          <button class="editBtn" onclick="openEditModal('${p.uid}')">✎</button>
+          <button class="deleteBtn" onclick="deletePaymentRecord('${p.uid}')">✕</button>
+        </div>
+      </div>
+    `;
+  });
+  
+  if (filtered.length === 0) {
+    rowsHtml = `
+      <div class="emptyState">
+        <div class="emptyIcon">🗄</div>
+        <div class="emptyTitle">No Records Found</div>
+        <div>Try adjusting your filters or record a new payment.</div>
+      </div>
+    `;
+  }
+  
+  table.innerHTML = headerHtml + rowsHtml;
+  
+  const recordCountEl = document.querySelector('.recordCount');
+  if (recordCountEl) recordCountEl.innerText = `${filtered.length} records`;
+  
+  const totalAmountEl = document.querySelector('.totalAmount');
+  if (totalAmountEl) totalAmountEl.innerText = `৳ ${totalAmountSum.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}`;
+}
+
+function renderStatsPage() {
+  let totalSpend = 0;
+  let ytdSpend = 0;
+  let highestBill = 0;
+  let highestBillLabel = '-';
+  
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  
+  const twelveMonthsAgo = new Date();
+  twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+  let lastTwelveMonthsSum = 0;
+  
+  paymentsData.forEach(p => {
+    const amt = parseFloat(p.amount);
+    totalSpend += amt;
+    
+    const pDate = new Date(p.payDate);
+    if (pDate.getFullYear() === currentYear) {
+      ytdSpend += amt;
+    }
+    
+    if (amt > highestBill) {
+      highestBill = amt;
+      highestBillLabel = p.billName;
+    }
+    
+    if (pDate >= twelveMonthsAgo && pDate <= now) {
+      lastTwelveMonthsSum += amt;
+    }
+  });
+  
+  const avgMonthlySpend = lastTwelveMonthsSum / 12;
+  
+  const kpiCards = document.querySelectorAll('.kpiCard');
+  if (kpiCards.length >= 4) {
+    kpiCards[0].querySelector('.kpiValue').innerText = `৳ ${totalSpend.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}`;
+    kpiCards[1].querySelector('.kpiValue').innerText = `৳ ${ytdSpend.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}`;
+    kpiCards[2].querySelector('.kpiValue').innerText = `৳ ${highestBill.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}`;
+    kpiCards[2].querySelector('.kpiSub').innerText = highestBillLabel;
+    kpiCards[3].querySelector('.kpiValue').innerText = `৳ ${avgMonthlySpend.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}`;
+  }
+  
+  const spendByBillMap = {};
+  billPages.forEach(b => spendByBillMap[b.name.replace('<br>', ' ')] = 0);
+  paymentsData.forEach(p => {
+    if (spendByBillMap[p.billName] !== undefined) {
+      spendByBillMap[p.billName] += parseFloat(p.amount);
+    }
+  });
+  
+  const totalSpendSorted = Object.entries(spendByBillMap).sort((a, b) => b[1] - a[1]);
+  const maxTotalSpend = Math.max(...totalSpendSorted.map(x => x[1]), 1);
+  
+  const totalSpendContainer = document.querySelectorAll('.horizontalBars')[0];
+  if (totalSpendContainer) {
+    totalSpendContainer.innerHTML = totalSpendSorted.map(([name, amt]) => {
+      const pct = (amt / maxTotalSpend) * 100;
+      return `
+        <div class="barRow">
+          <div class="barLabel">${name}</div>
+          <div class="barTrack">
+            <div class="barFill barAccent" style="width:${pct}%"></div>
+          </div>
+          <div class="barAmount">৳ ${amt.toLocaleString(undefined, {maximumFractionDigits: 0})}</div>
+        </div>
+      `;
+    }).join('');
+  }
+  
+  const ytdByBillMap = {};
+  billPages.forEach(b => ytdByBillMap[b.name.replace('<br>', ' ')] = 0);
+  paymentsData.forEach(p => {
+    const pDate = new Date(p.payDate);
+    if (pDate.getFullYear() === currentYear && ytdByBillMap[p.billName] !== undefined) {
+      ytdByBillMap[p.billName] += parseFloat(p.amount);
+    }
+  });
+  
+  const ytdSpendSorted = Object.entries(ytdByBillMap).sort((a, b) => b[1] - a[1]);
+  const maxYtdSpend = Math.max(...ytdSpendSorted.map(x => x[1]), 1);
+  
+  const ytdSpendContainer = document.querySelectorAll('.horizontalBars')[1];
+  if (ytdSpendContainer) {
+    ytdSpendContainer.innerHTML = ytdSpendSorted.map(([name, amt]) => {
+      const pct = (amt / maxYtdSpend) * 100;
+      return `
+        <div class="barRow">
+          <div class="barLabel">${name}</div>
+          <div class="barTrack">
+            <div class="barFill barSuccess" style="width:${pct}%"></div>
+          </div>
+          <div class="barAmount">৳ ${amt.toLocaleString(undefined, {maximumFractionDigits: 0})}</div>
+        </div>
+      `;
+    }).join('');
+  }
+  
+  const monthsList = [];
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const monthSums = {};
+  
+  const startDate = new Date(2026, 5, 1); // June 1st, 2026
+  const endDate = new Date();
+  
+  let curr = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+  while (curr <= endDate) {
+    const label = `${monthNames[curr.getMonth()]} ${String(curr.getFullYear()).substr(-2)}`;
+    monthsList.push(label);
+    monthSums[label] = 0;
+    curr.setMonth(curr.getMonth() + 1);
+  }
+  
+  // Keep maximum 11 displayable bars to prevent chart overflow,
+  // rolling off the oldest bar when a new month is added.
+  const maxBars = 11;
+  if (monthsList.length > maxBars) {
+    monthsList.splice(0, monthsList.length - maxBars);
+  }
+  
+  paymentsData.forEach(p => {
+    const pDate = new Date(p.payDate);
+    const label = `${monthNames[pDate.getMonth()]} ${String(pDate.getFullYear()).substr(-2)}`;
+    if (monthSums[label] !== undefined) {
+      monthSums[label] += parseFloat(p.amount);
+    }
+  });
+  
+  const maxMonthSum = Math.max(...Object.values(monthSums), 1);
+  
+  const monthChartContainer = document.querySelector('.monthChart');
+  if (monthChartContainer) {
+    monthChartContainer.innerHTML = monthsList.map(label => {
+      const amt = monthSums[label];
+      const height = (amt / maxMonthSum) * 200;
+      const formattedAmt = amt >= 1000 ? `${(amt / 1000).toFixed(1)}k` : `${amt}`;
+      return `
+        <div class="monthBarWrap">
+          <div class="monthValue">${formattedAmt === '0' ? '-' : formattedAmt}</div>
+          <div class="monthBar" style="height:${Math.max(height, 5)}px"></div>
+          <div class="monthLabel">${label}</div>
+        </div>
+      `;
+    }).join('');
+  }
+  
+  const gapRowsContainer = document.querySelector('.gapTable');
+  if (gapRowsContainer) {
+    const gaps = [];
+    billPages.forEach(bill => {
+      const billPayments = paymentsData.filter(p => p.billId === bill.id);
+      const lastPayment = billPayments[0];
+      
+      let gapDays = 0;
+      let dateText = 'Never';
+      
+      if (lastPayment) {
+        gapDays = Math.floor((now - new Date(lastPayment.payDate)) / (1000 * 60 * 60 * 24));
+        dateText = formatDateFriendly(lastPayment.payDate);
+      }
+      
+      gaps.push({
+        name: bill.name.replace('<br>', ' '),
+        date: dateText,
+        days: gapDays
+      });
+    });
+    
+    gaps.sort((a, b) => b.days - a.days);
+    
+    const headerHtml = `
+      <div class="gapHeader">
+        <div>Bill</div>
+        <div>Last Payment</div>
+        <div>Gap (Days)</div>
+      </div>
+    `;
+    
+    const rowsHtml = gaps.map(g => {
+      const gapClass = g.days >= 30 ? 'gapDanger' : 'gapSuccess';
+      return `
+        <div class="gapRow">
+          <div>${g.name}</div>
+          <div>${g.date}</div>
+          <div class="${gapClass}">${g.days === 0 && g.date === 'Never' ? '-' : g.days}</div>
+        </div>
+      `;
+    }).join('');
+    
+    gapRowsContainer.innerHTML = headerHtml + rowsHtml;
+  }
+}
+
+function submitPaymentForm(billId) {
+  const section = document.getElementById(billId);
+  if (!section) return;
+  
+  const amountVal = section.querySelector('.inputAmountVal').value.trim();
+  const dateVal = section.querySelector('.inputDateVal').value.trim();
+  
+  const monthSelect = section.querySelector('.inputMonthSelect');
+  const monthVal = monthSelect ? monthSelect.value : '';
+  
+  if (!amountVal || parseFloat(amountVal) <= 0) {
+    alert('Please enter a valid amount.');
+    return;
+  }
+  if (!dateVal) {
+    alert('Please select a valid payment date.');
+    return;
+  }
+  
+  const saveBtn = section.querySelector('.saveBtn');
+  saveBtn.innerText = 'Saving...';
+  saveBtn.disabled = true;
+  
+  savePaymentRecord(billId, amountVal, dateVal, monthVal)
+    .then(() => {
+      alert('Payment recorded successfully!');
+      goHome();
+    })
+    .catch(err => {
+      alert('Failed to save payment: ' + err.message);
+    })
+    .finally(() => {
+      saveBtn.innerText = 'Save Payment';
+      saveBtn.disabled = false;
+    });
+}
+
+function setupDatabaseFilters() {
+  const searchBox = document.querySelector('.searchBox');
+  if (searchBox) {
+    searchBox.oninput = renderDatabasePage;
+  }
+  
+  const filterSelects = document.querySelectorAll('.filterSelect');
+  filterSelects.forEach(select => {
+    select.onchange = renderDatabasePage;
+  });
+  
+  const refreshBtn = document.querySelectorAll('.toolbarBtn')[0];
+  if (refreshBtn) {
+    refreshBtn.onclick = fetchPayments;
+  }
+  
+  const exportBtn = document.querySelectorAll('.toolbarBtn')[1];
+  if (exportBtn) {
+    exportBtn.onclick = exportToCSV;
+  }
+}
+
+function exportToCSV() {
+  if (paymentsData.length === 0) {
+    alert('No data to export.');
+    return;
+  }
+  let csv = 'UID,Date,Bill,Type,Amount,Month\n';
+  paymentsData.forEach(p => {
+    csv += `"${p.uid}","${p.payDate}","${p.billName}","${p.billType}","${p.amount}","${p.billMonth || ''}"\n`;
+  });
+  
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.setAttribute('download', 'billzy_payments_export.csv');
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+function hydrateAllPages() {
+  renderBillPages();
+  renderLandingPageCards();
+  renderDashboardPage();
+  renderDatabasePage();
+  renderStatsPage();
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  setupDatabaseFilters();
+  fetchPayments();
+});
+
 </script>
+
+<section id="dashboardPage" class="page dashboardPage hidden">
+
+<div class="container">
+
+<button class="settingsBtn" onclick="openSettingsModal()" title="GitHub Settings">⚙</button>
+
+<div class="logo">BILLZY</div>
+<div class="glow"></div>
+
+<div class="backBtn" onclick="goHome()">
+← Back to Home
+</div>
+
+<div class="dashboardTop">
+
+<div class="dashboardTitleWrap">
+
+<div class="dashboardTitle">
+Dashboard
+</div>
+
+<div class="dashboardDate">
+Sunday, 1 Jun 2025
+</div>
+
+</div>
+
+<div class="summaryBadges">
+
+<div class="summaryBadge badgeDanger">
+
+<div class="summaryCount">
+2
+</div>
+
+<div class="summaryText">
+Overdue
+</div>
+
+</div>
+
+<div class="summaryBadge badgeWarning">
+
+<div class="summaryCount">
+1
+</div>
+
+<div class="summaryText">
+Due soon
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+<div class="dashboardTable">
+
+<div class="tableHeader">
+
+<div>Bill</div>
+<div>Type</div>
+<div>Last Payment</div>
+<div>Next Due</div>
+<div>Status</div>
+<div>Action</div>
+
+</div>
+
+<!-- ROW -->
+
+<div class="tableRow">
+
+<div class="billCell">
+
+<div class="billMiniIcon">⚡</div>
+
+<div>
+
+<div class="billMain">
+Rupnagar DESCO
+</div>
+
+<div class="billCompany">
+DESCO
+</div>
+
+</div>
+
+</div>
+
+<div>
+<div class="typePill typePrepaid">
+Prepaid
+</div>
+</div>
+
+<div class="paymentInfo">
+
+<div class="paymentTop successText">
+3 days ago
+</div>
+
+<div class="paymentSub">
+29 May
+</div>
+
+</div>
+
+<div class="paymentInfo">
+
+<div class="paymentTop warningText">
+5 Jun 2025
+</div>
+
+<div class="paymentSub">
+In 4 days
+</div>
+
+</div>
+
+<div>
+<div class="statusPill statusSoon">
+Due soon
+</div>
+</div>
+
+<div>
+<button class="payBtn" onclick="openPage('rupnagarDesco')">
+Pay now
+</button>
+</div>
+
+</div>
+
+<!-- ROW -->
+
+<div class="tableRow">
+
+<div class="billCell">
+
+<div class="billMiniIcon">📶</div>
+
+<div>
+
+<div class="billMain">
+Inspire Broadband
+</div>
+
+<div class="billCompany">
+Inspire
+</div>
+
+</div>
+
+</div>
+
+<div>
+<div class="typePill typePostpaid">
+Postpaid
+</div>
+</div>
+
+<div class="paymentInfo">
+
+<div class="paymentTop warningText">
+12 days ago
+</div>
+
+<div class="paymentSub">
+20 May
+</div>
+
+</div>
+
+<div class="paymentInfo">
+
+<div class="paymentTop warningText">
+5 Jun 2025
+</div>
+
+<div class="paymentSub">
+In 4 days
+</div>
+
+</div>
+
+<div>
+<div class="statusPill statusSoon">
+Due soon
+</div>
+</div>
+
+<div>
+<button class="payBtn" onclick="openPage('inspireBroadband')">
+Pay now
+</button>
+</div>
+
+</div>
+
+<!-- ROW -->
+
+<div class="tableRow">
+
+<div class="billCell">
+
+<div class="billMiniIcon">🔥</div>
+
+<div>
+
+<div class="billMain">
+Rupnagar Gas
+</div>
+
+<div class="billCompany">
+Gas Utility
+</div>
+
+</div>
+
+</div>
+
+<div>
+<div class="typePill typePrepaid">
+Prepaid
+</div>
+</div>
+
+<div class="paymentInfo">
+
+<div class="paymentTop dangerText">
+35 days ago
+</div>
+
+<div class="paymentSub">
+27 Apr
+</div>
+
+</div>
+
+<div class="paymentInfo">
+
+<div class="paymentTop mutedText">
+Balance-based
+</div>
+
+</div>
+
+<div>
+<div class="statusPill statusBalance">
+Balance-based
+</div>
+</div>
+
+<div>
+<button class="payBtn" onclick="openPage('rupnagarGas')">
+Pay now
+</button>
+</div>
+
+</div>
+
+<!-- ROW -->
+
+<div class="tableRow">
+
+<div class="billCell">
+
+<div class="billMiniIcon">💧</div>
+
+<div>
+
+<div class="billMain">
+Uttara Water
+</div>
+
+<div class="billCompany">
+WASA
+</div>
+
+</div>
+
+</div>
+
+<div>
+<div class="typePill typePostpaid">
+Postpaid
+</div>
+</div>
+
+<div class="paymentInfo">
+
+<div class="paymentTop dangerText">
+68 days ago
+</div>
+
+<div class="paymentSub">
+24 Mar
+</div>
+
+</div>
+
+<div class="paymentInfo">
+
+<div class="paymentTop dangerText">
+1 Jun 2025
+</div>
+
+<div class="paymentSub">
+Overdue by 1 day
+</div>
+
+</div>
+
+<div>
+<div class="statusPill statusOverdue">
+Overdue
+</div>
+</div>
+
+<div>
+<button class="payBtn" onclick="openPage('uttaraWater')">
+Pay now
+</button>
+</div>
+
+</div>
+
+<!-- ROW -->
+
+<div class="tableRow">
+
+<div class="billCell">
+
+<div class="billMiniIcon">⚡</div>
+
+<div>
+
+<div class="billMain">
+Noakhali Palli
+</div>
+
+<div class="billCompany">
+Palli Bidyut
+</div>
+
+</div>
+
+</div>
+
+<div>
+<div class="typePill typePostpaid">
+Postpaid
+</div>
+</div>
+
+<div class="paymentInfo">
+
+<div class="paymentTop successText">
+1 day ago
+</div>
+
+<div class="paymentSub">
+31 May
+</div>
+
+</div>
+
+<div class="paymentInfo">
+
+<div class="paymentTop successText">
+3 Jun 2025
+</div>
+
+<div class="paymentSub">
+In 2 days
+</div>
+
+</div>
+
+<div>
+<div class="statusPill statusSoon">
+Due soon
+</div>
+</div>
+
+<div>
+<button class="payBtn" onclick="openPage('noakhaliPalli')">
+Pay now
+</button>
+</div>
+
+</div>
+
+<!-- ROW -->
+
+<div class="tableRow">
+
+<div class="billCell">
+
+<div class="billMiniIcon">🗼</div>
+
+<div>
+
+<div class="billMain">
+Uttara DESCO
+</div>
+
+<div class="billCompany">
+DESCO
+</div>
+
+</div>
+
+</div>
+
+<div>
+<div class="typePill typePrepaid">
+Prepaid
+</div>
+</div>
+
+<div class="paymentInfo">
+
+<div class="paymentTop warningText">
+18 days ago
+</div>
+
+<div class="paymentSub">
+14 May
+</div>
+
+</div>
+
+<div class="paymentInfo">
+
+<div class="paymentTop successText">
+10 Jun 2025
+</div>
+
+<div class="paymentSub">
+In 9 days
+</div>
+
+</div>
+
+<div>
+<div class="statusPill statusUpcoming">
+Upcoming
+</div>
+</div>
+
+<div>
+<button class="payBtn" onclick="openPage('uttaraDesco')">
+Pay now
+</button>
+</div>
+
+</div>
+
+<!-- ROW -->
+
+<div class="tableRow">
+
+<div class="billCell">
+
+<div class="billMiniIcon">🔥</div>
+
+<div>
+
+<div class="billMain">
+Matuail Gas
+</div>
+
+<div class="billCompany">
+Gas Utility
+</div>
+
+</div>
+
+</div>
+
+<div>
+<div class="typePill typePostpaid">
+Postpaid
+</div>
+</div>
+
+<div class="paymentInfo">
+
+<div class="paymentTop successText">
+5 days ago
+</div>
+
+<div class="paymentSub">
+27 May
+</div>
+
+</div>
+
+<div class="paymentInfo">
+
+<div class="paymentTop successText">
+27 Jun 2025
+</div>
+
+<div class="paymentSub">
+In 26 days
+</div>
+
+</div>
+
+<div>
+<div class="statusPill statusUpcoming">
+Upcoming
+</div>
+</div>
+
+<div>
+<button class="payBtn" onclick="openPage('matuailGas')">
+Pay now
+</button>
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</section>
+
+<section id="databasePage" class="page databasePage hidden">
+
+<div class="container">
+
+<button class="settingsBtn" onclick="openSettingsModal()" title="GitHub Settings">⚙</button>
+
+<div class="logo">BILLZY</div>
+<div class="glow"></div>
+
+<div class="backBtn" onclick="goHome()">
+← Back to Home
+</div>
+
+<div class="databaseTop">
+
+<div class="databaseTitle">
+Database
+</div>
+
+</div>
+
+<div class="databaseToolbar">
+
+<div class="toolbarLeft">
+
+<input
+class="searchBox"
+placeholder="Search payments..."
+>
+
+<select class="filterSelect">
+<option>All Bills</option>
+<option>Rupnagar DESCO</option>
+<option>Rupnagar Gas</option>
+<option>Uttara DESCO</option>
+<option>Uttara Water</option>
+<option>Matuail Gas</option>
+<option>Noakhali Palli</option>
+<option>Inspire Broadband</option>
+</select>
+
+<select class="filterSelect">
+<option>All Types</option>
+<option>Prepaid</option>
+<option>Postpaid</option>
+</select>
+
+</div>
+
+<div class="toolbarRight">
+
+<div class="recordInfo">
+
+<div class="recordCount">
+24 records
+</div>
+
+<div class="totalAmount">
+৳ 48,650
+</div>
+
+</div>
+
+<button class="toolbarBtn">
+↻ Refresh
+</button>
+
+<button class="toolbarBtn">
+⤓ Export CSV
+</button>
+
+</div>
+
+</div>
+
+<div class="databaseTable">
+
+<div class="dbHeader">
+
+<div>Date</div>
+<div>Bill</div>
+<div>Type</div>
+<div>Amount (৳)</div>
+<div>Month</div>
+<div>Note</div>
+<div>Actions</div>
+
+</div>
+
+<div class="dbRow">
+
+<div>20 May 2025</div>
+<div>Rupnagar DESCO</div>
+<div>Prepaid</div>
+<div class="amountCell">৳ 1,500</div>
+<div>-</div>
+<div class="noteMuted">-</div>
+
+<div class="actionsCell">
+<button class="editBtn">✎</button>
+<button class="deleteBtn">✕</button>
+</div>
+
+</div>
+
+<div class="dbRow">
+
+<div>20 May 2025</div>
+<div>Inspire Broadband</div>
+<div>Postpaid</div>
+<div class="amountCell">৳ 1,600</div>
+<div>May 2025</div>
+<div class="noteMuted">-</div>
+
+<div class="actionsCell">
+<button class="editBtn">✎</button>
+<button class="deleteBtn">✕</button>
+</div>
+
+</div>
+
+<div class="dbRow">
+
+<div>14 May 2025</div>
+<div>Uttara DESCO</div>
+<div>Prepaid</div>
+<div class="amountCell">৳ 850</div>
+<div>-</div>
+<div class="noteMuted">-</div>
+
+<div class="actionsCell">
+<button class="editBtn">✎</button>
+<button class="deleteBtn">✕</button>
+</div>
+
+</div>
+
+<div class="dbRow">
+
+<div>31 May 2025</div>
+<div>Noakhali Palli</div>
+<div>Postpaid</div>
+<div class="amountCell">৳ 3,000</div>
+<div>June 2025</div>
+<div class="noteMuted">-</div>
+
+<div class="actionsCell">
+<button class="editBtn">✎</button>
+<button class="deleteBtn">✕</button>
+</div>
+
+</div>
+
+<div class="dbRow">
+
+<div>27 May 2025</div>
+<div>Inspire Broadband</div>
+<div>Postpaid</div>
+<div class="amountCell">৳ 1,200</div>
+<div>May 2025</div>
+<div class="noteMuted">-</div>
+
+<div class="actionsCell">
+<button class="editBtn">✎</button>
+<button class="deleteBtn">✕</button>
+</div>
+
+</div>
+
+<div class="dbRow">
+
+<div>27 Apr 2025</div>
+<div>Rupnagar Gas</div>
+<div>Prepaid</div>
+<div class="amountCell">৳ 900</div>
+<div>-</div>
+<div class="noteMuted">-</div>
+
+<div class="actionsCell">
+<button class="editBtn">✎</button>
+<button class="deleteBtn">✕</button>
+</div>
+
+</div>
+
+<div class="dbRow">
+
+<div>24 Mar 2025</div>
+<div>Uttara Water</div>
+<div>Postpaid</div>
+<div class="amountCell">৳ 750</div>
+<div>Mar 2025</div>
+<div>Leak issue</div>
+
+<div class="actionsCell">
+<button class="editBtn">✎</button>
+<button class="deleteBtn">✕</button>
+</div>
+
+</div>
+
+<div class="dbRow">
+
+<div>29 Apr 2025</div>
+<div>Matuail Gas</div>
+<div>Postpaid</div>
+<div class="amountCell">৳ 1,550</div>
+<div>-</div>
+<div class="noteMuted">-</div>
+
+<div class="actionsCell">
+<button class="editBtn">✎</button>
+<button class="deleteBtn">✕</button>
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</section>
+
+<section id="statsPage" class="page statsPage hidden">
+
+<div class="container">
+
+<button class="settingsBtn" onclick="openSettingsModal()" title="GitHub Settings">⚙</button>
+
+<div class="logo">BILLZY</div>
+<div class="glow"></div>
+
+<div class="backBtn" onclick="goHome()">
+← Back to Home
+</div>
+
+<div class="statsTop">
+
+<div class="statsTitle">
+Statistics
+</div>
+
+</div>
+
+<!-- KPI -->
+
+<div class="kpiGrid">
+
+<div class="kpiCard">
+
+<div class="kpiLabel">
+Total Spend
+</div>
+
+<div class="kpiValue">
+৳ 48,650
+</div>
+
+<div class="kpiSub">
+All time
+</div>
+
+</div>
+
+<div class="kpiCard">
+
+<div class="kpiLabel">
+YTD Spend
+</div>
+
+<div class="kpiValue">
+৳ 28,430
+</div>
+
+<div class="kpiSub">
+Jan — Jun 2026
+</div>
+
+</div>
+
+<div class="kpiCard">
+
+<div class="kpiLabel">
+Highest Bill
+</div>
+
+<div class="kpiValue">
+৳ 12,500
+</div>
+
+<div class="kpiSub">
+Electricity
+</div>
+
+</div>
+
+<div class="kpiCard">
+
+<div class="kpiLabel">
+Avg. Monthly Spend
+</div>
+
+<div class="kpiValue">
+৳ 8,072
+</div>
+
+<div class="kpiSub">
+Last 12 months
+</div>
+
+</div>
+
+</div>
+
+<!-- CHART GRID -->
+
+<div class="statsGridMain">
+
+<!-- TOTAL SPEND -->
+
+<div class="chartCard">
+
+<div class="chartTitle">
+Total Spend by Bill
+</div>
+
+<div class="horizontalBars">
+
+<div class="barRow">
+<div class="barLabel">Rupnagar DESCO</div>
+<div class="barTrack">
+<div class="barFill barAccent" style="width:100%"></div>
+</div>
+<div class="barAmount">৳ 12,500</div>
+</div>
+
+<div class="barRow">
+<div class="barLabel">Noakhali Palli</div>
+<div class="barTrack">
+<div class="barFill barAccent" style="width:82%"></div>
+</div>
+<div class="barAmount">৳ 10,200</div>
+</div>
+
+<div class="barRow">
+<div class="barLabel">Uttara DESCO</div>
+<div class="barTrack">
+<div class="barFill barAccent" style="width:68%"></div>
+</div>
+<div class="barAmount">৳ 8,450</div>
+</div>
+
+<div class="barRow">
+<div class="barLabel">Uttara Water</div>
+<div class="barTrack">
+<div class="barFill barAccent" style="width:52%"></div>
+</div>
+<div class="barAmount">৳ 6,500</div>
+</div>
+
+<div class="barRow">
+<div class="barLabel">Matuail Gas</div>
+<div class="barTrack">
+<div class="barFill barAccent" style="width:43%"></div>
+</div>
+<div class="barAmount">৳ 5,300</div>
+</div>
+
+<div class="barRow">
+<div class="barLabel">Rupnagar Gas</div>
+<div class="barTrack">
+<div class="barFill barAccent" style="width:35%"></div>
+</div>
+<div class="barAmount">৳ 4,400</div>
+</div>
+
+</div>
+
+</div>
+
+<!-- YTD -->
+
+<div class="chartCard">
+
+<div class="chartTitle">
+YTD Spend by Bill
+</div>
+
+<div class="horizontalBars">
+
+<div class="barRow">
+<div class="barLabel">Rupnagar DESCO</div>
+<div class="barTrack">
+<div class="barFill barSuccess" style="width:100%"></div>
+</div>
+<div class="barAmount">৳ 8,200</div>
+</div>
+
+<div class="barRow">
+<div class="barLabel">Noakhali Palli</div>
+<div class="barTrack">
+<div class="barFill barSuccess" style="width:79%"></div>
+</div>
+<div class="barAmount">৳ 6,500</div>
+</div>
+
+<div class="barRow">
+<div class="barLabel">Uttara DESCO</div>
+<div class="barTrack">
+<div class="barFill barSuccess" style="width:60%"></div>
+</div>
+<div class="barAmount">৳ 4,900</div>
+</div>
+
+<div class="barRow">
+<div class="barLabel">Uttara Water</div>
+<div class="barTrack">
+<div class="barFill barSuccess" style="width:44%"></div>
+</div>
+<div class="barAmount">৳ 3,600</div>
+</div>
+
+<div class="barRow">
+<div class="barLabel">Matuail Gas</div>
+<div class="barTrack">
+<div class="barFill barSuccess" style="width:39%"></div>
+</div>
+<div class="barAmount">৳ 3,200</div>
+</div>
+
+<div class="barRow">
+<div class="barLabel">Rupnagar Gas</div>
+<div class="barTrack">
+<div class="barFill barSuccess" style="width:22%"></div>
+</div>
+<div class="barAmount">৳ 1,800</div>
+</div>
+
+</div>
+
+</div>
+
+<!-- MONTHLY SPEND -->
+
+<div class="chartCard">
+
+<div class="chartTitle">
+Monthly Spend
+</div>
+
+<div class="monthChart">
+
+<div class="monthBarWrap">
+<div class="monthValue">8k</div>
+<div class="monthBar" style="height:120px"></div>
+<div class="monthLabel">Jun 26</div>
+</div>
+
+<div class="monthBarWrap">
+<div class="monthValue">5k</div>
+<div class="monthBar" style="height:85px"></div>
+<div class="monthLabel">Jul 26</div>
+</div>
+
+<div class="monthBarWrap">
+<div class="monthValue">9k</div>
+<div class="monthBar" style="height:145px"></div>
+<div class="monthLabel">Aug 26</div>
+</div>
+
+<div class="monthBarWrap">
+<div class="monthValue">7k</div>
+<div class="monthBar" style="height:115px"></div>
+<div class="monthLabel">Sep 26</div>
+</div>
+
+<div class="monthBarWrap">
+<div class="monthValue">11k</div>
+<div class="monthBar" style="height:185px"></div>
+<div class="monthLabel">Oct 26</div>
+</div>
+
+<div class="monthBarWrap">
+<div class="monthValue">6k</div>
+<div class="monthBar" style="height:100px"></div>
+<div class="monthLabel">Nov 26</div>
+</div>
+
+<div class="monthBarWrap">
+<div class="monthValue">10k</div>
+<div class="monthBar" style="height:165px"></div>
+<div class="monthLabel">Dec 26</div>
+</div>
+
+<div class="monthBarWrap">
+<div class="monthValue">4k</div>
+<div class="monthBar" style="height:70px"></div>
+<div class="monthLabel">Jan 27</div>
+</div>
+
+<div class="monthBarWrap">
+<div class="monthValue">6k</div>
+<div class="monthBar" style="height:105px"></div>
+<div class="monthLabel">Feb 27</div>
+</div>
+
+<div class="monthBarWrap">
+<div class="monthValue">9k</div>
+<div class="monthBar" style="height:150px"></div>
+<div class="monthLabel">Mar 27</div>
+</div>
+
+<div class="monthBarWrap">
+<div class="monthValue">8k</div>
+<div class="monthBar" style="height:130px"></div>
+<div class="monthLabel">Apr 27</div>
+</div>
+
+</div>
+
+</div>
+
+<!-- GAP TABLE -->
+
+<div class="chartCard">
+
+<div class="chartTitle">
+Payment Gap Summary
+</div>
+
+<div class="gapTable">
+
+<div class="gapHeader">
+<div>Bill</div>
+<div>Last Payment</div>
+<div>Gap (Days)</div>
+</div>
+
+<div class="gapRow">
+<div>Uttara Water</div>
+<div>24 Mar 2026</div>
+<div class="gapDanger">69</div>
+</div>
+
+<div class="gapRow">
+<div>Rupnagar Gas</div>
+<div>27 Apr 2026</div>
+<div class="gapSuccess">35</div>
+</div>
+
+<div class="gapRow">
+<div>Matuail Gas</div>
+<div>20 May 2026</div>
+<div class="gapSuccess">12</div>
+</div>
+
+<div class="gapRow">
+<div>Noakhali Palli</div>
+<div>27 May 2026</div>
+<div class="gapSuccess">5</div>
+</div>
+
+<div class="gapRow">
+<div>Rupnagar DESCO</div>
+<div>29 May 2026</div>
+<div class="gapSuccess">3</div>
+</div>
+
+<div class="gapRow">
+<div>Uttara DESCO</div>
+<div>31 May 2026</div>
+<div class="gapSuccess">1</div>
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</section>
+
 </body>
 </html>
