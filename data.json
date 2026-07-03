@@ -38,5 +38,15 @@
     "amount": "3430.00",
     "payDate": "2026-06-15",
     "savedAt": "2026-07-03T13:37:33.382Z"
+  },
+  {
+    "uid": "mr4zbg2ioom9",
+    "billId": "uttara_water",
+    "billName": "Uttara Water",
+    "billType": "monthly",
+    "billMonth": "June 2026",
+    "amount": "998.00",
+    "payDate": "2026-06-24",
+    "savedAt": "2026-07-03T13:38:38.490Z"
   }
 ]
