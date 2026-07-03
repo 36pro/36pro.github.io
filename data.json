@@ -8,5 +8,15 @@
     "amount": "840.00",
     "payDate": "2026-07-01",
     "savedAt": "2026-07-03T13:34:28.749Z"
+  },
+  {
+    "uid": "mr4z95iybj9c",
+    "billId": "rupnagar_desco",
+    "billName": "Rupnagar Desco",
+    "billType": "prepaid",
+    "billMonth": "",
+    "amount": "1515.00",
+    "payDate": "2026-06-23",
+    "savedAt": "2026-07-03T13:36:51.514Z"
   }
 ]
