@@ -1,8 +1,8 @@
 [
   {
     "uid": "mr4z63d9b9b5",
-    "billId": "internet_inspire",
-    "billName": "Internet Inspire",
+    "billId": "inspireBroadband",
+    "billName": "Inspire Broadband",
     "billType": "prepaid",
     "billMonth": "July 2026",
     "amount": "840.00",
@@ -11,8 +11,8 @@
   },
   {
     "uid": "mr4z95iybj9c",
-    "billId": "rupnagar_desco",
-    "billName": "Rupnagar Desco",
+    "billId": "rupnagarDesco",
+    "billName": "Rupnagar DESCO",
     "billType": "prepaid",
     "billMonth": "",
     "amount": "1515.00",
@@ -21,7 +21,7 @@
   },
   {
     "uid": "mr4z9kfbm8v5",
-    "billId": "rupnagar_gas",
+    "billId": "rupnagarGas",
     "billName": "Rupnagar Gas",
     "billType": "prepaid",
     "billMonth": "",
@@ -31,8 +31,8 @@
   },
   {
     "uid": "mr4za1tyepmd",
-    "billId": "uttara_desco",
-    "billName": "Uttara Desco",
+    "billId": "uttaraDesco",
+    "billName": "Uttara DESCO",
     "billType": "prepaid",
     "billMonth": "",
     "amount": "3430.00",
@@ -41,9 +41,9 @@
   },
   {
     "uid": "mr4zbg2ioom9",
-    "billId": "uttara_water",
+    "billId": "uttaraWater",
     "billName": "Uttara Water",
-    "billType": "monthly",
+    "billType": "postpaid",
     "billMonth": "June 2026",
     "amount": "998.00",
     "payDate": "2026-06-24",
@@ -51,9 +51,9 @@
   },
   {
     "uid": "mr4zcpv57d4d",
-    "billId": "noakhali_palli",
+    "billId": "noakhaliPalli",
     "billName": "Noakhali Palli",
-    "billType": "monthly",
+    "billType": "postpaid",
     "billMonth": "May 2026",
     "amount": "350.00",
     "payDate": "2026-06-03",
