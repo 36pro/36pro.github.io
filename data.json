@@ -14,8 +14,8 @@
     "billId": "inspireBroadband",
     "billName": "Inspire Broadband",
     "billType": "prepaid",
-    "billMonth": "",
-    "amount": "840.00",
+    "billMonth": "July 2026",
+    "amount": "840",
     "payDate": "2026-07-01",
     "savedAt": "2026-07-03T13:34:28.749Z"
   },
