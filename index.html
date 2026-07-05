@@ -10,6 +10,8 @@
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <style>
 
 :root{
@@ -93,19 +95,22 @@ body{
 
 .dashboardPage::-webkit-scrollbar,
 .databasePage::-webkit-scrollbar,
-.statsPage::-webkit-scrollbar{
+.statsPage::-webkit-scrollbar,
+.descoStatsPage::-webkit-scrollbar{
   width:10px;
 }
 
 .dashboardPage::-webkit-scrollbar-track,
 .databasePage::-webkit-scrollbar-track,
-.statsPage::-webkit-scrollbar-track{
+.statsPage::-webkit-scrollbar-track,
+.descoStatsPage::-webkit-scrollbar-track{
   background:rgba(255,255,255,.03);
 }
 
 .dashboardPage::-webkit-scrollbar-thumb,
 .databasePage::-webkit-scrollbar-thumb,
-.statsPage::-webkit-scrollbar-thumb{
+.statsPage::-webkit-scrollbar-thumb,
+.descoStatsPage::-webkit-scrollbar-thumb{
   background:rgba(99,255,104,.25);
 
   border-radius:999px;
@@ -113,7 +118,8 @@ body{
 
 .dashboardPage::-webkit-scrollbar-thumb:hover,
 .databasePage::-webkit-scrollbar-thumb:hover,
-.statsPage::-webkit-scrollbar-thumb:hover{
+.statsPage::-webkit-scrollbar-thumb:hover,
+.descoStatsPage::-webkit-scrollbar-thumb:hover{
   background:rgba(99,255,104,.45);
 }
 
@@ -234,8 +240,9 @@ body{
 
   display:flex;
   align-items:center;
-  justify-content:center;
-  gap:28px;
+  justify-content:flex-start;
+  padding-left:20px;
+  gap:16px;
 
   cursor:pointer;
 
@@ -249,15 +256,19 @@ body{
   border-color:#2d62c0;
 }
 
+.heroCard:nth-child(2){
+  gap:36px;
+}
+
 .heroIcon{
   width:110px;
   height:110px;
 
   border-radius:26px;
 
-  background:rgba(255,255,255,.03);
+  background:transparent;
 
-  border:1px solid rgba(255,255,255,.05);
+  border:none;
 
   display:flex;
   align-items:center;
@@ -300,7 +311,8 @@ body{
 
 .billCard{
   grid-column: span 6;
-  height:245px;
+  min-height:245px;
+  height:auto;
 
   border-radius:28px;
 
@@ -336,12 +348,9 @@ body{
 
   border-radius:50%;
 
-  background:
-  radial-gradient(circle at top,
-  rgba(255,255,255,.07),
-  rgba(255,255,255,.02));
+  background:transparent;
 
-  border:1px solid rgba(255,255,255,.05);
+  border:none;
 
   display:flex;
   align-items:center;
@@ -443,9 +452,9 @@ body{
 
   border-radius:22px;
 
-  background:#08111f;
+  background:transparent;
 
-  border:1px solid rgba(255,255,255,.05);
+  border:none;
 
   display:flex;
   align-items:center;
@@ -679,8 +688,16 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   padding-top:8px;
 }
 
+.dashboardPage .logo {
+  margin-bottom: 12px;
+}
+
+.dashboardPage .backBtn {
+  margin-top: 4px;
+}
+
 .dashboardTop{
-  margin-top:20px;
+  margin-top:0px;
 
   display:flex;
   align-items:center;
@@ -764,7 +781,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 .dashboardTable{
-  margin-top:24px;
+  margin-top:4px;
 
   border-radius:24px;
 
@@ -810,6 +827,15 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   font-size:.95rem;
 }
 
+.tableHeader > div:first-child{
+  padding-left:22px;
+  text-align:left;
+}
+
+.tableHeader > div:nth-child(n+2){
+  text-align:center;
+}
+
 .tableRow{
   padding:22px 24px;
 
@@ -840,9 +866,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
   border-radius:16px;
 
-  background:rgba(255,255,255,.03);
+  background:transparent;
 
-  border:1px solid rgba(255,255,255,.05);
+  border:none;
 
   display:flex;
   align-items:center;
@@ -889,6 +915,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   display:flex;
   flex-direction:column;
   gap:5px;
+  align-items:center;
+  text-align:center;
 }
 
 .paymentTop{
@@ -948,9 +976,15 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   color:var(--muted);
 }
 
+.tableRow > div:nth-child(2),
+.tableRow > div:nth-child(6) {
+  display: flex;
+  justify-content: center;
+}
+
 .tableRow > div:nth-child(5){
   display:flex;
-  justify-content:flex-start;
+  justify-content:center;
 }
 
 .payBtn{
@@ -1316,6 +1350,51 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   display:flex;
   align-items:center;
   gap:16px;
+  flex-wrap:wrap;
+}
+
+.monthFilterWrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+.filterMonth {
+  height: 50px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: #0b1730;
+  color: white;
+  padding: 0 16px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.filterMonth::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+}
+
+.clearMonthBtn {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.clearMonthBtn:hover {
+  background: rgba(255, 96, 119, 0.15);
+  border-color: var(--danger);
+  color: var(--danger);
 }
 
 .searchBox{
@@ -1697,10 +1776,454 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   box-shadow:0 0 24px rgba(99,255,104,.25);
 }
 
+.chartCard.fullWidth {
+  grid-column: span 2;
+}
+
+.chartContainer {
+  position: relative;
+  height: 320px;
+  width: 100%;
+}
+
+@media(max-width:900px) {
+  .chartCard.fullWidth {
+    grid-column: auto;
+  }
+.descoLiveContainer {
+  margin-top: 24px;
+  background: linear-gradient(180deg, rgba(13, 28, 54, 0.96), rgba(5, 14, 32, 0.96));
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  padding: 24px;
+  box-shadow: var(--shadow);
+}
+
+.descoLiveTitle {
+  font-size: 1.3rem;
+  font-weight: 800;
+  margin-bottom: 20px;
+  color: var(--accent2);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.descoKpiGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.descoCard {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 18px;
+  transition: all 0.2s ease;
+}
+
+.descoCard:hover {
+  border-color: #2d62c0;
+}
+
+.descoLabel {
+  font-size: 0.9rem;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.descoValue {
+  font-size: 1.6rem;
+  font-weight: 800;
+}
+
+.descoValue.balanceGlow {
+  color: var(--accent);
+  text-shadow: 0 0 10px rgba(99, 255, 104, 0.25);
+}
+
+.descoValue.balanceLow {
+  color: var(--danger);
+  text-shadow: 0 0 10px rgba(255, 96, 119, 0.25);
+}
+
+.descoChartSection {
+  margin-top: 24px;
+  margin-bottom: 28px;
+}
+
+.descoSectionTitle {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #dce7ff;
+  margin-bottom: 14px;
+}
+
+.descoHistoryTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 14px;
+}
+
+.descoTableHeader, .descoTableRow {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr 2fr;
+  padding: 12px 14px;
+  align-items: center;
+  gap: 10px;
+}
+
+.descoTableHeader {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-weight: 700;
+  color: #dce7ff;
+}
+
+.descoTableRow {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  font-size: 0.95rem;
+}
+
+.descoTableRow:last-child {
+  border-bottom: none;
+}
+
+.tokenBox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+  width: fit-content;
+}
+
+.copyBtn {
+  background: transparent;
+  border: none;
+  color: var(--accent2);
+  cursor: pointer;
+  padding: 2px 4px;
+  font-size: 0.8rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.copyBtn:hover {
+  background: rgba(34, 211, 238, 0.1);
+  color: white;
+}
+
+.corsWarningCard {
+  background: rgba(255, 184, 77, 0.05);
+  border: 1px solid rgba(255, 184, 77, 0.15);
+  border-radius: 18px;
+  padding: 20px;
+  margin-top: 10px;
+}
+
+.corsWarningTitle {
+  font-weight: 800;
+  color: var(--warning);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.corsWarningDesc {
+  font-size: 0.92rem;
+  color: #dce7ff;
+  line-height: 1.5;
+}
+
+.corsWarningDesc code {
+  background: rgba(0, 0, 0, 0.25);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--warning);
+  font-family: 'JetBrains Mono', monospace;
+}
+.descoStatsPage {
+  padding-top: 0;
+  overflow-y: auto !important;
+  overflow-x: hidden;
+  padding-bottom: 80px;
+  display: flex;
+  flex-direction: column;
+}
+
+.descoInfoBadge {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: all 0.2s ease;
+}
+
+.descoInfoBadge:hover {
+  border-color: #2d62c0;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.descoInfoLabel {
+  font-size: 0.78rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 700;
+}
+
+.descoInfoValue {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #f4f7ff;
+  word-break: break-word;
+}
+
+.liveAnalyticsBtn {
+  width: max-content;
+  padding: 13px 18px;
+  border-radius: 12px;
+  background: #0b1730;
+  border: 1px solid var(--border);
+  color: #79c7ff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.liveAnalyticsBtn:hover {
+  border-color: #2d63c2;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.descoHeaderCard {
+  background: linear-gradient(90deg, rgba(17,35,71,0.8), rgba(5,14,32,0.8));
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.descoHeaderCard h2 {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--accent2);
+  margin-bottom: 12px;
+}
+
+.descoHeaderGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  font-size: 0.95rem;
+  color: #dce7ff;
+}
+
+.descoHeroCard {
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  padding: 24px;
+  margin-bottom: 24px;
+  position: relative;
+  overflow: hidden;
+  background: rgba(13, 28, 54, 0.4);
+}
+
+.descoHeroContent {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+}
+
+.descoHeroMain {
+  flex: 1;
+  min-width: 280px;
+}
+
+.descoHeroBalanceLabel {
+  font-size: 0.9rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.descoHeroBalanceVal {
+  font-size: 3.2rem;
+  font-weight: 900;
+  margin: 8px 0;
+}
+
+.descoHeroAlert {
+  font-size: 1rem;
+  font-weight: 700;
+  padding: 10px 14px;
+  border-radius: 10px;
+  margin-top: 12px;
+}
+
+.descoHeroStats {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 18px;
+  min-width: 280px;
+  flex: 1;
+}
+
+.descoHeroStatRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.descoHeroStatRow:last-child {
+  border-bottom: none;
+}
+
+.descoDashboardGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+@media(max-width: 900px) {
+  .descoDashboardGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.descoStatsCard {
+  background: rgba(13, 28, 54, 0.6);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  padding: 24px;
+}
+
+.descoStatsCard.fullWidth {
+  grid-column: span 2;
+}
+
+@media(max-width: 900px) {
+  .descoStatsCard.fullWidth {
+    grid-column: auto;
+  }
+}
+
+.descoCardTitle {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #f4f7ff;
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.descoTableWrapper {
+  overflow-x: auto;
+  margin-top: 10px;
+}
+
+.descoHistoryTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.descoTableHeader, .descoTableRow {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr 1fr 2fr;
+  padding: 12px 14px;
+  align-items: center;
+  gap: 10px;
+}
+
+.descoTableHeader {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-weight: 700;
+  color: #dce7ff;
+}
+
+.descoTableRow {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  font-size: 0.95rem;
+}
+
+.descoTableRow:last-child {
+  border-bottom: none;
+}
+
+.descoCalculator {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.calcInputGroup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.calcInput {
+  flex: 1;
+  height: 42px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #0b1730;
+  color: white;
+  padding: 0 12px;
+  font-size: 1.1rem;
+  font-weight: 800;
+  font-family: 'JetBrains Mono', monospace;
+  outline: none;
+}
+
+.calcBreakdown {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.calcRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.calcRow.total {
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: var(--accent);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 8px;
+  margin-top: 4px;
+}
 </style>
 </head>
 
 <body>
+
+
 
 <!-- SETTINGS MODAL -->
 <div id="settingsModal" class="modalOverlay hidden">
@@ -1796,17 +2319,17 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 <div class="heroGrid">
 
 <div class="heroCard" onclick="openDashboard()">
-<div class="heroIcon">▦</div>
+<div class="heroIcon" id="heroIcon_dashboard">▦</div>
 <div class="heroTitle">Dashboard</div>
 </div>
 
 <div class="heroCard" onclick="openStats()">
-  <div class="heroIcon">▥</div>
+  <div class="heroIcon" id="heroIcon_stats">▥</div>
   <div class="heroTitle">Stats</div>
 </div>
 
 <div class="heroCard" onclick="openDatabase()">
-  <div class="heroIcon">🗄</div>
+  <div class="heroIcon" id="heroIcon_database">🗄</div>
   <div class="heroTitle">Database</div>
 </div>
 
@@ -1908,74 +2431,115 @@ Next Due in 30 Days
 
 <script>
 
+/* 
+  URL HASH ROUTER CONFIGURATION
+  For Single Page Application (SPA) routing, we listen to URL hash changes (e.g. #dashboard)
+  to transition between views. This preserves browser history, enables refresh states, and
+  allows direct bookmarking.
+*/
+
+// Centralized routing function to switch pages based on window.location.hash
+function handleRouting() {
+  const hash = window.location.hash;
+  
+  // Clean classes by hiding everything by default
+  const pages = document.querySelectorAll('.billPage, .dashboardPage, .databasePage, .statsPage, #descoStatsPage');
+  pages.forEach(page => page.classList.add('hidden'));
+  document.getElementById('landingPage').classList.add('hidden');
+  
+  // Route matching logic
+  if (!hash || hash === '#' || hash === '#home') {
+    document.getElementById('landingPage').classList.remove('hidden');
+  } else if (hash === '#dashboard') {
+    document.getElementById('dashboardPage').classList.remove('hidden');
+  } else if (hash === '#database') {
+    document.getElementById('databasePage').classList.remove('hidden');
+  } else if (hash === '#stats') {
+    document.getElementById('statsPage').classList.remove('hidden');
+  } else if (hash.startsWith('#desco-analytics/')) {
+    const billId = hash.split('/')[1];
+    document.getElementById('descoStatsPage').classList.remove('hidden');
+    // Call openDescoStatsPage with fromRouting=true to execute fetch and render logic without loop
+    openDescoStatsPage(billId, true);
+  } else if (hash.startsWith('#bill/')) {
+    const billId = hash.split('/')[1];
+    const targetPage = document.getElementById(billId);
+    if (targetPage) {
+      targetPage.classList.remove('hidden');
+    } else {
+      // Fallback if bill ID doesn't exist
+      document.getElementById('landingPage').classList.remove('hidden');
+    }
+  } else {
+    // Standard fallback to Home Screen
+    document.getElementById('landingPage').classList.remove('hidden');
+  }
+}
+
+// Bind routing listener to window hashchange
+window.addEventListener('hashchange', handleRouting);
+
+// Refactored helper functions to change the URL hash instead of directly mutating DOM classes.
+// This allows all existing inline "onclick" attributes inside the HTML to remain completely untouched.
 function openPage(id){
-
-document.getElementById('landingPage').classList.add('hidden');
-
-const pages=document.querySelectorAll('.billPage,.dashboardPage,.databasePage,.statsPage');
-
-pages.forEach(page=>{
-page.classList.add('hidden');
-});
-
-document.getElementById(id).classList.remove('hidden');
-
+  if (id === 'descoStatsPage') {
+    // If somehow called directly with descoStatsPage, navigate to hash fallback
+    window.location.hash = '#desco-analytics/rupnagarDesco';
+  } else {
+    window.location.hash = `#bill/${id}`;
+  }
 }
 
 function goHome(){
-
-const pages=document.querySelectorAll('.billPage,.dashboardPage,.databasePage,.statsPage');
-
-pages.forEach(page=>{
-page.classList.add('hidden');
-});
-
-document.getElementById('landingPage').classList.remove('hidden');
-
+  window.location.hash = '#home';
 }
 
 function openDashboard(){
-
-document.getElementById('landingPage').classList.add('hidden');
-
-const pages=document.querySelectorAll('.billPage,.dashboardPage,.databasePage,.statsPage');
-
-pages.forEach(page=>{
-page.classList.add('hidden');
-});
-
-document.getElementById('dashboardPage').classList.remove('hidden');
-
+  window.location.hash = '#dashboard';
 }
 
 function openDatabase(){
-
-document.getElementById('landingPage').classList.add('hidden');
-
-const pages=document.querySelectorAll('.billPage,.dashboardPage,.databasePage,.statsPage');
-
-pages.forEach(page=>{
-page.classList.add('hidden');
-});
-
-document.getElementById('databasePage').classList.remove('hidden');
-
+  window.location.hash = '#database';
 }
 
 function openStats(){
+  window.location.hash = '#stats';
+}
 
-document.getElementById('landingPage').classList.add('hidden');
+function getBillIconHtml(bill, type) {
+  let borderRadius = '50%';
+  if (type === 'bigIcon') borderRadius = '22px';
+  if (type === 'billMiniIcon') borderRadius = '16px';
+  
+  const assetMap = {
+    rupnagarDesco: 'rupnagar_desco.png',
+    rupnagarGas: 'rupnagar_gas.png',
+    uttaraDesco: 'uttara_desco.png',
+    uttaraWater: 'uttara_water.png',
+    matuailGas: 'matuail_gas.png',
+    noakhaliPalli: 'noakhali_palli.png',
+    inspireBroadband: 'inspire_broadband.png'
+  };
+  
+  const filename = assetMap[bill.id];
+  if (filename) {
+    const gh = getGHSettings();
+    const localSrc = `assets/${filename}`;
+    const src = gh 
+      ? `https://raw.githubusercontent.com/${gh.owner}/${gh.repo}/${gh.branch}/assets/${filename}`
+      : localSrc;
+    return `<img src="${src}" onerror="this.onerror=null; this.src='${localSrc}';" alt="" style="width:100%; height:100%; object-fit:cover; border-radius:${borderRadius}; display:block;">`;
+  }
+  return bill.icon || '';
+}
 
-const pages=document.querySelectorAll(
-'.billPage,.dashboardPage,.databasePage,.statsPage'
-);
-
-pages.forEach(page=>{
-page.classList.add('hidden');
-});
-
-document.getElementById('statsPage').classList.remove('hidden');
-
+function getHeroIconHtml(filename) {
+  const gh = getGHSettings();
+  const localSrc = `assets/${filename}`;
+  const src = gh 
+    ? `https://raw.githubusercontent.com/${gh.owner}/${gh.repo}/${gh.branch}/assets/${filename}`
+    : localSrc;
+  return `<img src="${src}" onerror="this.onerror=null; this.src='${localSrc}';" alt="" style="width:100%; height:100%; object-fit:contain; display:block;">`;
 }
 
 const billPages = [
@@ -2032,7 +2596,7 @@ form:'prepaid'
 id:'uttaraWater',
 icon:'💧',
 name:'Uttara<br>Water',
-account:'901-798-991',
+account:'0901798991',
 type:'Postpaid',
 portal:'Open Wasa Portal ↗',
 stats:[
@@ -2096,6 +2660,8 @@ form:'prepaid'
 
 let paymentsData = [];
 let githubFileSha = '';
+let monthlySpendChartInstance = null;
+let yoyCompareChartInstance = null;
 
 // Load GitHub settings from localStorage
 function getGHSettings() {
@@ -2115,7 +2681,7 @@ function getGHSettings() {
 async function fetchPayments() {
   const gh = getGHSettings();
   if (gh) {
-    const url = `https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/${gh.path}?ref=${gh.branch}`;
+    const url = `https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/${gh.path}?ref=${gh.branch}&_t=${Date.now()}`;
     try {
       const res = await fetch(url, {
         headers: {
@@ -2148,6 +2714,9 @@ async function fetchPayments() {
   
   // Hydrate all pages with the loaded paymentsData
   hydrateAllPages();
+
+  // URL Hash Router: Update active view layout after page hydration
+  handleRouting();
 }
 
 async function fetchLocalFallback() {
@@ -2187,7 +2756,7 @@ async function savePaymentRecord(billId, amount, payDate, billMonth) {
     billName: billName,
     billType: billType,
     billMonth: billMonth || '',
-    amount: parseFloat(amount).toFixed(2),
+    amount: Math.round(parseFloat(amount)).toString(),
     payDate: payDate,
     savedAt: new Date().toISOString()
   };
@@ -2202,7 +2771,7 @@ async function savePaymentRecord(billId, amount, payDate, billMonth) {
     
     try {
       // Get the latest SHA before writing
-      const shaRes = await fetch(url + `?ref=${gh.branch}`, {
+      const shaRes = await fetch(url + `?ref=${gh.branch}&_t=${Date.now()}`, {
         headers: {
           'Authorization': `token ${gh.token}`,
           'Accept': 'application/vnd.github.v3+json'
@@ -2277,7 +2846,7 @@ async function deletePaymentRecord(uid) {
     const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(paymentsData, null, 2))));
     
     try {
-      const shaRes = await fetch(url + `?ref=${gh.branch}`, {
+      const shaRes = await fetch(url + `?ref=${gh.branch}&_t=${Date.now()}`, {
         headers: {
           'Authorization': `token ${gh.token}`,
           'Accept': 'application/vnd.github.v3+json'
@@ -2377,7 +2946,7 @@ function openEditModal(uid) {
   const monthContainer = document.getElementById('editMonthContainer');
   const monthSelect = document.getElementById('editMonth');
   
-  if (p.billType === 'postpaid') {
+  if (p.billType === 'postpaid' || p.billId === 'inspireBroadband') {
     monthContainer.classList.remove('hidden');
     monthSelect.innerHTML = getBillingMonthOptions().map(opt => 
       `<option value="${opt}" ${p.billMonth === opt ? 'selected' : ''}>${opt}</option>`
@@ -2414,9 +2983,9 @@ async function saveEditedRecord() {
   if (recordIndex === -1) return;
   
   const record = paymentsData[recordIndex];
-  record.amount = parseFloat(amountVal).toFixed(2);
+  record.amount = Math.round(parseFloat(amountVal)).toString();
   record.payDate = dateVal;
-  record.billMonth = record.billType === 'postpaid' ? monthVal : '';
+  record.billMonth = (record.billType === 'postpaid' || record.billId === 'inspireBroadband') ? monthVal : '';
   
   const saveBtn = document.querySelector('#editModal .saveModalBtn');
   saveBtn.innerText = 'Saving...';
@@ -2429,7 +2998,7 @@ async function saveEditedRecord() {
     
     try {
       // Get the latest SHA before writing
-      const shaRes = await fetch(url + `?ref=${gh.branch}`, {
+      const shaRes = await fetch(url + `?ref=${gh.branch}&_t=${Date.now()}`, {
         headers: {
           'Authorization': `token ${gh.token}`,
           'Accept': 'application/vnd.github.v3+json'
@@ -2625,8 +3194,10 @@ function renderBillPages() {
       
       const now = new Date();
       const nextDue = new Date(now.getFullYear(), now.getMonth(), dueDay);
-      const currentMonthStr = nextDue.toLocaleString('default', { month: 'long' }) + ' ' + String(nextDue.getFullYear()).substr(-2);
-      const isPaidForCurrentMonth = billPayments.some(p => p.billMonth.toLowerCase() === currentMonthStr.toLowerCase() || p.billMonth.toLowerCase().includes(nextDue.toLocaleString('default', { month: 'long' }).toLowerCase()));
+      const billingMonthDate = new Date(nextDue.getFullYear(), nextDue.getMonth() - 1, 1);
+      const billingMonthName = billingMonthDate.toLocaleString('default', { month: 'long' });
+      const currentMonthStr = billingMonthName + ' ' + String(billingMonthDate.getFullYear()).substr(-2);
+      const isPaidForCurrentMonth = billPayments.some(p => p.billMonth.toLowerCase() === currentMonthStr.toLowerCase() || p.billMonth.toLowerCase().includes(billingMonthName.toLowerCase()));
       
       if (isPaidForCurrentMonth) {
         nextDue.setMonth(nextDue.getMonth() + 1);
@@ -2661,19 +3232,33 @@ function renderBillPages() {
     
     const lastMonthDate = new Date(localDate.getFullYear(), localDate.getMonth() - 1, 1);
     const lastMonthLabel = `${lastMonthDate.toLocaleString('default', { month: 'long' })} ${lastMonthDate.getFullYear()}`;
-    const billingMonthHtml = bill.form === 'postpaid' ? `
+    const currentMonthLabel = `${localDate.toLocaleString('default', { month: 'long' })} ${localDate.getFullYear()}`;
+    const defaultMonthLabel = bill.id === 'inspireBroadband' ? currentMonthLabel : lastMonthLabel;
+    
+    const billingMonthHtml = (bill.form === 'postpaid' || bill.id === 'inspireBroadband') ? `
       <div class="inputCard">
         <div class="inputLabel">Bill Month</div>
         <select class="inputMonthSelect" style="width:100%; height:40px; background:#0b1730; color:white; border:1px solid var(--border); border-radius:12px; padding:0 10px; font-size:1.1rem; font-weight:700;">
-          ${getBillingMonthOptions().map(opt => `<option value="${opt}" ${opt === lastMonthLabel ? 'selected' : ''}>${opt}</option>`).join('')}
+          ${getBillingMonthOptions().map(opt => `<option value="${opt}" ${opt === defaultMonthLabel ? 'selected' : ''}>${opt}</option>`).join('')}
         </select>
       </div>
     ` : '';
     
     const portalUrl = getPortalUrl(bill.id);
     const portalBtnHtml = portalUrl ? `
-      <div class="portalBtn" style="cursor:pointer;" onclick="window.open('${portalUrl}', '_blank')">
+      <div class="portalBtn" style="cursor:pointer; margin-top:0;" onclick="window.open('${portalUrl}', '_blank')">
         ${bill.portal}
+      </div>
+    ` : '';
+    
+    const actionRowHtml = (portalUrl || bill.id === 'rupnagarDesco' || bill.id === 'uttaraDesco') ? `
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px;">
+        ${portalBtnHtml ? portalBtnHtml : '<div></div>'}
+        ${(bill.id === 'rupnagarDesco' || bill.id === 'uttaraDesco') ? `
+          <div class="liveAnalyticsBtn" style="cursor:pointer;" onclick="openDescoStatsPage('${bill.id}')">
+            Live Analytics
+          </div>
+        ` : '<div></div>'}
       </div>
     ` : '';
     
@@ -2686,13 +3271,13 @@ function renderBillPages() {
         </div>
         <div class="topBar">
           <div class="leftInfo">
-            <div class="bigIcon">${bill.icon}</div>
+            <div class="bigIcon">${getBillIconHtml(bill, 'bigIcon')}</div>
             <div class="billTitle">${bill.name}</div>
           </div>
           <div class="account mono">AC NO: ${bill.account}</div>
           <div class="billType">${bill.type}</div>
         </div>
-        ${portalBtnHtml}
+        ${actionRowHtml}
         <div class="statsGrid">
           ${stats.map(stat => `
             <div class="statCard">
@@ -2703,7 +3288,7 @@ function renderBillPages() {
         </div>
         <div class="formSection">
           <div class="sectionTitle">Record Payment</div>
-          <div class="formGrid ${bill.form}">
+          <div class="formGrid ${bill.form === 'postpaid' || bill.id === 'inspireBroadband' ? 'postpaid' : 'prepaid'}">
             <div class="inputCard">
               <div class="inputLabel">Amount Paid (৳)</div>
               <input type="number" class="inputAmountVal" value="" placeholder="Enter amount..." style="width:100%; height:40px; background:transparent; border:none; color:white; font-size:1.9rem; font-weight:800; font-family:'JetBrains Mono',monospace; outline:none;">
@@ -2813,7 +3398,7 @@ function renderLandingPageCards() {
     card.className = 'billCard';
     card.onclick = () => openPage(bill.id);
     card.innerHTML = `
-      <div class="billIcon">${bill.icon}</div>
+      <div class="billIcon">${getBillIconHtml(bill, 'billIcon')}</div>
       <div class="billName">${bill.name}</div>
       <div class="billStatus">${statusHtml}</div>
     `;
@@ -2958,7 +3543,7 @@ function renderDashboardPage() {
     rowsHtml += `
       <div class="tableRow">
         <div class="billCell">
-          <div class="billMiniIcon">${bill.icon}</div>
+          <div class="billMiniIcon">${getBillIconHtml(bill, 'billMiniIcon')}</div>
           <div>
             <div class="billMain">${bill.name.replace('<br>', ' ')}</div>
             <div class="billCompany">${company}</div>
@@ -3013,6 +3598,9 @@ function renderDatabasePage() {
   const billFilter = filterSelects[0] ? filterSelects[0].value : 'All Bills';
   const typeFilter = filterSelects[1] ? filterSelects[1].value : 'All Types';
   
+  const filterMonthEl = document.querySelector('.filterMonth');
+  const monthFilter = filterMonthEl ? filterMonthEl.value : ''; // "YYYY-MM"
+  
   const headerHtml = `
     <div class="dbHeader">
       <div>Date</div>
@@ -3033,8 +3621,9 @@ function renderDatabasePage() {
                           
     const matchesBill = billFilter === 'All Bills' || p.billName.replace('<br>', ' ').toLowerCase() === billFilter.replace('<br>', ' ').toLowerCase();
     const matchesType = typeFilter === 'All Types' || p.billType.toLowerCase() === typeFilter.toLowerCase();
+    const matchesMonth = !monthFilter || p.payDate.startsWith(monthFilter);
     
-    return matchesSearch && matchesBill && matchesType;
+    return matchesSearch && matchesBill && matchesType && matchesMonth;
   });
   
   let rowsHtml = '';
@@ -3048,7 +3637,7 @@ function renderDatabasePage() {
         <div>${formatDateFriendly(p.payDate)}</div>
         <div>${p.billName}</div>
         <div style="text-transform: capitalize;">${p.billType}</div>
-        <div class="amountCell">৳ ${parseFloat(p.amount).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</div>
+        <div class="amountCell">৳ ${Math.round(parseFloat(p.amount)).toLocaleString(undefined, {maximumFractionDigits: 0})}</div>
         <div>${p.billMonth || '-'}</div>
         <div class="noteMuted">-</div>
         <div class="actionsCell">
@@ -3075,7 +3664,7 @@ function renderDatabasePage() {
   if (recordCountEl) recordCountEl.innerText = `${filtered.length} records`;
   
   const totalAmountEl = document.querySelector('.totalAmount');
-  if (totalAmountEl) totalAmountEl.innerText = `৳ ${totalAmountSum.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}`;
+  if (totalAmountEl) totalAmountEl.innerText = `৳ ${Math.round(totalAmountSum).toLocaleString(undefined, {maximumFractionDigits: 0})}`;
 }
 
 function renderStatsPage() {
@@ -3180,7 +3769,7 @@ function renderStatsPage() {
   const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const monthSums = {};
   
-  const startDate = new Date(2026, 5, 1); // June 1st, 2026
+  const startDate = new Date(2026, 4, 1); // Start from May 2026 (month index 4)
   const endDate = new Date();
   
   let curr = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
@@ -3191,9 +3780,8 @@ function renderStatsPage() {
     curr.setMonth(curr.getMonth() + 1);
   }
   
-  // Keep maximum 11 displayable bars to prevent chart overflow,
-  // rolling off the oldest bar when a new month is added.
-  const maxBars = 11;
+  // Keep maximum 12 displayable months for a rolling window
+  const maxBars = 12;
   if (monthsList.length > maxBars) {
     monthsList.splice(0, monthsList.length - maxBars);
   }
@@ -3209,19 +3797,223 @@ function renderStatsPage() {
   const maxMonthSum = Math.max(...Object.values(monthSums), 1);
   
   const monthChartContainer = document.querySelector('.monthChart');
-  if (monthChartContainer) {
-    monthChartContainer.innerHTML = monthsList.map(label => {
-      const amt = monthSums[label];
-      const height = (amt / maxMonthSum) * 200;
-      const formattedAmt = amt >= 1000 ? `${(amt / 1000).toFixed(1)}k` : `${amt}`;
-      return `
-        <div class="monthBarWrap">
-          <div class="monthValue">${formattedAmt === '0' ? '-' : formattedAmt}</div>
-          <div class="monthBar" style="height:${Math.max(height, 5)}px"></div>
-          <div class="monthLabel">${label}</div>
-        </div>
-      `;
-    }).join('');
+  const chartCanvasContainer = document.getElementById('monthlySpendChartContainer');
+  const yoyCanvasContainer = document.getElementById('yoyCompareChartContainer');
+  
+  if (typeof Chart !== 'undefined') {
+    if (monthChartContainer) monthChartContainer.classList.add('hidden');
+    if (chartCanvasContainer) chartCanvasContainer.classList.remove('hidden');
+    if (yoyCanvasContainer) {
+      const parentCard = yoyCanvasContainer.closest('.chartCard');
+      if (parentCard) parentCard.classList.remove('hidden');
+    }
+    
+    // 1. Monthly Spend Area Chart
+    const ctxMonthly = document.getElementById('monthlySpendChart');
+    if (ctxMonthly) {
+      if (monthlySpendChartInstance) {
+        monthlySpendChartInstance.destroy();
+      }
+      
+      const chartCtx = ctxMonthly.getContext('2d');
+      const gradient = chartCtx.createLinearGradient(0, 0, 0, 300);
+      gradient.addColorStop(0, 'rgba(34, 211, 238, 0.45)');
+      gradient.addColorStop(1, 'rgba(34, 211, 238, 0.0)');
+      
+      monthlySpendChartInstance = new Chart(ctxMonthly, {
+        type: 'line',
+        data: {
+          labels: monthsList,
+          datasets: [{
+            label: 'Monthly Spend',
+            data: monthsList.map(label => monthSums[label] || 0),
+            borderColor: '#22d3ee',
+            borderWidth: 3,
+            backgroundColor: gradient,
+            fill: true,
+            tension: 0.4,
+            pointBackgroundColor: '#22d3ee',
+            pointBorderColor: '#0b1730',
+            pointBorderWidth: 2,
+            pointRadius: 4,
+            pointHoverRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              backgroundColor: '#0b1730',
+              titleColor: '#f4f7ff',
+              bodyColor: '#22d3ee',
+              borderColor: '#1d3969',
+              borderWidth: 1,
+              titleFont: { family: 'Inter', weight: 'bold' },
+              bodyFont: { family: 'JetBrains Mono' },
+              displayColors: false,
+              callbacks: {
+                label: function(context) {
+                  return ' ৳ ' + Math.round(context.parsed.y).toLocaleString(undefined, {maximumFractionDigits: 0});
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: {
+                color: 'rgba(29, 57, 105, 0.25)',
+                drawBorder: false
+              },
+              ticks: {
+                color: '#91a5c6',
+                font: { family: 'Inter', size: 11, weight: '500' }
+              }
+            },
+            y: {
+              grid: {
+                color: 'rgba(29, 57, 105, 0.25)',
+                drawBorder: false
+              },
+              ticks: {
+                color: '#91a5c6',
+                font: { family: 'JetBrains Mono', size: 11 },
+                callback: function(value) {
+                  return '৳' + value.toLocaleString();
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+    
+    // 2. YoY Grouped Bar Chart
+    const ctxYoY = document.getElementById('yoyCompareChart');
+    if (ctxYoY) {
+      if (yoyCompareChartInstance) {
+        yoyCompareChartInstance.destroy();
+      }
+      
+      const currentYear = new Date().getFullYear();
+      const prevYear = currentYear - 1;
+      const shortMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      
+      const currentYearData = Array(12).fill(0);
+      const prevYearData = Array(12).fill(0);
+      
+      paymentsData.forEach(p => {
+        const pDate = new Date(p.payDate);
+        const year = pDate.getFullYear();
+        const month = pDate.getMonth();
+        if (year === currentYear) {
+          currentYearData[month] += parseFloat(p.amount);
+        } else if (year === prevYear) {
+          prevYearData[month] += parseFloat(p.amount);
+        }
+      });
+      
+      yoyCompareChartInstance = new Chart(ctxYoY, {
+        type: 'bar',
+        data: {
+          labels: shortMonths,
+          datasets: [
+            {
+              label: `${prevYear} Spend`,
+              data: prevYearData,
+              backgroundColor: '#1d3969',
+              borderColor: '#1d3969',
+              borderRadius: 6,
+              borderSkipped: false
+            },
+            {
+              label: `${currentYear} Spend`,
+              data: currentYearData,
+              backgroundColor: '#63ff68',
+              borderColor: '#63ff68',
+              borderRadius: 6,
+              borderSkipped: false
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: {
+                color: '#f4f7ff',
+                font: { family: 'Inter', size: 12, weight: 'bold' }
+              }
+            },
+            tooltip: {
+              backgroundColor: '#0b1730',
+              titleColor: '#f4f7ff',
+              bodyColor: '#63ff68',
+              borderColor: '#1d3969',
+              borderWidth: 1,
+              titleFont: { family: 'Inter', weight: 'bold' },
+              bodyFont: { family: 'JetBrains Mono' },
+              callbacks: {
+                label: function(context) {
+                  return ' ' + context.dataset.label + ': ৳ ' + Math.round(context.parsed.y).toLocaleString(undefined, {maximumFractionDigits: 0});
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: {
+                color: 'rgba(29, 57, 105, 0.1)',
+                drawBorder: false
+              },
+              ticks: {
+                color: '#91a5c6',
+                font: { family: 'Inter', size: 11, weight: '500' }
+              }
+            },
+            y: {
+              grid: {
+                color: 'rgba(29, 57, 105, 0.25)',
+                drawBorder: false
+              },
+              ticks: {
+                color: '#91a5c6',
+                font: { family: 'JetBrains Mono', size: 11 },
+                callback: function(value) {
+                  return '৳' + value.toLocaleString();
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+  } else {
+    if (monthChartContainer) monthChartContainer.classList.remove('hidden');
+    if (chartCanvasContainer) chartCanvasContainer.classList.add('hidden');
+    if (yoyCanvasContainer) {
+      const parentCard = yoyCanvasContainer.closest('.chartCard');
+      if (parentCard) parentCard.classList.add('hidden');
+    }
+    
+    if (monthChartContainer) {
+      monthChartContainer.innerHTML = monthsList.map(label => {
+        const amt = monthSums[label];
+        const height = (amt / maxMonthSum) * 200;
+        const formattedAmt = amt >= 1000 ? `${(amt / 1000).toFixed(1)}k` : `${amt}`;
+        return `
+          <div class="monthBarWrap">
+            <div class="monthValue">${formattedAmt === '0' ? '-' : formattedAmt}</div>
+            <div class="monthBar" style="height:${Math.max(height, 5)}px"></div>
+            <div class="monthLabel">${label}</div>
+          </div>
+        `;
+      }).join('');
+    }
   }
   
   const gapRowsContainer = document.querySelector('.gapTable');
@@ -3319,6 +4111,21 @@ function setupDatabaseFilters() {
     select.onchange = renderDatabasePage;
   });
   
+  const filterMonth = document.querySelector('.filterMonth');
+  if (filterMonth) {
+    filterMonth.onchange = renderDatabasePage;
+  }
+  
+  const clearMonthBtn = document.querySelector('.clearMonthBtn');
+  if (clearMonthBtn) {
+    clearMonthBtn.onclick = () => {
+      if (filterMonth) {
+        filterMonth.value = '';
+        renderDatabasePage();
+      }
+    };
+  }
+  
   const refreshBtn = document.querySelectorAll('.toolbarBtn')[0];
   if (refreshBtn) {
     refreshBtn.onclick = fetchPayments;
@@ -3349,7 +4156,954 @@ function exportToCSV() {
   document.body.removeChild(link);
 }
 
+function sortPaymentsData() {
+  paymentsData.sort((a, b) => {
+    const aDate = a.payDate || '';
+    const bDate = b.payDate || '';
+    const dateComp = bDate.localeCompare(aDate);
+    if (dateComp !== 0) return dateComp;
+    const bTime = b.savedAt ? new Date(b.savedAt).getTime() : 0;
+    const aTime = a.savedAt ? new Date(a.savedAt).getTime() : 0;
+    return bTime - aTime;
+  });
+}
+
+let descoChartInstances = {};
+
+async function fetchDESCOData(accountNo) {
+  const cleanAccountNo = accountNo.replace(/-/g, '');
+  const baseUrls = [
+    'https://prepaid.desco.org.bd/api/unified/customer',
+    'https://prepaid.desco.org.bd/api/tkdes/customer'
+  ];
+  
+  for (const baseUrl of baseUrls) {
+    try {
+      const res = await fetch(`${baseUrl}/getBalance?accountNo=${cleanAccountNo}`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.code === 200 && json.data) {
+          const balanceData = json.data;
+          
+          // Fetch Monthly Consumption (last 12 months)
+          const today = new Date();
+          const monthTo = today.toISOString().slice(0, 7); // YYYY-MM
+          const oneYearAgo = new Date(today.getFullYear(), today.getMonth() - 11, 1);
+          const monthFrom = oneYearAgo.toISOString().slice(0, 7);
+          
+          let monthlyData = [];
+          try {
+            const mRes = await fetch(`${baseUrl}/getCustomerMonthlyConsumption?accountNo=${cleanAccountNo}&monthFrom=${monthFrom}&monthTo=${monthTo}`);
+            if (mRes.ok) {
+              const mJson = await mRes.json();
+              if (mJson.code === 200 && mJson.data) {
+                monthlyData = mJson.data;
+              }
+            }
+          } catch(e) { console.error('Failed to fetch monthly consumption', e); }
+          
+          // Fetch Recharge History (last 30 days)
+          const dateTo = today.toISOString().slice(0, 10); // YYYY-MM-DD
+          const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+          const dateFrom = thirtyDaysAgo.toISOString().slice(0, 10);
+          
+          let rechargeData = [];
+          try {
+            const rRes = await fetch(`${baseUrl}/getRechargeHistory?accountNo=${cleanAccountNo}&dateFrom=${dateFrom}&dateTo=${dateTo}`);
+            if (rRes.ok) {
+              const rJson = await rRes.json();
+              if (rJson.code === 200 && rJson.data) {
+                rechargeData = rJson.data;
+              }
+            }
+          } catch(e) { console.error('Failed to fetch recharge history', e); }
+          
+          return {
+            balance: balanceData,
+            monthly: monthlyData,
+            recharge: rechargeData
+          };
+        }
+      }
+    } catch(err) {
+      console.warn(`Fetch failed for ${baseUrl}`, err);
+    }
+  }
+  throw new Error('Failed to retrieve DESCO account details from both endpoints.');
+}
+
+async function loadLiveDESCOData(billId, accountNo) {
+  const container = document.getElementById(`descoLive_${billId}`);
+  if (!container) return;
+  
+  try {
+    const apiResult = await fetchDESCOData(accountNo);
+    const balance = apiResult.balance;
+    const monthly = apiResult.monthly || [];
+    const recharge = apiResult.recharge || [];
+    
+    // Sort monthly data chronologically
+    monthly.sort((a, b) => a.month.localeCompare(b.month));
+    
+    const isLow = balance.balance < 300;
+    const balanceClass = isLow ? 'balanceLow' : 'balanceGlow';
+    
+    const formattedBalance = parseFloat(balance.balance).toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0});
+    const formattedConsumption = parseFloat(balance.currentMonthConsumption || 0).toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 2});
+    
+    const readingDateStr = balance.readingTime ? balance.readingTime.split(' ')[0] : 'N/A';
+    
+    let meterInfoHtml = '';
+    if (monthly.length > 0) {
+      const info = monthly[monthly.length - 1];
+      meterInfoHtml = `
+        <div style="font-size:0.82rem; color:var(--muted); margin-top: 12px; display:flex; flex-wrap:wrap; gap:16px; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 12px;">
+          <div><strong>Customer:</strong> ${info.customerName || 'N/A'}</div>
+          <div><strong>Meter:</strong> ${info.meterNo || 'N/A'}</div>
+          <div><strong>Tariff:</strong> ${info.tariffSolution || 'N/A'}</div>
+          <div><strong>Load:</strong> ${info.sanctionLoad || 'N/A'} kW</div>
+        </div>
+      `;
+    }
+    
+    let rechargeRows = '';
+    if (recharge.length === 0) {
+      rechargeRows = `
+        <div style="font-size:0.85rem; color:var(--muted); text-align:center; padding: 14px 0;">
+          No recharge records found in the last 30 days.
+        </div>
+      `;
+    } else {
+      rechargeRows = `
+        <div class="descoHistoryTable">
+          <div class="descoTableHeader">
+            <div>Date</div>
+            <div>Paid</div>
+            <div>Energy</div>
+            <div>Recharge Token</div>
+          </div>
+          ${recharge.slice(0, 5).map(r => {
+            const rDate = r.rechargeDate ? r.rechargeDate.split(' ')[0] : '-';
+            const rToken = r.tokenNo ? r.tokenNo.trim() : '';
+            const tokenHtml = rToken ? `
+              <div class="tokenBox">
+                <span class="tokenText" style="user-select: all;">${rToken}</span>
+                <button class="copyBtn" onclick="navigator.clipboard.writeText('${rToken}'); alert('Token copied to clipboard!');" title="Copy Token">📋</button>
+              </div>
+            ` : '-';
+            return `
+              <div class="descoTableRow">
+                <div>${rDate}</div>
+                <div style="font-weight:700;">৳ ${Math.round(r.totalAmount || 0)}</div>
+                <div style="color:var(--muted);">৳ ${Math.round(r.energyAmount || 0)}</div>
+                <div>${tokenHtml}</div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+    
+    container.innerHTML = `
+      <div class="descoLiveTitle">
+        <span>⚡</span> DESCO Live Meter Analytics
+      </div>
+      
+      <div class="descoKpiGrid">
+        <div class="descoCard">
+          <div class="descoLabel">Current Balance</div>
+          <div class="descoValue ${balanceClass}">৳ ${formattedBalance}</div>
+          <div style="font-size:0.75rem; color:var(--muted); margin-top:6px;">Meter No: ${balance.meterNo || 'N/A'}</div>
+        </div>
+        
+        <div class="descoCard">
+          <div class="descoLabel">This Month's Consumption</div>
+          <div class="descoValue" style="color:var(--accent2);">${formattedConsumption} <span style="font-size:1rem; font-weight:500;">kWh</span></div>
+          <div style="font-size:0.75rem; color:var(--muted); margin-top:6px;">Last Reading: ${readingDateStr}</div>
+        </div>
+      </div>
+      
+      ${meterInfoHtml}
+      
+      ${monthly.length > 0 ? `
+        <div class="descoChartSection">
+          <div class="descoSectionTitle">Monthly Energy Consumption (kWh)</div>
+          <div style="position: relative; height: 180px; width: 100%;">
+            <canvas id="descoChart_${billId}"></canvas>
+          </div>
+        </div>
+      ` : ''}
+      
+      <div class="descoRechargeSection" style="margin-top:20px;">
+        <div class="descoSectionTitle">Recent Recharge Tokens (30 Days)</div>
+        ${rechargeRows}
+      </div>
+    `;
+    
+    if (monthly.length > 0) {
+      const ctx = document.getElementById(`descoChart_${billId}`);
+      if (ctx) {
+        if (descoChartInstances[billId]) {
+          descoChartInstances[billId].destroy();
+        }
+        
+        const months = monthly.map(m => {
+          const parts = m.month.split('-');
+          const mNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+          return `${mNames[parseInt(parts[1]) - 1]} ${parts[0].substr(-2)}`;
+        });
+        const units = monthly.map(m => m.consumedUnit);
+        
+        descoChartInstances[billId] = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: months,
+            datasets: [{
+              label: 'Energy Consumed (kWh)',
+              data: units,
+              backgroundColor: '#22d3ee',
+              borderColor: '#22d3ee',
+              borderRadius: 6,
+              borderSkipped: false
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                backgroundColor: '#0b1730',
+                titleColor: '#f4f7ff',
+                bodyColor: '#22d3ee',
+                borderColor: '#1d3969',
+                borderWidth: 1,
+                callbacks: {
+                  label: function(context) {
+                    return ' ' + context.parsed.y.toFixed(1) + ' kWh';
+                  }
+                }
+              }
+            },
+            scales: {
+              x: {
+                grid: { color: 'rgba(29, 57, 105, 0.1)', drawBorder: false },
+                ticks: { color: '#91a5c6', font: { size: 10 } }
+              },
+              y: {
+                grid: { color: 'rgba(29, 57, 105, 0.15)', drawBorder: false },
+                ticks: { color: '#91a5c6', font: { size: 10 } }
+              }
+            }
+          }
+        });
+      }
+    }
+    
+  } catch(err) {
+    console.error('Failed to load DESCO Live API Data:', err);
+    container.innerHTML = `
+      <div class="descoLiveTitle">
+        <span>⚡</span> DESCO Live Meter Analytics
+      </div>
+      
+      <div class="corsWarningCard">
+        <div class="corsWarningTitle">
+          <span>⚠️</span> Live DESCO Data Blocked by CORS
+        </div>
+        <div class="corsWarningDesc">
+          Your browser blocked the request to the DESCO prepaid server because of cross-origin security restrictions. 
+          <br><br>
+          <strong>How to enable live analytics:</strong>
+          <ul style="margin-top: 8px; margin-left: 20px; display: flex; flex-direction: column; gap: 6px;">
+            <li>Install a browser extension such as <code>Allow CORS: Access-Control-Allow-Origin</code>.</li>
+            <li>Enable the extension in your browser, close and reopen this bill page to load real-time balance, consumption trends, and copyable recharge tokens.</li>
+          </ul>
+        </div>
+      </div>
+    `;
+  }
+}
+
+function calculateDESCOBill(units, load) {
+  let energyCharge = 0;
+  const demandCharge = load * 42;
+  const meterRent = 40;
+  
+  if (units <= 50) {
+    energyCharge = units * 5.32;
+  } else {
+    let remaining = units;
+    // Step 1: 0-75 units
+    const step1 = Math.min(remaining, 75);
+    energyCharge += step1 * 6.18;
+    remaining -= step1;
+    
+    // Step 2: 76-200 units
+    if (remaining > 0) {
+      const step2 = Math.min(remaining, 125);
+      energyCharge += step2 * 8.50;
+      remaining -= step2;
+    }
+    // Step 3: 201-300 units
+    if (remaining > 0) {
+      const step3 = Math.min(remaining, 100);
+      energyCharge += step3 * 9.10;
+      remaining -= step3;
+    }
+    // Step 4: 301-400 units
+    if (remaining > 0) {
+      const step4 = Math.min(remaining, 100);
+      energyCharge += step4 * 9.62;
+      remaining -= step4;
+    }
+    // Step 5: 401-600 units
+    if (remaining > 0) {
+      const step5 = Math.min(remaining, 200);
+      energyCharge += step5 * 15.01;
+      remaining -= step5;
+    }
+    // Step 6: Above 600 units
+    if (remaining > 0) {
+      energyCharge += remaining * 17.35;
+    }
+  }
+  
+  const vat = (energyCharge + demandCharge + meterRent) * 0.05;
+  const total = energyCharge + demandCharge + meterRent + vat;
+  
+  return {
+    energyCharge: Math.round(energyCharge),
+    demandCharge: Math.round(demandCharge),
+    meterRent: meterRent,
+    vat: Math.round(vat),
+    total: Math.round(total)
+  };
+}
+
+function updateLiveCalculator() {
+  const unitsVal = parseFloat(document.getElementById('calcUnitsInput').value) || 0;
+  const loadVal = parseFloat(document.getElementById('calcLoadInput').value) || 2;
+  
+  const result = calculateDESCOBill(unitsVal, loadVal);
+  
+  document.getElementById('calcEnergyCharge').innerText = `৳ ${result.energyCharge.toLocaleString()}`;
+  document.getElementById('calcDemandCharge').innerText = `৳ ${result.demandCharge.toLocaleString()}`;
+  document.getElementById('calcMeterRent').innerText = `৳ ${result.meterRent.toLocaleString()}`;
+  document.getElementById('calcVat').innerText = `৳ ${result.vat.toLocaleString()}`;
+  document.getElementById('calcTotal').innerText = `৳ ${result.total.toLocaleString()}`;
+}
+
+async function openDescoStatsPage(billId, fromRouting = false) {
+  // If this was called from clicking a button, update the URL hash.
+  // The hash change listener will then automatically route and call this function with fromRouting = true.
+  if (!fromRouting) {
+    window.location.hash = `#desco-analytics/${billId}`;
+    return;
+  }
+  
+  document.getElementById('descoStatsBackBtn').onclick = () => openPage(billId);
+  
+  const container = document.getElementById('descoStatsContent');
+  container.innerHTML = `
+    <div style="text-align: center; padding: 100px 0; color: var(--accent2); font-size: 1.2rem;">
+      <style>
+        @keyframes descoSpinner {
+          to { transform: rotate(360deg); }
+        }
+      </style>
+      <div style="width: 48px; height: 48px; border: 4px solid rgba(34, 211, 238, 0.1); border-top-color: var(--accent2); border-radius: 50%; display: inline-block; animation: descoSpinner 0.8s linear infinite; margin-bottom: 20px;"></div>
+      <div style="font-weight: 800;">Connecting to DESCO Servers...</div>
+      <div style="font-size:0.9rem; color:var(--muted); margin-top:10px;">Retrieving real-time daily, monthly & recharge statistics...</div>
+    </div>
+  `;
+  
+  const bill = billPages.find(b => b.id === billId);
+  if (!bill) return;
+  const cleanAccountNo = bill.account.replace(/-/g, '');
+  const locationName = bill.id === 'rupnagarDesco' ? 'Just Mirpur' : 'Uttara';
+  
+  const baseUrls = [
+    'https://prepaid.desco.org.bd/api/unified/customer',
+    'https://prepaid.desco.org.bd/api/tkdes/customer'
+  ];
+  
+  let successData = null;
+  
+  for (const baseUrl of baseUrls) {
+    try {
+      const balanceRes = await fetch(`${baseUrl}/getBalance?accountNo=${cleanAccountNo}`);
+      if (balanceRes.ok) {
+        const balanceJson = await balanceRes.json();
+        if (balanceJson.code === 200 && balanceJson.data) {
+          const today = new Date();
+          
+          // 1. Monthly consumption calls (last 24 months)
+          const monthTo1 = today.toISOString().slice(0, 7);
+          const oneYearAgo = new Date(today.getFullYear(), today.getMonth() - 11, 1);
+          const monthFrom1 = oneYearAgo.toISOString().slice(0, 7);
+          
+          const monthTo2 = new Date(today.getFullYear(), today.getMonth() - 12, 1).toISOString().slice(0, 7);
+          const twoYearsAgo = new Date(today.getFullYear(), today.getMonth() - 23, 1);
+          const monthFrom2 = twoYearsAgo.toISOString().slice(0, 7);
+          
+          // 2. Daily consumption call (last 16 days to diff 15 days)
+          const dateTo = today.toISOString().slice(0, 10);
+          const sixteenDaysAgo = new Date(today.getTime() - 16 * 24 * 60 * 60 * 1000);
+          const dateFrom = sixteenDaysAgo.toISOString().slice(0, 10);
+          
+          // 3. Recharge history call (last 180 days)
+          const rechargeDateFrom = new Date(today.getTime() - 180 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+          
+          const [mRes1, mRes2, dRes, rRes] = await Promise.all([
+            fetch(`${baseUrl}/getCustomerMonthlyConsumption?accountNo=${cleanAccountNo}&monthFrom=${monthFrom1}&monthTo=${monthTo1}`).then(r => r.json()).catch(e => null),
+            fetch(`${baseUrl}/getCustomerMonthlyConsumption?accountNo=${cleanAccountNo}&monthFrom=${monthFrom2}&monthTo=${monthTo2}`).then(r => r.json()).catch(e => null),
+            fetch(`${baseUrl}/getCustomerDailyConsumption?accountNo=${cleanAccountNo}&dateFrom=${dateFrom}&dateTo=${dateTo}`).then(r => r.json()).catch(e => null),
+            fetch(`${baseUrl}/getRechargeHistory?accountNo=${cleanAccountNo}&dateFrom=${rechargeDateFrom}&dateTo=${dateTo}`).then(r => r.json()).catch(e => null)
+          ]);
+          
+          successData = {
+            balance: balanceJson.data,
+            monthly1: mRes1 && mRes1.code === 200 ? mRes1.data : [],
+            monthly2: mRes2 && mRes2.code === 200 ? mRes2.data : [],
+            daily: dRes && dRes.code === 200 ? dRes.data : [],
+            recharge: rRes && rRes.code === 200 ? rRes.data : []
+          };
+          break;
+        }
+      }
+    } catch(err) {
+      console.warn(`Fetch failed for ${baseUrl} during dashboard loading`, err);
+    }
+  }
+  
+  if (!successData) {
+    container.innerHTML = `
+      <div class="descoHeaderCard">
+        <h2>${bill.name.replace('<br>', ' ')} Live Dashboard</h2>
+        <div style="font-size:0.95rem; color:#dce7ff;"><strong>Account:</strong> ${bill.account} | <strong>Location:</strong> ${locationName}</div>
+      </div>
+      
+      <div class="corsWarningCard">
+        <div class="corsWarningTitle">
+          <span>⚠️</span> Live DESCO Dashboard Blocked by CORS
+        </div>
+        <div class="corsWarningDesc">
+          Your browser blocked the request to the DESCO prepaid server because of cross-origin security restrictions.
+          <br><br>
+          <strong>To view this dashboard, please follow these steps:</strong>
+          <ul style="margin-top: 10px; margin-left: 20px; display: flex; flex-direction: column; gap: 8px;">
+            <li>Install a browser extension such as <code>Allow CORS: Access-Control-Allow-Origin</code>.</li>
+            <li>Enable the extension in your browser tools.</li>
+            <li>Click the "Back" button above and click <strong>Live Analytics 📊</strong> again to load the real-time daily, monthly, and recharge statistics dashboard!</li>
+          </ul>
+        </div>
+      </div>
+    `;
+    return;
+  }
+  
+  renderDescoStatsDashboard(billId, bill, locationName, successData);
+}
+
+function renderDescoStatsDashboard(billId, bill, locationName, apiData) {
+  const container = document.getElementById('descoStatsContent');
+  
+  const balance = apiData.balance;
+  const monthly1 = apiData.monthly1 || [];
+  const monthly2 = apiData.monthly2 || [];
+  const daily = apiData.daily || [];
+  const recharge = apiData.recharge || [];
+  
+  const allMonthly = [...monthly1, ...monthly2];
+  const monthlyMap = {};
+  allMonthly.forEach(m => {
+    monthlyMap[m.month] = m;
+  });
+  const sortedMonthly = Object.values(monthlyMap).sort((a, b) => a.month.localeCompare(b.month));
+  
+  const latestMonthInfo = sortedMonthly.length > 0 ? sortedMonthly[sortedMonthly.length - 1] : {};
+  const ownerName = latestMonthInfo.customerName || 'N/A';
+  const meterNo = balance.meterNo || latestMonthInfo.meterNo || 'N/A';
+  const sanctionLoad = latestMonthInfo.sanctionLoad || 2;
+  
+  const avgUnitCost = (latestMonthInfo.consumedUnit > 0) ? (latestMonthInfo.consumedTaka / latestMonthInfo.consumedUnit) : 7.5;
+  
+  daily.sort((a, b) => a.date.localeCompare(b.date));
+  
+  let dailyUsageData = [];
+  let totalDailyDiffUnits = 0;
+  let validDiffCount = 0;
+  
+  for (let i = 1; i < daily.length; i++) {
+    const diff = daily[i].consumedUnit - daily[i-1].consumedUnit;
+    if (diff >= 0 && diff < 100) {
+      const dateParts = daily[i].date.split('-');
+      const label = `${dateParts[1]}-${dateParts[2]}`;
+      dailyUsageData.push({
+        date: label,
+        units: diff
+      });
+      totalDailyDiffUnits += diff;
+      validDiffCount++;
+    }
+  }
+  
+  if (dailyUsageData.length > 15) {
+    dailyUsageData = dailyUsageData.slice(-15);
+  }
+  
+  const avgDailyUnits = validDiffCount > 0 ? (totalDailyDiffUnits / validDiffCount) : 10;
+  const avgDailyCost = avgDailyUnits * avgUnitCost;
+  const daysRemaining = avgDailyCost > 0 ? (balance.balance / avgDailyCost) : 30;
+  
+  const exhaustionDate = new Date();
+  exhaustionDate.setTime(Date.now() + daysRemaining * 24 * 60 * 60 * 1000);
+  const exhaustionDateStr = formatDateFriendly(exhaustionDate.toISOString().split('T')[0]);
+  
+  const fillPercent = Math.min(100, Math.max(0, (daysRemaining / 15) * 100));
+  
+  let alertText = '';
+  let alertColor = '';
+  if (daysRemaining <= 3) {
+    alertText = `Critical: Recharge balance immediately!`;
+    alertColor = '#ff6368';
+  } else if (daysRemaining <= 7) {
+    alertText = `Warning: Recharge recommended soon.`;
+    alertColor = '#ffe663';
+  } else {
+    alertText = `Healthy: Sufficient balance.`;
+    alertColor = '#63ff68';
+  }
+  
+  const formattedBalance = parseFloat(balance.balance).toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0});
+  const formattedDailyUnits = avgDailyUnits.toFixed(2);
+  const formattedDailyCost = Math.round(avgDailyCost);
+  
+  const last10Recharges = recharge.slice(0, 10);
+  let rechargeRows = '';
+  if (last10Recharges.length === 0) {
+    rechargeRows = `
+      <div style="font-size:0.9rem; color:var(--muted); text-align:center; padding: 20px 0;">
+        No recharge history found in the last 180 days.
+      </div>
+    `;
+  } else {
+    rechargeRows = `
+      <div class="descoTableWrapper">
+        <div class="descoHistoryTable">
+          <div class="descoTableHeader">
+            <div>Date</div>
+            <div>Paid</div>
+            <div>Energy</div>
+            <div>VAT</div>
+            <div>Token Number</div>
+          </div>
+          ${last10Recharges.map(r => {
+            const rDate = r.rechargeDate ? r.rechargeDate.split(' ')[0] : '-';
+            const rToken = r.tokenNo ? r.tokenNo.trim() : '';
+            const tokenHtml = rToken ? `
+              <div class="tokenBox">
+                <span class="tokenText" style="user-select:all; font-size:0.8rem;">${rToken}</span>
+                <button class="copyBtn" onclick="navigator.clipboard.writeText('${rToken}'); alert('Token copied!');" title="Copy Token" style="font-size: 0.72rem; padding: 4px 8px; border-radius: 6px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: #79c7ff; cursor: pointer; transition: all 0.2s;">Copy</button>
+              </div>
+            ` : '-';
+            return `
+              <div class="descoTableRow">
+                <div>${rDate}</div>
+                <div style="font-weight:800; color:#63ff68;">৳ ${Math.round(r.totalAmount || 0)}</div>
+                <div style="color:var(--text);">৳ ${Math.round(r.energyAmount || 0)}</div>
+                <div style="color:var(--muted);">৳ ${Math.round(r.VAT || 0)}</div>
+                <div>${tokenHtml}</div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }
+  
+  const last12Months = sortedMonthly.slice(-12);
+  const compLabels = [];
+  const currTaka = [];
+  const prevTaka = [];
+  const currUnit = [];
+  const prevUnit = [];
+  const maxDemandData = [];
+  
+  const mNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  
+  last12Months.forEach(currItem => {
+    const parts = currItem.month.split('-');
+    const year = parseInt(parts[0]);
+    const monthIdx = parseInt(parts[1]) - 1;
+    const label = `${mNames[monthIdx]} ${String(year).substr(-2)}`;
+    
+    compLabels.push(label);
+    currTaka.push(Math.round(currItem.consumedTaka));
+    currUnit.push(Math.round(currItem.consumedUnit));
+    maxDemandData.push(currItem.maximumDemand || 0);
+    
+    const prevMonthStr = `${year - 1}-${parts[1]}`;
+    const prevItem = sortedMonthly.find(m => m.month === prevMonthStr);
+    if (prevItem) {
+      prevTaka.push(Math.round(prevItem.consumedTaka));
+      prevUnit.push(Math.round(prevItem.consumedUnit));
+    } else {
+      prevTaka.push(0);
+      prevUnit.push(0);
+    }
+  });
+  
+  container.innerHTML = `
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px;">
+      <div class="descoInfoBadge">
+        <div class="descoInfoLabel">Owner Name</div>
+        <div class="descoInfoValue" style="color: var(--accent2);">${ownerName}</div>
+      </div>
+      <div class="descoInfoBadge">
+        <div class="descoInfoLabel">Account No</div>
+        <div class="descoInfoValue">${bill.account}</div>
+      </div>
+      <div class="descoInfoBadge">
+        <div class="descoInfoLabel">Meter No</div>
+        <div class="descoInfoValue">${meterNo}</div>
+      </div>
+      <div class="descoInfoBadge">
+        <div class="descoInfoLabel">Location</div>
+        <div class="descoInfoValue" style="color: var(--accent2);">${locationName}</div>
+      </div>
+      <div class="descoInfoBadge">
+        <div class="descoInfoLabel">Load Limit</div>
+        <div class="descoInfoValue">${sanctionLoad} kW</div>
+      </div>
+    </div>
+    
+    <div class="descoHeroCard">
+      <div class="descoHeroContent">
+        <div class="descoHeroMain">
+          <div class="descoHeroBalanceLabel">Prepaid Balance Left</div>
+          <div class="descoHeroBalanceVal" style="color:${alertColor}; text-shadow:0 0 15px ${alertColor}33;">৳ ${formattedBalance}</div>
+          
+          <!-- Balance Health Progress Indicator -->
+          <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.05); border-radius: 4px; margin-top: 14px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05);">
+            <div style="width: ${fillPercent}%; height: 100%; background: ${alertColor}; box-shadow: 0 0 10px ${alertColor}; border-radius: 4px; transition: width 0.5s ease;"></div>
+          </div>
+          
+          <!-- Punchy Status Indicator Dot & Text -->
+          <div style="display:flex; align-items:center; gap:8px; margin-top:14px; font-size:0.95rem; font-weight:700; color:${alertColor};">
+            <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:${alertColor}; box-shadow:0 0 8px ${alertColor};"></span>
+            ${alertText}
+          </div>
+        </div>
+        
+        <!-- Pretty stat cards side-by-side -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; flex: 1.2; min-width: 280px;">
+          <div class="descoCard" style="padding: 14px 16px;">
+            <div class="descoLabel" style="font-size:0.8rem; margin-bottom: 4px;">Avg Daily Usage</div>
+            <div style="font-size: 1.3rem; font-weight: 800; color: var(--accent2);">${formattedDailyUnits} <span style="font-size:0.8rem; font-weight:500; color:var(--muted);">kWh</span></div>
+          </div>
+          <div class="descoCard" style="padding: 14px 16px;">
+            <div class="descoLabel" style="font-size:0.8rem; margin-bottom: 4px;">Avg Daily Cost</div>
+            <div style="font-size: 1.3rem; font-weight: 800; color: #fff;">৳ ${formattedDailyCost} <span style="font-size:0.8rem; font-weight:500; color:var(--muted);">/ day</span></div>
+          </div>
+          <div class="descoCard" style="padding: 14px 16px;">
+            <div class="descoLabel" style="font-size:0.8rem; margin-bottom: 4px;">Est. Disconnect Date</div>
+            <div style="font-size: 1.3rem; font-weight: 800; color: ${alertColor};">${exhaustionDateStr}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="descoDashboardGrid">
+      <div class="descoStatsCard">
+        <div class="descoCardTitle">Last 15 Days Daily Consumption (kWh)</div>
+        <div style="position:relative; height:240px; width:100%;">
+          <canvas id="descoChart_daily_${billId}"></canvas>
+        </div>
+      </div>
+      
+      <div class="descoStatsCard">
+        <div class="descoCardTitle">Maximum Demand History (kW)</div>
+        <div style="position:relative; height:240px; width:100%;">
+          <canvas id="descoChart_maxDemand_${billId}"></canvas>
+        </div>
+      </div>
+      
+      <div class="descoStatsCard">
+        <div class="descoCardTitle">Cost (Taka) Year-over-Year Comparison</div>
+        <div style="position:relative; height:240px; width:100%;">
+          <canvas id="descoChart_yoyTaka_${billId}"></canvas>
+        </div>
+      </div>
+      
+      <div class="descoStatsCard">
+        <div class="descoCardTitle">Units (kWh) Year-over-Year Comparison</div>
+        <div style="position:relative; height:240px; width:100%;">
+          <canvas id="descoChart_yoyUnit_${billId}"></canvas>
+        </div>
+      </div>
+      
+      <div class="descoStatsCard fullWidth">
+        <div class="descoCardTitle">12-Month Consumption Trends</div>
+        <div style="position:relative; height:260px; width:100%;">
+          <canvas id="descoChart_monthly_${billId}"></canvas>
+        </div>
+      </div>
+      
+      <div class="descoStatsCard">
+        <div class="descoCardTitle">Recharge Token History (Last 10 Logs)</div>
+        ${rechargeRows}
+      </div>
+      
+      <div class="descoStatsCard">
+        <div class="descoCardTitle">Interactive LT-A Residential Bill Calculator</div>
+        <div class="descoCalculator">
+          <details style="font-size: 0.82rem; color: var(--muted); margin-bottom: 8px; cursor: pointer; background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px;">
+            <summary style="color: var(--accent2); font-weight: 700; outline: none;">View LT-A Tariff Steps & Rate Details</summary>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding-top: 10px; color: var(--text); line-height: 1.4;">
+              <div>Lifeline (0-50 units): <strong>৳ 5.32</strong></div>
+              <div>Step 1 (0-75 units): <strong>৳ 6.18</strong></div>
+              <div>Step 2 (76-200 units): <strong>৳ 8.50</strong></div>
+              <div>Step 3 (201-300 units): <strong>৳ 9.10</strong></div>
+              <div>Step 4 (301-400 units): <strong>৳ 9.62</strong></div>
+              <div>Step 5 (401-600 units): <strong>৳ 15.01</strong></div>
+              <div style="grid-column: span 2;">Step 6 (Above 600 units): <strong>৳ 17.35</strong></div>
+              <div style="grid-column: span 2; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 6px; margin-top: 2px; font-size: 0.78rem; color: var(--muted);">Demand Charge: ৳ 42/kW | Meter Rent: ৳ 40 | VAT: 5%</div>
+            </div>
+          </details>
+          
+          <div class="calcInputGroup" style="margin-top:10px;">
+            <div style="flex:1;">
+              <div class="descoLabel">Enter Monthly Units (kWh)</div>
+              <input type="number" id="calcUnitsInput" value="${Math.round(latestMonthInfo.consumedUnit || 150)}" class="calcInput" oninput="updateLiveCalculator()">
+            </div>
+            <div style="width:100px;">
+              <div class="descoLabel">Load (kW)</div>
+              <input type="number" id="calcLoadInput" value="${sanctionLoad}" class="calcInput" oninput="updateLiveCalculator()">
+            </div>
+          </div>
+          
+          <div class="calcBreakdown">
+            <div class="calcRow">
+              <span>Energy Charges</span>
+              <span id="calcEnergyCharge">-</span>
+            </div>
+            <div class="calcRow">
+              <span>Demand Charges (Load × ৳42)</span>
+              <span id="calcDemandCharge">-</span>
+            </div>
+            <div class="calcRow">
+              <span>Meter Rent</span>
+              <span id="calcMeterRent">-</span>
+            </div>
+            <div class="calcRow">
+              <span>VAT (5%)</span>
+              <span id="calcVat">-</span>
+            </div>
+            <div class="calcRow total">
+              <span>Estimated Monthly Total</span>
+              <span id="calcTotal">-</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  updateLiveCalculator();
+  
+  const chartTypes = ['daily', 'monthly', 'yoyTaka', 'yoyUnit', 'maxDemand'];
+  chartTypes.forEach(t => {
+    const key = `${billId}_${t}`;
+    if (descoChartInstances[key]) {
+      descoChartInstances[key].destroy();
+    }
+  });
+  
+  const dailyCtx = document.getElementById(`descoChart_daily_${billId}`);
+  if (dailyCtx) {
+    const dailyUnits = dailyUsageData.map(d => d.units);
+    const minUnitVal = dailyUnits.length > 0 ? Math.min(...dailyUnits) : 0;
+    const maxUnitVal = dailyUnits.length > 0 ? Math.max(...dailyUnits) : 100;
+    const unitDiff = maxUnitVal - minUnitVal;
+    const dailyMinScale = Math.max(0, Math.floor(minUnitVal - (unitDiff || 1) * 0.25));
+
+    descoChartInstances[`${billId}_daily`] = new Chart(dailyCtx, {
+      type: 'bar',
+      data: {
+        labels: dailyUsageData.map(d => d.date),
+        datasets: [{
+          data: dailyUsageData.map(d => d.units),
+          backgroundColor: '#22d3ee',
+          borderRadius: 4,
+          barPercentage: 0.35,
+          categoryPercentage: 0.6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: '#91a5c6', font: { size: 9 } } },
+          y: { 
+            min: dailyMinScale,
+            grid: { color: 'rgba(29, 57, 105, 0.1)' }, 
+            ticks: { color: '#91a5c6', font: { size: 9 } } 
+          }
+        }
+      }
+    });
+  }
+  
+  const maxCtx = document.getElementById(`descoChart_maxDemand_${billId}`);
+  if (maxCtx) {
+    descoChartInstances[`${billId}_maxDemand`] = new Chart(maxCtx, {
+      type: 'line',
+      data: {
+        labels: compLabels,
+        datasets: [{
+          data: maxDemandData,
+          borderColor: '#ffe663',
+          borderWidth: 2,
+          pointBackgroundColor: '#ffe663',
+          tension: 0.3,
+          fill: false
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: '#91a5c6', font: { size: 9 } } },
+          y: { grid: { color: 'rgba(29, 57, 105, 0.1)' }, ticks: { color: '#91a5c6', font: { size: 9 } } }
+        }
+      }
+    });
+  }
+  
+  const yoyTakaCtx = document.getElementById(`descoChart_yoyTaka_${billId}`);
+  if (yoyTakaCtx) {
+    descoChartInstances[`${billId}_yoyTaka`] = new Chart(yoyTakaCtx, {
+      type: 'bar',
+      data: {
+        labels: compLabels.map(l => l.split(' ')[0]),
+        datasets: [
+          {
+            label: 'Previous Year (৳)',
+            data: prevTaka,
+            backgroundColor: '#1d3969',
+            borderRadius: 4
+          },
+          {
+            label: 'Current Year (৳)',
+            data: currTaka,
+            backgroundColor: '#63ff68',
+            borderRadius: 4
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: true, labels: { color: '#91a5c6', font: { size: 9 } } } },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: '#91a5c6', font: { size: 9 } } },
+          y: { grid: { color: 'rgba(29, 57, 105, 0.1)' }, ticks: { color: '#91a5c6', font: { size: 9 } } }
+        }
+      }
+    });
+  }
+  
+  const yoyUnitCtx = document.getElementById(`descoChart_yoyUnit_${billId}`);
+  if (yoyUnitCtx) {
+    descoChartInstances[`${billId}_yoyUnit`] = new Chart(yoyUnitCtx, {
+      type: 'bar',
+      data: {
+        labels: compLabels.map(l => l.split(' ')[0]),
+        datasets: [
+          {
+            label: 'Previous Year (kWh)',
+            data: prevUnit,
+            backgroundColor: '#1d3969',
+            borderRadius: 4
+          },
+          {
+            label: 'Current Year (kWh)',
+            data: currUnit,
+            backgroundColor: '#22d3ee',
+            borderRadius: 4
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: true, labels: { color: '#91a5c6', font: { size: 9 } } } },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: '#91a5c6', font: { size: 9 } } },
+          y: { grid: { color: 'rgba(29, 57, 105, 0.1)' }, ticks: { color: '#91a5c6', font: { size: 9 } } }
+        }
+      }
+    });
+  }
+  
+  const monthlyCtx = document.getElementById(`descoChart_monthly_${billId}`);
+  if (monthlyCtx) {
+    descoChartInstances[`${billId}_monthly`] = new Chart(monthlyCtx, {
+      type: 'line',
+      data: {
+        labels: compLabels,
+        datasets: [
+          {
+            type: 'bar',
+            label: 'Units (kWh)',
+            data: currUnit,
+            backgroundColor: 'rgba(34, 211, 238, 0.3)',
+            borderColor: '#22d3ee',
+            borderWidth: 1,
+            borderRadius: 6,
+            yAxisID: 'y'
+          },
+          {
+            type: 'line',
+            label: 'Cost (৳)',
+            data: currTaka,
+            borderColor: '#63ff68',
+            pointBackgroundColor: '#63ff68',
+            borderWidth: 2,
+            tension: 0.3,
+            fill: false,
+            yAxisID: 'y1'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: true, labels: { color: '#91a5c6', font: { size: 9 } } } },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: '#91a5c6', font: { size: 9 } } },
+          y: {
+            position: 'left',
+            grid: { color: 'rgba(29, 57, 105, 0.1)' },
+            ticks: { color: '#22d3ee', font: { size: 9 } }
+          },
+          y1: {
+            position: 'right',
+            grid: { drawOnChartArea: false },
+            ticks: { color: '#63ff68', font: { size: 9 } }
+          }
+        }
+      }
+    });
+  }
+}
+
 function hydrateAllPages() {
+  sortPaymentsData();
   renderBillPages();
   renderLandingPageCards();
   renderDashboardPage();
@@ -3358,7 +5112,18 @@ function hydrateAllPages() {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
+  const dbIcon = document.getElementById('heroIcon_database');
+  const dsIcon = document.getElementById('heroIcon_dashboard');
+  const stIcon = document.getElementById('heroIcon_stats');
+  if (dbIcon) dbIcon.innerHTML = getHeroIconHtml('database.png');
+  if (dsIcon) dsIcon.innerHTML = getHeroIconHtml('dashboard.png');
+  if (stIcon) stIcon.innerHTML = getHeroIconHtml('statistics.png');
+
   setupDatabaseFilters();
+  
+  // URL Hash Router: Handle routing immediately on initial DOM load before data hydration
+  handleRouting();
+
   fetchPayments();
 });
 
@@ -3945,6 +5710,11 @@ placeholder="Search payments..."
 <option>Postpaid</option>
 </select>
 
+<div class="monthFilterWrapper">
+  <input type="month" class="filterMonth" onclick="try { this.showPicker(); } catch(e) {}">
+  <button class="clearMonthBtn" title="Clear Month Filter">✕</button>
+</div>
+
 </div>
 
 <div class="toolbarRight">
@@ -4342,87 +6112,38 @@ YTD Spend by Bill
 
 <!-- MONTHLY SPEND -->
 
-<div class="chartCard">
+<div class="chartCard fullWidth">
 
 <div class="chartTitle">
-Monthly Spend
+Monthly Spend Trend
 </div>
 
-<div class="monthChart">
-
-<div class="monthBarWrap">
-<div class="monthValue">8k</div>
-<div class="monthBar" style="height:120px"></div>
-<div class="monthLabel">Jun 26</div>
+<div class="chartContainer" id="monthlySpendChartContainer">
+<canvas id="monthlySpendChart"></canvas>
 </div>
 
-<div class="monthBarWrap">
-<div class="monthValue">5k</div>
-<div class="monthBar" style="height:85px"></div>
-<div class="monthLabel">Jul 26</div>
+<div class="monthChart hidden">
 </div>
 
-<div class="monthBarWrap">
-<div class="monthValue">9k</div>
-<div class="monthBar" style="height:145px"></div>
-<div class="monthLabel">Aug 26</div>
 </div>
 
-<div class="monthBarWrap">
-<div class="monthValue">7k</div>
-<div class="monthBar" style="height:115px"></div>
-<div class="monthLabel">Sep 26</div>
+<!-- YEAR-OVER-YEAR COMPARISON -->
+
+<div class="chartCard fullWidth">
+
+<div class="chartTitle">
+Year-over-Year Spend Comparison
 </div>
 
-<div class="monthBarWrap">
-<div class="monthValue">11k</div>
-<div class="monthBar" style="height:185px"></div>
-<div class="monthLabel">Oct 26</div>
-</div>
-
-<div class="monthBarWrap">
-<div class="monthValue">6k</div>
-<div class="monthBar" style="height:100px"></div>
-<div class="monthLabel">Nov 26</div>
-</div>
-
-<div class="monthBarWrap">
-<div class="monthValue">10k</div>
-<div class="monthBar" style="height:165px"></div>
-<div class="monthLabel">Dec 26</div>
-</div>
-
-<div class="monthBarWrap">
-<div class="monthValue">4k</div>
-<div class="monthBar" style="height:70px"></div>
-<div class="monthLabel">Jan 27</div>
-</div>
-
-<div class="monthBarWrap">
-<div class="monthValue">6k</div>
-<div class="monthBar" style="height:105px"></div>
-<div class="monthLabel">Feb 27</div>
-</div>
-
-<div class="monthBarWrap">
-<div class="monthValue">9k</div>
-<div class="monthBar" style="height:150px"></div>
-<div class="monthLabel">Mar 27</div>
-</div>
-
-<div class="monthBarWrap">
-<div class="monthValue">8k</div>
-<div class="monthBar" style="height:130px"></div>
-<div class="monthLabel">Apr 27</div>
-</div>
-
+<div class="chartContainer" id="yoyCompareChartContainer">
+<canvas id="yoyCompareChart"></canvas>
 </div>
 
 </div>
 
 <!-- GAP TABLE -->
 
-<div class="chartCard">
+<div class="chartCard fullWidth">
 
 <div class="chartTitle">
 Payment Gap Summary
@@ -4480,6 +6201,20 @@ Payment Gap Summary
 
 </div>
 
+</section>
+
+<section id="descoStatsPage" class="page descoStatsPage hidden">
+  <div class="container" style="max-width: 1200px; padding-bottom: 80px;">
+    <div class="logo">BILLZY</div>
+    <div class="glow"></div>
+    <div class="backBtn" id="descoStatsBackBtn" onclick="goHome()">
+      ← Back to Bill Details
+    </div>
+    
+    <div id="descoStatsContent" style="margin-top:24px;">
+      <!-- Injected Dynamically -->
+    </div>
+  </div>
 </section>
 
 </body>
