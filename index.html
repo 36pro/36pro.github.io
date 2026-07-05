@@ -2702,6 +2702,55 @@ async function fetchPayments() {
         const decodedContent = decodeURIComponent(escape(atob(data.content.replace(/\s/g, ''))));
         paymentsData = JSON.parse(decodedContent);
         console.log('Loaded payments from GitHub successfully:', paymentsData.length);
+
+        // Auto-sync: Check for any locally saved payments to sync up to GitHub
+        const localSaved = localStorage.getItem('billzy_local_payments');
+        if (localSaved) {
+          const localList = JSON.parse(localSaved);
+          let newMerge = false;
+          localList.forEach(p => {
+            if (!paymentsData.some(item => item.uid === p.uid)) {
+              paymentsData.unshift(p); // Merge local payment
+              newMerge = true;
+            }
+          });
+          
+          if (newMerge) {
+            console.log('Syncing locally cached payments up to GitHub...');
+            const uploadUrl = `https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/${gh.path}`;
+            const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(paymentsData, null, 2))));
+            
+            try {
+              const uploadRes = await fetch(uploadUrl, {
+                method: 'PUT',
+                headers: {
+                  'Authorization': `token ${gh.token}`,
+                  'Content-Type': 'application/json',
+                  'Accept': 'application/vnd.github.v3+json'
+                },
+                body: JSON.stringify({
+                  message: 'Sync offline/locally cached payments',
+                  content: contentBase64,
+                  sha: githubFileSha,
+                  branch: gh.branch
+                })
+              });
+              if (uploadRes.ok) {
+                const uploadData = await uploadRes.json();
+                githubFileSha = uploadData.content.sha;
+                localStorage.removeItem('billzy_local_payments');
+                console.log('Successfully synced local cache to GitHub!');
+              } else {
+                console.error('Failed to upload local cache during sync:', uploadRes.status);
+              }
+            } catch (syncErr) {
+              console.error('Error uploading local cache during sync:', syncErr);
+            }
+          } else {
+            // Already synced, remove local cache
+            localStorage.removeItem('billzy_local_payments');
+          }
+        }
       }
     } catch (err) {
       console.error('Error fetching from GitHub, falling back to localStorage/mock:', err);
@@ -3676,9 +3725,8 @@ function renderStatsPage() {
   const now = new Date();
   const currentYear = now.getFullYear();
   
-  const twelveMonthsAgo = new Date();
-  twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
-  let lastTwelveMonthsSum = 0;
+  const statsStartDate = new Date(2026, 5, 1); // June 1, 2026 (Month index 5 is June)
+  let statsMonthsSum = 0;
   
   paymentsData.forEach(p => {
     const amt = parseFloat(p.amount);
@@ -3694,12 +3742,15 @@ function renderStatsPage() {
       highestBillLabel = p.billName;
     }
     
-    if (pDate >= twelveMonthsAgo && pDate <= now) {
-      lastTwelveMonthsSum += amt;
+    // Sum only payments starting from June 2026 onwards to prevent 0-amount skews
+    if (pDate >= statsStartDate && pDate <= now) {
+      statsMonthsSum += amt;
     }
   });
   
-  const avgMonthlySpend = lastTwelveMonthsSum / 12;
+  // Calculate elapsed months dynamically from June 2026 (inclusive) to current date
+  const elapsedMonths = Math.max(1, (now.getFullYear() - 2026) * 12 + (now.getMonth() - 5) + 1);
+  const avgMonthlySpend = statsMonthsSum / elapsedMonths;
   
   const kpiCards = document.querySelectorAll('.kpiCard');
   if (kpiCards.length >= 4) {
