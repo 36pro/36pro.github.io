@@ -2243,12 +2243,12 @@ input[type="date"]::-webkit-calendar-picker-indicator {
       
       <div class="formField">
         <label>GitHub Username / Owner</label>
-        <input type="text" id="ghOwner" placeholder="e.g. Octocat">
+        <input type="text" id="ghOwner" value="36pro" placeholder="e.g. Octocat">
       </div>
       
       <div class="formField">
         <label>Repository Name</label>
-        <input type="text" id="ghRepo" placeholder="e.g. billzy-data">
+        <input type="text" id="ghRepo" value="36pro.github.io" placeholder="e.g. billzy-data">
         <span style="font-size:0.78rem; color:var(--muted); margin-top:2px; line-height:1.2;">The repository must exist on GitHub.</span>
       </div>
       
@@ -2662,12 +2662,19 @@ let paymentsData = [];
 let githubFileSha = '';
 let monthlySpendChartInstance = null;
 let yoyCompareChartInstance = null;
+let cumulativeCompareChartInstance = null;
+let seasonalityChartInstance = null;
+let averageBillChartInstance = null;
+let categoryRadarChartInstance = null;
+let quarterlyStackedChartInstance = null;
+let cashFlowBubbleChartInstance = null;
+let spendInflationChartInstance = null;
 
 // Load GitHub settings from localStorage
 function getGHSettings() {
   const token = localStorage.getItem('billzy_gh_token');
-  const owner = localStorage.getItem('billzy_gh_owner');
-  const repo = localStorage.getItem('billzy_gh_repo');
+  const owner = localStorage.getItem('billzy_gh_owner') || '36pro';
+  const repo = localStorage.getItem('billzy_gh_repo') || '36pro.github.io';
   const path = localStorage.getItem('billzy_gh_path') || 'data.json';
   const branch = localStorage.getItem('billzy_gh_branch') || 'main';
   
@@ -2849,12 +2856,13 @@ async function savePaymentRecord(billId, amount, payDate, billMonth) {
       });
       
       if (!res.ok) {
-        throw new Error(`GitHub returned status ${res.status}`);
+        const errBody = await res.text();
+        throw new Error(`GitHub returned status ${res.status}: ${errBody}`);
       }
       console.log('Saved payment to GitHub successfully!');
     } catch (err) {
       console.error('Failed to save to GitHub, caching locally:', err);
-      alert('Failed to save to GitHub repository. Saving to local browser cache instead.');
+      alert('Failed to save to GitHub repository: ' + err.message + '\n\nSaving to local browser cache instead.');
       saveToLocalStorage(newRecord);
     }
   } else {
@@ -2942,8 +2950,8 @@ function openSettingsModal() {
   
   // Populate inputs
   document.getElementById('ghToken').value = localStorage.getItem('billzy_gh_token') || '';
-  document.getElementById('ghOwner').value = localStorage.getItem('billzy_gh_owner') || '';
-  document.getElementById('ghRepo').value = localStorage.getItem('billzy_gh_repo') || '';
+  document.getElementById('ghOwner').value = localStorage.getItem('billzy_gh_owner') || '36pro';
+  document.getElementById('ghRepo').value = localStorage.getItem('billzy_gh_repo') || '36pro.github.io';
   document.getElementById('ghPath').value = localStorage.getItem('billzy_gh_path') || 'data.json';
   document.getElementById('ghBranch').value = localStorage.getItem('billzy_gh_branch') || 'main';
 }
@@ -3074,12 +3082,13 @@ async function saveEditedRecord() {
       });
       
       if (!res.ok) {
-        throw new Error(`GitHub returned status ${res.status}`);
+        const errBody = await res.text();
+        throw new Error(`GitHub returned status ${res.status}: ${errBody}`);
       }
       console.log('Updated payment on GitHub successfully!');
     } catch (err) {
       console.error('Failed to update on GitHub, caching locally:', err);
-      alert('Failed to save to GitHub repository. Saving to local browser cache instead.');
+      alert('Failed to save to GitHub repository: ' + err.message + '\n\nSaving to local browser cache instead.');
       updateLocalStorageRecord(record);
     }
   } else {
@@ -3154,23 +3163,88 @@ function getPortalUrl(billId) {
   return null;
 }
 
+/**
+ * Converts a JavaScript Date object into a timezone-agnostic "YYYY-MM-DD" local string.
+ *
+ * CRITICAL LOGIC: Standard Date.prototype.toISOString() converts the date to UTC before formatting. 
+ * For client machines in timezones ahead of UTC (e.g., Bangladesh at UTC+6), a date initialized 
+ * at local midnight (e.g., 2026-08-01 00:00:00) shifts back to the previous day in UTC (e.g., 
+ * 2026-07-31 18:00:00Z). Splitting that ISO string yields the wrong calendar date (31 July instead 
+ * of 01 August). By extracting the local year, month, and day components directly via local 
+ * getters (getFullYear, getMonth, getDate), we guarantee the resulting string matches the local 
+ * calendar date exactly, bypassing any UTC offset errors.
+ *
+ * @param {Date} date - The local Date object to convert.
+ * @returns {string} The local ISO date string ("YYYY-MM-DD").
+ */
+function formatLocalDate(date) {
+  if (!date || isNaN(date.getTime())) return '';
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+/**
+ * Formats a date string (expected in "YYYY-MM-DD" format) into a friendly "DD MMM YYYY" string.
+ *
+ * CRITICAL LOGIC: Parsing "YYYY-MM-DD" via `new Date("YYYY-MM-DD")` defaults to UTC parsing, 
+ * which shifts the date backwards or forwards when accessed locally on client machines with 
+ * timezone offsets. To avoid this timezone shift, we split the "YYYY-MM-DD" string and initialize 
+ * the Date object using local parameters `new Date(year, monthIndex, day)`. This forces the browser 
+ * to parse it in the local context, ensuring the correct calendar day is rendered.
+ *
+ * @param {string} dateStr - The date string to format (typically "YYYY-MM-DD").
+ * @returns {string} The formatted date string (e.g., "01 Aug 2026"), or the input if invalid.
+ */
 function formatDateFriendly(dateStr) {
   if (!dateStr) return '-';
+  const parts = dateStr.split('-');
+  if (parts.length === 3 && parts[0].length === 4) {
+    const year = parseInt(parts[0]);
+    const monthIndex = parseInt(parts[1]) - 1;
+    const day = parseInt(parts[2]);
+    const date = new Date(year, monthIndex, day);
+    const monthName = date.toLocaleString('default', { month: 'short' });
+    const formattedDay = day < 10 ? '0' + day : day;
+    return `${formattedDay} ${monthName} ${year}`;
+  }
   const date = new Date(dateStr);
   if (isNaN(date.getTime())) return dateStr;
   const day = date.getDate();
   const month = date.toLocaleString('default', { month: 'short' });
   const year = date.getFullYear();
-  return `${day} ${month} ${year}`;
+  const formattedDay = day < 10 ? '0' + day : day;
+  return `${formattedDay} ${month} ${year}`;
 }
 
+/**
+ * Formats a date string (expected in "YYYY-MM-DD" format) into a friendly short "DD MMM" string.
+ *
+ * CRITICAL LOGIC: Similar to formatDateFriendly, we split the local string parameters to construct 
+ * the Date object locally, avoiding any UTC timezone offsets that would shift the day.
+ *
+ * @param {string} dateStr - The date string to format (typically "YYYY-MM-DD").
+ * @returns {string} The formatted date string (e.g., "01 Aug"), or the input if invalid.
+ */
 function formatDateFriendlyShort(dateStr) {
   if (!dateStr) return '-';
+  const parts = dateStr.split('-');
+  if (parts.length === 3 && parts[0].length === 4) {
+    const year = parseInt(parts[0]);
+    const monthIndex = parseInt(parts[1]) - 1;
+    const day = parseInt(parts[2]);
+    const date = new Date(year, monthIndex, day);
+    const monthName = date.toLocaleString('default', { month: 'short' });
+    const formattedDay = day < 10 ? '0' + day : day;
+    return `${formattedDay} ${monthName}`;
+  }
   const date = new Date(dateStr);
   if (isNaN(date.getTime())) return dateStr;
   const day = date.getDate();
   const month = date.toLocaleString('default', { month: 'short' });
-  return `${day} ${month}`;
+  const formattedDay = day < 10 ? '0' + day : day;
+  return `${formattedDay} ${month}`;
 }
 
 function parseBillMonth(billMonthStr) {
@@ -3236,10 +3310,13 @@ function renderBillPages() {
       let nextDueText = '-';
       let nextDueClass = '';
       
+      // Configure dueDay for postpaid bills.
+      // NOTE: Uttara Water and Noakhali Palli due days are set to 1 to align with 
+      // the first day of the next calendar month requirement.
       let dueDay = 15;
       if (bill.id === 'uttaraWater') dueDay = 1;
       if (bill.id === 'matuailGas') dueDay = 27;
-      if (bill.id === 'noakhaliPalli') dueDay = 3;
+      if (bill.id === 'noakhaliPalli') dueDay = 1;
       
       const now = new Date();
       const nextDue = new Date(now.getFullYear(), now.getMonth(), dueDay);
@@ -3250,7 +3327,7 @@ function renderBillPages() {
       
       if (isPaidForCurrentMonth) {
         nextDue.setMonth(nextDue.getMonth() + 1);
-        nextDueText = formatDateFriendly(nextDue.toISOString().split('T')[0]);
+        nextDueText = formatDateFriendly(formatLocalDate(nextDue));
       } else {
         const diffTime = nextDue - now;
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -3405,8 +3482,11 @@ function renderLandingPageCards() {
           <div class="billSub" style="color:${subColor}; font-weight:600; margin-top: 4px;">${subText}</div>
         `;
       } else if (bill.id === 'inspireBroadband') {
+        // Inspire Broadband is a prepaid monthly subscription. Rather than using standard '+30 days' math,
+        // we set its expiry date to the 1st of the next calendar month (e.g. paid on July 1st -> expires August 1st).
+        // Passing '1' as the day parameter locks it to the first day of that next month.
         const payDateObj = new Date(lastPayment.payDate);
-        const expiryDate = new Date(payDateObj.getFullYear(), payDateObj.getMonth(), payDateObj.getDate() + 30);
+        const expiryDate = new Date(payDateObj.getFullYear(), payDateObj.getMonth() + 1, 1);
         
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -3507,13 +3587,18 @@ function renderDashboardPage() {
         statusClass = 'statusBalance';
       } else {
         if (lastPayment) {
+          // Prepaid monthly subscription logic (e.g. Inspire Broadband).
+          // To calculate the next due date, we add exactly 1 month to the payment date and set the day to 1.
+          // This aligns the next due date with the first day of the next calendar month (e.g. Jul 1st -> Aug 1st).
           const nextDueDate = new Date(lastPayment.payDate);
-          nextDueDate.setDate(nextDueDate.getDate() + 30);
+          nextDueDate.setMonth(nextDueDate.getMonth() + 1);
+          nextDueDate.setDate(1);
           
           const diffTime = nextDueDate - now;
           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
           
-          nextDueTop = formatDateFriendly(nextDueDate.toISOString().split('T')[0]);
+          // CRITICAL: We format nextDueDate using our local formatLocalDate() helper to avoid UTC timezone-shifting.
+          nextDueTop = formatDateFriendly(formatLocalDate(nextDueDate));
           if (diffDays < 0) {
             nextDueSub = `Overdue by ${Math.abs(diffDays)} days`;
             nextDueClass = 'dangerText';
@@ -3543,11 +3628,13 @@ function renderDashboardPage() {
       if (lastPayment) {
         const paidMonthDate = parseBillMonth(lastPayment.billMonth);
         if (paidMonthDate) {
-          // Next unpaid month becomes overdue on the 1st of the month after next
-          // e.g. paid June -> overdue August 1st
+          // Postpaid monthly due logic (e.g. WASA, Palli Bidyut, Titas Gas).
+          // Next unpaid month becomes overdue on the 1st day of the month after next (e.g., paid June -> overdue August 1st).
+          // Passing '1' as the day parameter sets the next due date to the first day of that month.
           const nextDueDate = new Date(paidMonthDate.getFullYear(), paidMonthDate.getMonth() + 2, 1);
           
-          nextDueTop = formatDateFriendly(nextDueDate.toISOString().split('T')[0]);
+          // CRITICAL: We format nextDueDate using our local formatLocalDate() helper to avoid UTC timezone-shifting.
+          nextDueTop = formatDateFriendly(formatLocalDate(nextDueDate));
           
           const diffTime = nextDueDate - now;
           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -3722,6 +3809,19 @@ function renderStatsPage() {
   let highestBill = 0;
   let highestBillLabel = '-';
   
+  const getShortenedBillName = (fullName) => {
+    const mapping = {
+      'Uttara DESCO': 'U.DESCO',
+      'Rupnagar DESCO': 'R.DESCO',
+      'Uttara Water': 'U.WATER',
+      'Rupnagar Gas': 'R.GAS',
+      'Inspire Broadband': 'INSPIRE.B',
+      'Noakhali Palli': 'N.PALLI',
+      'Matuail Gas': 'M.GAS'
+    };
+    return mapping[fullName.trim()] || fullName;
+  };
+  
   const now = new Date();
   const currentYear = now.getFullYear();
   
@@ -3756,6 +3856,11 @@ function renderStatsPage() {
   if (kpiCards.length >= 4) {
     kpiCards[0].querySelector('.kpiValue').innerText = `৳ ${totalSpend.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}`;
     kpiCards[1].querySelector('.kpiValue').innerText = `৳ ${ytdSpend.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}`;
+    
+    // Dynamically format YTD subtext to show the current month and current year
+    const currentMonthName = now.toLocaleString('en-US', { month: 'short' });
+    kpiCards[1].querySelector('.kpiSub').innerText = `Jan — ${currentMonthName} ${currentYear}`;
+    
     kpiCards[2].querySelector('.kpiValue').innerText = `৳ ${highestBill.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}`;
     kpiCards[2].querySelector('.kpiSub').innerText = highestBillLabel;
     kpiCards[3].querySelector('.kpiValue').innerText = `৳ ${avgMonthlySpend.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}`;
@@ -3778,7 +3883,7 @@ function renderStatsPage() {
       const pct = (amt / maxTotalSpend) * 100;
       return `
         <div class="barRow">
-          <div class="barLabel">${name}</div>
+          <div class="barLabel">${getShortenedBillName(name)}</div>
           <div class="barTrack">
             <div class="barFill barAccent" style="width:${pct}%"></div>
           </div>
@@ -3806,7 +3911,7 @@ function renderStatsPage() {
       const pct = (amt / maxYtdSpend) * 100;
       return `
         <div class="barRow">
-          <div class="barLabel">${name}</div>
+          <div class="barLabel">${getShortenedBillName(name)}</div>
           <div class="barTrack">
             <div class="barFill barSuccess" style="width:${pct}%"></div>
           </div>
@@ -3893,6 +3998,12 @@ function renderStatsPage() {
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          layout: {
+            padding: {
+              top: 24, // Increased top padding to give text labels plenty of headroom
+              right: 24 // Prevent rightmost label cropping
+            }
+          },
           plugins: {
             legend: {
               display: false
@@ -3925,6 +4036,7 @@ function renderStatsPage() {
               }
             },
             y: {
+              grace: '15%', // Added a 15% grace padding to the top of the scale to avoid top label clipping
               grid: {
                 color: 'rgba(29, 57, 105, 0.25)',
                 drawBorder: false
@@ -3938,10 +4050,834 @@ function renderStatsPage() {
               }
             }
           }
+        },
+        plugins: [{
+          id: 'permLabels',
+          afterDatasetsDraw(chart) {
+            const { ctx } = chart;
+            ctx.save();
+            ctx.font = 'bold 12px "JetBrains Mono", monospace'; // Increased from 10px to 12px
+            ctx.fillStyle = '#22d3ee';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            
+            // Add drop shadow/halo for maximum legibility over grid lines
+            ctx.shadowColor = 'rgba(3, 8, 22, 0.9)';
+            ctx.shadowBlur = 4;
+            
+            chart.data.datasets.forEach((dataset, datasetIndex) => {
+              const meta = chart.getDatasetMeta(datasetIndex);
+              meta.data.forEach((element, index) => {
+                const val = dataset.data[index];
+                if (val > 0) {
+                  const formatted = '৳' + Math.round(val).toLocaleString();
+                  ctx.fillText(formatted, element.x, element.y - 10); // Offset shifted to -10 for larger text
+                }
+              });
+            });
+            ctx.restore();
+          }
+        }]
+      });
+    }
+
+    // YoY Cumulative Compare Chart
+    const ctxCumulative = document.getElementById('cumulativeCompareChart');
+    if (ctxCumulative) {
+      if (cumulativeCompareChartInstance) {
+        cumulativeCompareChartInstance.destroy();
+      }
+      
+      const currentYear = new Date().getFullYear();
+      const prevYear = currentYear - 1;
+      const shortMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      
+      const currentYearMonthlySums = Array(12).fill(0);
+      const prevYearMonthlySums = Array(12).fill(0);
+      
+      paymentsData.forEach(p => {
+        const pDate = new Date(p.payDate);
+        const year = pDate.getFullYear();
+        const month = pDate.getMonth();
+        if (year === currentYear) {
+          currentYearMonthlySums[month] += parseFloat(p.amount);
+        } else if (year === prevYear) {
+          prevYearMonthlySums[month] += parseFloat(p.amount);
+        }
+      });
+      
+      const currentYearCumulative = Array(12).fill(null);
+      const prevYearCumulative = Array(12).fill(null);
+      let currentRunningSum = 0;
+      let prevRunningSum = 0;
+      const currentMonthIndex = new Date().getMonth();
+      
+      for (let i = 0; i < 12; i++) {
+        prevRunningSum += prevYearMonthlySums[i];
+        prevYearCumulative[i] = prevRunningSum;
+        
+        if (i <= currentMonthIndex) {
+          currentRunningSum += currentYearMonthlySums[i];
+          currentYearCumulative[i] = currentRunningSum;
+        }
+      }
+      
+      const chartCtxCum = ctxCumulative.getContext('2d');
+      const gradientPrev = chartCtxCum.createLinearGradient(0, 0, 0, 300);
+      gradientPrev.addColorStop(0, 'rgba(29, 57, 105, 0.3)');
+      gradientPrev.addColorStop(1, 'rgba(29, 57, 105, 0.0)');
+      
+      const gradientCurr = chartCtxCum.createLinearGradient(0, 0, 0, 300);
+      gradientCurr.addColorStop(0, 'rgba(99, 255, 104, 0.3)');
+      gradientCurr.addColorStop(1, 'rgba(99, 255, 104, 0.0)');
+      
+      cumulativeCompareChartInstance = new Chart(ctxCumulative, {
+        type: 'line',
+        data: {
+          labels: shortMonths,
+          datasets: [
+            {
+              label: `${prevYear} Cumulative`,
+              data: prevYearCumulative,
+              borderColor: '#1d3969',
+              borderWidth: 2,
+              backgroundColor: gradientPrev,
+              fill: true,
+              tension: 0.3,
+              pointRadius: 3
+            },
+            {
+              label: `${currentYear} Cumulative`,
+              data: currentYearCumulative,
+              borderColor: '#63ff68',
+              borderWidth: 3,
+              backgroundColor: gradientCurr,
+              fill: true,
+              tension: 0.3,
+              pointRadius: 4,
+              pointBackgroundColor: '#63ff68'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          layout: {
+            padding: {
+              top: 24,
+              right: 24
+            }
+          },
+          plugins: {
+            legend: {
+              labels: {
+                color: '#f4f7ff',
+                font: { family: 'Inter', size: 12, weight: 'bold' }
+              }
+            },
+            tooltip: {
+              backgroundColor: '#0b1730',
+              titleColor: '#f4f7ff',
+              bodyColor: '#63ff68',
+              borderColor: '#1d3969',
+              borderWidth: 1,
+              titleFont: { family: 'Inter', weight: 'bold' },
+              bodyFont: { family: 'JetBrains Mono' },
+              callbacks: {
+                label: function(context) {
+                  return ' ' + context.dataset.label + ': ৳ ' + Math.round(context.parsed.y).toLocaleString();
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: 'rgba(29, 57, 105, 0.15)', drawBorder: false },
+              ticks: { color: '#91a5c6', font: { family: 'Inter', size: 11 } }
+            },
+            y: {
+              grace: '10%',
+              grid: { color: 'rgba(29, 57, 105, 0.15)', drawBorder: false },
+              ticks: {
+                color: '#91a5c6',
+                font: { family: 'JetBrains Mono', size: 11 },
+                callback: function(value) {
+                  return '৳' + value.toLocaleString();
+                }
+              }
+            }
+          }
+        },
+        plugins: [{
+          id: 'permLabelsCum',
+          afterDatasetsDraw(chart) {
+            const { ctx } = chart;
+            ctx.save();
+            ctx.font = 'bold 10px "JetBrains Mono", monospace';
+            ctx.fillStyle = '#63ff68';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            
+            ctx.shadowColor = 'rgba(3, 8, 22, 0.9)';
+            ctx.shadowBlur = 4;
+            
+            const dataset = chart.data.datasets[1];
+            const meta = chart.getDatasetMeta(1);
+            meta.data.forEach((element, index) => {
+              const val = dataset.data[index];
+              if (val !== null && val > 0) {
+                const latestIdx = dataset.data.filter(v => v !== null).length - 1;
+                if (index === 0 || index === Math.floor(latestIdx / 2) || index === latestIdx) {
+                  const formatted = '৳' + Math.round(val).toLocaleString();
+                  ctx.fillText(formatted, element.x, element.y - 8);
+                }
+              }
+            });
+            ctx.restore();
+          }
+        }]
+      });
+    }
+
+    // Spending Dimensions Radar Chart
+    const ctxRadar = document.getElementById('categoryRadarChart');
+    if (ctxRadar) {
+      if (categoryRadarChartInstance) {
+        categoryRadarChartInstance.destroy();
+      }
+      
+      const categorySums = { Electricity: 0, Water: 0, Gas: 0, Internet: 0 };
+      paymentsData.forEach(p => {
+        const nameLower = p.billName.toLowerCase();
+        const amt = parseFloat(p.amount);
+        if (nameLower.includes('desco') || nameLower.includes('palli') || nameLower.includes('bidyut')) {
+          categorySums.Electricity += amt;
+        } else if (nameLower.includes('water') || nameLower.includes('wasa')) {
+          categorySums.Water += amt;
+        } else if (nameLower.includes('gas')) {
+          categorySums.Gas += amt;
+        } else if (nameLower.includes('broadband') || nameLower.includes('internet') || nameLower.includes('inspire')) {
+          categorySums.Internet += amt;
+        }
+      });
+      
+      categoryRadarChartInstance = new Chart(ctxRadar, {
+        type: 'radar',
+        data: {
+          labels: [
+            ['Electricity', '৳' + Math.round(categorySums.Electricity).toLocaleString()],
+            ['Water', '৳' + Math.round(categorySums.Water).toLocaleString()],
+            ['Gas', '৳' + Math.round(categorySums.Gas).toLocaleString()],
+            ['Internet', '৳' + Math.round(categorySums.Internet).toLocaleString()]
+          ],
+          datasets: [{
+            label: 'Total Spend',
+            data: [categorySums.Electricity, categorySums.Water, categorySums.Gas, categorySums.Internet],
+            backgroundColor: 'rgba(168, 85, 247, 0.25)', // purple tint
+            borderColor: '#a855f7',
+            borderWidth: 2,
+            pointBackgroundColor: '#a855f7',
+            pointBorderColor: '#0b1730',
+            pointBorderWidth: 2,
+            pointRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#0b1730',
+              titleColor: '#f4f7ff',
+              bodyColor: '#a855f7',
+              borderColor: '#1d3969',
+              borderWidth: 1,
+              callbacks: {
+                label: function(context) {
+                  // Tooltip label callback format helper
+                  const val = context.dataset.data[context.dataIndex];
+                  return ' ' + context.label[0] + ': ৳ ' + Math.round(val).toLocaleString();
+                }
+              }
+            }
+          },
+          scales: {
+            r: {
+              grid: { color: 'rgba(29, 57, 105, 0.25)' },
+              angleLines: { color: 'rgba(29, 57, 105, 0.25)' },
+              pointLabels: {
+                color: '#91a5c6',
+                font: { family: 'Inter', size: 10, weight: 'bold' },
+                centerPointLabels: true
+              },
+              ticks: {
+                display: false
+              }
+            }
+          }
         }
       });
     }
-    
+
+    // Quarterly Spend Distribution Chart
+    const ctxQuarterly = document.getElementById('quarterlyStackedChart');
+    if (ctxQuarterly) {
+      if (quarterlyStackedChartInstance) {
+        quarterlyStackedChartInstance.destroy();
+      }
+      
+      const currentYear = new Date().getFullYear();
+      const quarters = ['Q1', 'Q2', 'Q3', 'Q4'];
+      
+      const quarterlySumsByAccount = {};
+      
+      paymentsData.forEach(p => {
+        const pDate = new Date(p.payDate);
+        if (pDate.getFullYear() === currentYear) {
+          const account = p.billName;
+          const month = pDate.getMonth();
+          const quarterIdx = Math.floor(month / 3);
+          const amt = parseFloat(p.amount);
+          
+          if (!quarterlySumsByAccount[account]) {
+            quarterlySumsByAccount[account] = [0, 0, 0, 0];
+          }
+          quarterlySumsByAccount[account][quarterIdx] += amt;
+        }
+      });
+      
+      const colors = ['#38bdf8', '#34d399', '#fbbf24', '#a855f7', '#fb7185', '#6366f1'];
+      const accountNames = Object.keys(quarterlySumsByAccount);
+      const datasets = accountNames.map((acc, idx) => {
+        const color = colors[idx % colors.length];
+        return {
+          label: acc,
+          data: quarterlySumsByAccount[acc],
+          backgroundColor: color,
+          borderColor: color,
+          borderRadius: 4
+        };
+      });
+      
+      quarterlyStackedChartInstance = new Chart(ctxQuarterly, {
+        type: 'bar',
+        data: {
+          labels: quarters,
+          datasets: datasets
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                color: '#f4f7ff',
+                boxWidth: 12,
+                font: { family: 'Inter', size: 10 }
+              }
+            },
+            tooltip: {
+              backgroundColor: '#0b1730',
+              titleColor: '#f4f7ff',
+              bodyColor: '#22d3ee',
+              borderColor: '#1d3969',
+              borderWidth: 1,
+              callbacks: {
+                label: function(context) {
+                  return ' ' + context.dataset.label + ': ৳ ' + Math.round(context.raw).toLocaleString();
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              stacked: true,
+              grid: { display: false },
+              ticks: { color: '#91a5c6', font: { family: 'Inter', size: 11, weight: 'bold' } }
+            },
+            y: {
+              stacked: true,
+              grace: '10%',
+              grid: { color: 'rgba(29, 57, 105, 0.15)', drawBorder: false },
+              ticks: {
+                color: '#91a5c6',
+                font: { family: 'JetBrains Mono', size: 11 },
+                callback: function(value) {
+                  return '৳' + value.toLocaleString();
+                }
+              }
+            }
+          }
+        },
+        plugins: [{
+          id: 'stackedLabels',
+          afterDatasetsDraw(chart) {
+            const { ctx } = chart;
+            ctx.save();
+            ctx.font = 'bold 9px "JetBrains Mono", monospace';
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            ctx.shadowColor = 'rgba(3, 8, 22, 0.9)';
+            ctx.shadowBlur = 3;
+            
+            chart.data.datasets.forEach((dataset, datasetIndex) => {
+              const meta = chart.getDatasetMeta(datasetIndex);
+              if (meta.hidden) return;
+              
+              meta.data.forEach((element, index) => {
+                const val = dataset.data[index];
+                if (val > 0) {
+                  const height = Math.abs(element.y - element.base);
+                  if (height > 14) {
+                    const formatted = '৳' + Math.round(val).toLocaleString();
+                    const textY = (element.y + element.base) / 2;
+                    ctx.fillText(formatted, element.x, textY);
+                  }
+                }
+              });
+            });
+            ctx.restore();
+          }
+        }]
+      });
+    }
+
+    // Day-of-the-Month Cash Flow Bubble Chart
+    const ctxBubble = document.getElementById('cashFlowBubbleChart');
+    if (ctxBubble) {
+      if (cashFlowBubbleChartInstance) {
+        cashFlowBubbleChartInstance.destroy();
+      }
+      
+      const bubbleData = paymentsData.map(p => {
+        const pDate = new Date(p.payDate);
+        const day = pDate.getDate();
+        const amt = parseFloat(p.amount);
+        return {
+          x: day,
+          y: amt,
+          r: Math.max(6, Math.min(22, (amt / 900) + 5)),
+          billName: p.billName,
+          payDate: pDate.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
+        };
+      });
+      
+      cashFlowBubbleChartInstance = new Chart(ctxBubble, {
+        type: 'bubble',
+        data: {
+          datasets: [{
+            label: 'Payments',
+            data: bubbleData,
+            backgroundColor: 'rgba(34, 211, 238, 0.35)',
+            borderColor: '#22d3ee',
+            borderWidth: 2,
+            hoverBackgroundColor: 'rgba(99, 255, 104, 0.45)',
+            hoverBorderColor: '#63ff68'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#0b1730',
+              titleColor: '#f4f7ff',
+              bodyColor: '#22d3ee',
+              borderColor: '#1d3969',
+              borderWidth: 1,
+              callbacks: {
+                title: function(context) {
+                  return context[0].raw.billName;
+                },
+                label: function(context) {
+                  const raw = context.raw;
+                  return ` Date: ${raw.payDate} | Amount: ৳${Math.round(raw.y).toLocaleString()}`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              title: {
+                display: true,
+                text: 'Day of Month',
+                color: '#91a5c6',
+                font: { family: 'Inter', size: 12, weight: 'bold' }
+              },
+              grid: { color: 'rgba(29, 57, 105, 0.15)', drawBorder: false },
+              ticks: {
+                color: '#91a5c6',
+                font: { family: 'JetBrains Mono', size: 10 },
+                stepSize: 1
+              },
+              min: 1,
+              max: 31
+            },
+            y: {
+              title: {
+                display: true,
+                text: 'Payment Amount (৳)',
+                color: '#91a5c6',
+                font: { family: 'Inter', size: 12, weight: 'bold' }
+              },
+              grace: '15%',
+              grid: { color: 'rgba(29, 57, 105, 0.15)', drawBorder: false },
+              ticks: {
+                color: '#91a5c6',
+                font: { family: 'JetBrains Mono', size: 10 },
+                callback: function(value) {
+                  return '৳' + value.toLocaleString();
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Month-over-Month Spend Inflation Chart
+    const ctxInflation = document.getElementById('spendInflationChart');
+    if (ctxInflation) {
+      if (spendInflationChartInstance) {
+        spendInflationChartInstance.destroy();
+      }
+      
+      const inflationLabels = [];
+      const inflationRates = [];
+      
+      for (let i = 1; i < monthsList.length; i++) {
+        const prev = monthSums[monthsList[i - 1]] || 0;
+        const curr = monthSums[monthsList[i]] || 0;
+        let rate = 0;
+        if (prev > 0) {
+          rate = ((curr - prev) / prev) * 100;
+        }
+        inflationRates.push(rate);
+        inflationLabels.push(monthsList[i]);
+      }
+      
+      const chartCtxInf = ctxInflation.getContext('2d');
+      const gradientInf = chartCtxInf.createLinearGradient(0, 0, 0, 300);
+      gradientInf.addColorStop(0, 'rgba(255, 96, 119, 0.25)');
+      gradientInf.addColorStop(1, 'rgba(255, 96, 119, 0.0)');
+      
+      spendInflationChartInstance = new Chart(ctxInflation, {
+        type: 'line',
+        data: {
+          labels: inflationLabels,
+          datasets: [{
+            label: 'MoM Variance (%)',
+            data: inflationRates,
+            borderColor: '#ff6077',
+            borderWidth: 3,
+            backgroundColor: gradientInf,
+            fill: true,
+            tension: 0.3,
+            pointBackgroundColor: '#ff6077',
+            pointBorderColor: '#0b1730',
+            pointBorderWidth: 2,
+            pointRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          layout: {
+            padding: {
+              top: 24,
+              right: 24
+            }
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#0b1730',
+              titleColor: '#f4f7ff',
+              bodyColor: '#ff6077',
+              borderColor: '#1d3969',
+              borderWidth: 1,
+              titleFont: { family: 'Inter', weight: 'bold' },
+              bodyFont: { family: 'JetBrains Mono' },
+              callbacks: {
+                label: function(context) {
+                  const val = context.raw;
+                  const prefix = val > 0 ? '+' : '';
+                  return ` MoM Change: ${prefix}${val.toFixed(1)}%`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: 'rgba(29, 57, 105, 0.15)', drawBorder: false },
+              ticks: { color: '#91a5c6', font: { family: 'Inter', size: 11 } }
+            },
+            y: {
+              grace: '10%',
+              grid: { color: 'rgba(29, 57, 105, 0.15)', drawBorder: false },
+              ticks: {
+                color: '#91a5c6',
+                font: { family: 'JetBrains Mono', size: 11 },
+                callback: function(value) {
+                  const prefix = value > 0 ? '+' : '';
+                  return prefix + value + '%';
+                }
+              }
+            }
+          }
+        },
+        plugins: [{
+          id: 'permLabelsInflation',
+          afterDatasetsDraw(chart) {
+            const { ctx } = chart;
+            ctx.save();
+            ctx.font = 'bold 11px "JetBrains Mono", monospace';
+            ctx.fillStyle = '#ff6077';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            
+            ctx.shadowColor = 'rgba(3, 8, 22, 0.9)';
+            ctx.shadowBlur = 4;
+            
+            chart.data.datasets.forEach((dataset, datasetIndex) => {
+              const meta = chart.getDatasetMeta(datasetIndex);
+              meta.data.forEach((element, index) => {
+                const val = dataset.data[index];
+                if (val !== 0) {
+                  const prefix = val > 0 ? '+' : '';
+                  const formatted = prefix + val.toFixed(0) + '%';
+                  ctx.fillText(formatted, element.x, element.y - 8);
+                }
+              });
+            });
+            ctx.restore();
+          }
+        }]
+      });
+    }
+
+    // Summer vs. Winter Spends Chart
+    const ctxSeason = document.getElementById('seasonalityChart');
+    if (ctxSeason) {
+      if (seasonalityChartInstance) {
+        seasonalityChartInstance.destroy();
+      }
+      
+      let summerSum = 0;
+      let winterSum = 0;
+      const summerMonthsSet = new Set();
+      const winterMonthsSet = new Set();
+      
+      paymentsData.forEach(p => {
+        const pDate = new Date(p.payDate);
+        const monthIndex = pDate.getMonth();
+        const year = pDate.getFullYear();
+        const monthYearKey = `${year}-${monthIndex}`;
+        const amt = parseFloat(p.amount);
+        
+        if (monthIndex >= 2 && monthIndex <= 8) {
+          summerSum += amt;
+          summerMonthsSet.add(monthYearKey);
+        } else {
+          winterSum += amt;
+          winterMonthsSet.add(monthYearKey);
+        }
+      });
+      
+      const summerAvg = summerMonthsSet.size > 0 ? summerSum / summerMonthsSet.size : 0;
+      const winterAvg = winterMonthsSet.size > 0 ? winterSum / winterMonthsSet.size : 0;
+      
+      seasonalityChartInstance = new Chart(ctxSeason, {
+        type: 'bar',
+        data: {
+          labels: ['Summer (Mar-Sep)', 'Winter (Oct-Feb)'],
+          datasets: [{
+            label: 'Avg Monthly Spend',
+            data: [summerAvg, winterAvg],
+            backgroundColor: ['#ffb84d', '#22d3ee'],
+            borderColor: ['#ffb84d', '#22d3ee'],
+            borderRadius: 8,
+            borderSkipped: false,
+            barThickness: 50
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#0b1730',
+              titleColor: '#f4f7ff',
+              bodyColor: '#ffb84d',
+              borderColor: '#1d3969',
+              borderWidth: 1,
+              callbacks: {
+                label: function(context) {
+                  return ' Avg Spend: ৳ ' + Math.round(context.raw).toLocaleString();
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { color: '#91a5c6', font: { family: 'Inter', size: 11, weight: 'bold' } }
+            },
+            y: {
+              grace: '15%',
+              grid: { color: 'rgba(29, 57, 105, 0.15)', drawBorder: false },
+              ticks: {
+                color: '#91a5c6',
+                font: { family: 'JetBrains Mono', size: 11 },
+                callback: function(value) {
+                  return '৳' + value.toLocaleString();
+                }
+              }
+            }
+          }
+        },
+        plugins: [{
+          id: 'permLabelsSeason',
+          afterDatasetsDraw(chart) {
+            const { ctx } = chart;
+            ctx.save();
+            ctx.font = 'bold 11px "JetBrains Mono", monospace';
+            ctx.fillStyle = '#f4f7ff';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            
+            ctx.shadowColor = 'rgba(3, 8, 22, 0.9)';
+            ctx.shadowBlur = 4;
+            
+            chart.data.datasets.forEach((dataset, datasetIndex) => {
+              const meta = chart.getDatasetMeta(datasetIndex);
+              meta.data.forEach((element, index) => {
+                const val = dataset.data[index];
+                if (val > 0) {
+                  const formatted = '৳' + Math.round(val).toLocaleString();
+                  ctx.fillText(formatted, element.x, element.y - 8);
+                }
+              });
+            });
+            ctx.restore();
+          }
+        }]
+      });
+    }
+
+    // Average Spend per Payment by Account Chart
+    const ctxAvgBill = document.getElementById('averageBillChart');
+    if (ctxAvgBill) {
+      if (averageBillChartInstance) {
+        averageBillChartInstance.destroy();
+      }
+      
+      const accountSums = {};
+      const accountCounts = {};
+      
+      paymentsData.forEach(p => {
+        const account = p.billName;
+        const amt = parseFloat(p.amount);
+        accountSums[account] = (accountSums[account] || 0) + amt;
+        accountCounts[account] = (accountCounts[account] || 0) + 1;
+      });
+      
+      const accountLabels = Object.keys(accountSums);
+      const accountAverages = accountLabels.map(acc => accountSums[acc] / accountCounts[acc]);
+      
+      const combinedAccounts = accountLabels.map((label, idx) => ({
+        label,
+        avg: accountAverages[idx]
+      })).sort((a, b) => b.avg - a.avg);
+      
+      const sortedLabels = combinedAccounts.map(x => x.label);
+      const sortedAverages = combinedAccounts.map(x => x.avg);
+      
+      averageBillChartInstance = new Chart(ctxAvgBill, {
+        type: 'bar',
+        data: {
+          labels: sortedLabels,
+          datasets: [{
+            label: 'Avg Spend',
+            data: sortedAverages,
+            backgroundColor: '#a855f7',
+            borderColor: '#a855f7',
+            borderRadius: 6,
+            borderSkipped: false
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#0b1730',
+              titleColor: '#f4f7ff',
+              bodyColor: '#a855f7',
+              borderColor: '#1d3969',
+              borderWidth: 1,
+              callbacks: {
+                label: function(context) {
+                  return ' Avg Spend: ৳ ' + Math.round(context.raw).toLocaleString();
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grace: '15%',
+              grid: { color: 'rgba(29, 57, 105, 0.15)', drawBorder: false },
+              ticks: {
+                color: '#91a5c6',
+                font: { family: 'JetBrains Mono', size: 10 },
+                callback: function(value) {
+                  return '৳' + value.toLocaleString();
+                }
+              }
+            },
+            y: {
+              grid: { display: false },
+              ticks: { color: '#91a5c6', font: { family: 'Inter', size: 11, weight: 'bold' } }
+            }
+          }
+        },
+        plugins: [{
+          id: 'permLabelsAvgBill',
+          afterDatasetsDraw(chart) {
+            const { ctx } = chart;
+            ctx.save();
+            ctx.font = 'bold 11px "JetBrains Mono", monospace';
+            ctx.fillStyle = '#f4f7ff';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            
+            ctx.shadowColor = 'rgba(3, 8, 22, 0.9)';
+            ctx.shadowBlur = 4;
+            
+            chart.data.datasets.forEach((dataset, datasetIndex) => {
+              const meta = chart.getDatasetMeta(datasetIndex);
+              meta.data.forEach((element, index) => {
+                const val = dataset.data[index];
+                if (val > 0) {
+                  const formatted = '৳' + Math.round(val).toLocaleString();
+                  ctx.fillText(formatted, element.x + 8, element.y);
+                }
+              });
+            });
+            ctx.restore();
+          }
+        }]
+      });
+    }
+
     // 2. YoY Grouped Bar Chart
     const ctxYoY = document.getElementById('yoyCompareChart');
     if (ctxYoY) {
@@ -4048,6 +4984,41 @@ function renderStatsPage() {
     if (chartCanvasContainer) chartCanvasContainer.classList.add('hidden');
     if (yoyCanvasContainer) {
       const parentCard = yoyCanvasContainer.closest('.chartCard');
+      if (parentCard) parentCard.classList.add('hidden');
+    }
+    const cumContainer = document.getElementById('cumulativeCompareChart');
+    if (cumContainer) {
+      const parentCard = cumContainer.closest('.chartCard');
+      if (parentCard) parentCard.classList.add('hidden');
+    }
+    const radarContainer = document.getElementById('categoryRadarChart');
+    if (radarContainer) {
+      const parentCard = radarContainer.closest('.chartCard');
+      if (parentCard) parentCard.classList.add('hidden');
+    }
+    const quarterlyContainer = document.getElementById('quarterlyStackedChart');
+    if (quarterlyContainer) {
+      const parentCard = quarterlyContainer.closest('.chartCard');
+      if (parentCard) parentCard.classList.add('hidden');
+    }
+    const bubbleContainer = document.getElementById('cashFlowBubbleChart');
+    if (bubbleContainer) {
+      const parentCard = bubbleContainer.closest('.chartCard');
+      if (parentCard) parentCard.classList.add('hidden');
+    }
+    const inflationContainer = document.getElementById('spendInflationChart');
+    if (inflationContainer) {
+      const parentCard = inflationContainer.closest('.chartCard');
+      if (parentCard) parentCard.classList.add('hidden');
+    }
+    const seasonContainer = document.getElementById('seasonalityChart');
+    if (seasonContainer) {
+      const parentCard = seasonContainer.closest('.chartCard');
+      if (parentCard) parentCard.classList.add('hidden');
+    }
+    const avgBillContainer = document.getElementById('averageBillChart');
+    if (avgBillContainer) {
+      const parentCard = avgBillContainer.closest('.chartCard');
       if (parentCard) parentCard.classList.add('hidden');
     }
     
@@ -4710,7 +5681,7 @@ function renderDescoStatsDashboard(billId, bill, locationName, apiData) {
   
   const exhaustionDate = new Date();
   exhaustionDate.setTime(Date.now() + daysRemaining * 24 * 60 * 60 * 1000);
-  const exhaustionDateStr = formatDateFriendly(exhaustionDate.toISOString().split('T')[0]);
+  const exhaustionDateStr = formatDateFriendly(formatLocalDate(exhaustionDate));
   
   const fillPercent = Math.min(100, Math.max(0, (daysRemaining / 15) * 100));
   
@@ -6176,6 +7147,62 @@ Monthly Spend Trend
 <div class="monthChart hidden">
 </div>
 
+</div>
+
+<!-- CUMULATIVE COMPARE CHART -->
+<div class="chartCard fullWidth">
+  <div class="chartTitle">Year-over-Year Cumulative Spending</div>
+  <div class="chartContainer" id="cumulativeCompareChartContainer">
+    <canvas id="cumulativeCompareChart"></canvas>
+  </div>
+</div>
+
+<!-- SPENDING DIMENSIONS RADAR CHART -->
+<div class="chartCard">
+  <div class="chartTitle">Spending Dimensions</div>
+  <div class="chartContainer" id="categoryRadarChartContainer">
+    <canvas id="categoryRadarChart"></canvas>
+  </div>
+</div>
+
+<!-- QUARTERLY SPEND DISTRIBUTION CHART -->
+<div class="chartCard">
+  <div class="chartTitle">Quarterly Spend Distribution</div>
+  <div class="chartContainer" id="quarterlyStackedChartContainer">
+    <canvas id="quarterlyStackedChart"></canvas>
+  </div>
+</div>
+
+<!-- DAY-OF-THE-MONTH CASH FLOW BUBBLE CHART -->
+<div class="chartCard fullWidth">
+  <div class="chartTitle">Day-of-the-Month Cash Flow</div>
+  <div class="chartContainer" id="cashFlowBubbleChartContainer">
+    <canvas id="cashFlowBubbleChart"></canvas>
+  </div>
+</div>
+
+<!-- MONTH-OVER-MONTH SPEND INFLATION CHART -->
+<div class="chartCard fullWidth">
+  <div class="chartTitle">Month-over-Month Spend Inflation Rate</div>
+  <div class="chartContainer" id="spendInflationChartContainer">
+    <canvas id="spendInflationChart"></canvas>
+  </div>
+</div>
+
+<!-- SEASONALITY COMPARE CHART -->
+<div class="chartCard">
+  <div class="chartTitle">Summer vs. Winter Average Spend</div>
+  <div class="chartContainer" id="seasonalityChartContainer">
+    <canvas id="seasonalityChart"></canvas>
+  </div>
+</div>
+
+<!-- AVERAGE BILL AMOUNT BY ACCOUNT CHART -->
+<div class="chartCard">
+  <div class="chartTitle">Average Spend per Payment (by Account)</div>
+  <div class="chartContainer" id="averageBillChartContainer">
+    <canvas id="averageBillChart"></canvas>
+  </div>
 </div>
 
 <!-- YEAR-OVER-YEAR COMPARISON -->
