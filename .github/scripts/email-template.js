@@ -60,7 +60,7 @@ function buildBillzyEmail({ monthLabel, lastMonthLabel, unpaidPostpaid, balanceC
           <!-- Top mark -->
           <tr>
             <td align="center" style="padding-bottom:22px;">
-              <span style="display:inline-block; width:40px; height:40px; line-height:40px; border-radius:50%; background-color:#2f2440; color:#f3ede3; font-family:${SANS}; font-size:17px; font-weight:700; text-align:center;">B</span>
+              <img src="https://36pro.github.io/assets/avatar.jpg" width="48" height="48" style="display:block; border-radius:50%; border:1px solid #e8dfd0;" alt="B">
             </td>
           </tr>
 
