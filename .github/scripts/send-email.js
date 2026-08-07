@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { buildBillzyEmail } = require('./email-template.js');
 
 // 1. Define utility bills configurations matching index.html
 const bills = [
@@ -76,57 +77,17 @@ async function main() {
     }
   });
 
-  // 5. Build HTML Email Body
-  let htmlContent = `
-    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #030816; color: #f4f7ff; padding: 30px; border-radius: 12px; max-width: 600px; margin: 0 auto; border: 1px solid #1e293b;">
-      <h2 style="color: #22d3ee; border-bottom: 2px solid #1e293b; padding-bottom: 10px; margin-top: 0;">⚡ Billzy Payment Reminder</h2>
-      <p style="color: #94a3b8; font-size: 1.05rem;">Here is your utility bills overview for <strong>${currentMonthLabel}</strong>:</p>
-  `;
-
-  if (unpaidPostpaid.length === 0 && unpaidPrepaid.length === 0) {
-    htmlContent += `
-      <div style="background-color: #064e3b; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0; border-radius: 4px;">
-        <strong style="color: #34d399;">✓ All clear!</strong>
-        <p style="margin: 5px 0 0 0; color: #a7f3d0; font-size: 0.95rem;">All monthly prepaid and postpaid utility bills are paid up to date.</p>
-      </div>
-    `;
-  } else {
-    if (unpaidPrepaid.length > 0) {
-      htmlContent += `
-        <h3 style="color: #f59e0b; margin-top: 25px; font-size: 1.15rem;">⚠️ Unpaid Prepaid Bills (Due for ${currentMonthLabel}):</h3>
-        <ul style="padding-left: 20px; line-height: 1.6; color: #e2e8f0;">
-          ${unpaidPrepaid.map(b => `<li style="margin-bottom: 8px;"><strong>${b.name}</strong></li>`).join('')}
-        </ul>
-      `;
-    }
-
-    if (unpaidPostpaid.length > 0) {
-      htmlContent += `
-        <h3 style="color: #ef4444; margin-top: 25px; font-size: 1.15rem;">🚨 Unpaid Postpaid Bills (Due for ${lastMonthLabel}):</h3>
-        <ul style="padding-left: 20px; line-height: 1.6; color: #e2e8f0;">
-          ${unpaidPostpaid.map(b => `<li style="margin-bottom: 8px;"><strong>${b.name}</strong></li>`).join('')}
-        </ul>
-      `;
-    }
-  }
-
-  if (balanceCheckups.length > 0) {
-    htmlContent += `
-      <h3 style="color: #38bdf8; margin-top: 30px; font-size: 1.1rem; border-top: 1px solid #1e293b; padding-top: 15px;">🔌 Balance-Based Accounts (Reminder to Check):</h3>
-      <p style="color: #94a3b8; font-size: 0.95rem; margin-bottom: 10px;">Please check the live balances for these meters:</p>
-      <ul style="padding-left: 20px; line-height: 1.5; color: #cbd5e1; font-size: 0.95rem;">
-        ${balanceCheckups.map(b => `<li style="margin-bottom: 5px;">${b.name}</li>`).join('')}
-      </ul>
-    `;
-  }
-
-  htmlContent += `
-      <div style="margin-top: 35px; padding-top: 15px; border-top: 1px solid #1e293b; text-align: center;">
-        <a href="https://36pro.github.io/Billzy/" style="background-color: #22d3ee; color: #030816; text-decoration: none; padding: 10px 20px; font-weight: bold; border-radius: 8px; display: inline-block;">Open Billzy Dashboard ↗</a>
-      </div>
-      <p style="font-size: 0.8rem; color: #475569; text-align: center; margin-top: 30px;">Sent automatically by Billzy Actions Engine.</p>
-    </div>
-  `;
+  // 5. Build HTML Email Body using the template function
+  const htmlContent = buildBillzyEmail({
+    monthLabel: currentMonthLabel,
+    lastMonthLabel: lastMonthLabel,
+    unpaidPostpaid: [
+      ...unpaidPrepaid.map(b => ({ name: `${b.name} (Prepaid)` })),
+      ...unpaidPostpaid.map(b => ({ name: `${b.name} (Postpaid)` }))
+    ],
+    balanceCheckups: balanceCheckups,
+    dashboardUrl: 'https://36pro.github.io/Billzy/'
+  });
 
   // 6. Send email using Resend API via native fetch
   console.log(`Sending reminder to ${toEmail}...`);
