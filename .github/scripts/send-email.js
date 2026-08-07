@@ -86,7 +86,7 @@ async function main() {
       ...unpaidPostpaid.map(b => ({ name: `${b.name} (Postpaid)` }))
     ],
     balanceCheckups: balanceCheckups,
-    dashboardUrl: 'https://36pro.github.io/Billzy/'
+    dashboardUrl: 'https://36pro.github.io/#home'
   });
 
   // 6. Send email using Resend API via native fetch
