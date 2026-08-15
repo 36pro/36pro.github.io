@@ -1,15 +1,5 @@
 [
   {
-    "uid": "mrugtxzbuyi6",
-    "billId": "matuailGas",
-    "billName": "Matuail Gas",
-    "billType": "postpaid",
-    "billMonth": "July 2026",
-    "amount": "10",
-    "payDate": "2026-08-15",
-    "savedAt": "2026-08-15T08:00:40.004Z"
-  },
-  {
     "uid": "mr5nghanm3w7",
     "billId": "matuailGas",
     "billName": "Matuail Gas",
