@@ -1790,6 +1790,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   .chartCard.fullWidth {
     grid-column: auto;
   }
+}
+
 .descoLiveContainer {
   margin-top: 24px;
   background: linear-gradient(180deg, rgba(13, 28, 54, 0.96), rgba(5, 14, 32, 0.96));
@@ -2054,6 +2056,137 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   letter-spacing: 0.02em;
 }
 
+/* ============ TOAST SYSTEM ============ */
+
+#toast-stack{
+  position:fixed;
+  top:20px;
+  right:20px;
+  z-index:99999;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  width:min(360px, calc(100vw - 40px));
+  pointer-events:none;
+}
+
+@media (max-width: 560px){
+  #toast-stack{
+    top:auto;
+    bottom:20px;
+    right:16px;
+    left:16px;
+    width:auto;
+  }
+}
+
+.toast{
+  pointer-events:auto;
+  position:relative;
+  display:flex;
+  align-items:flex-start;
+  gap:12px;
+  background:rgba(255,255,255,0.88);
+  backdrop-filter:blur(14px) saturate(1.3);
+  -webkit-backdrop-filter:blur(14px) saturate(1.3);
+  border:1px solid rgba(19,32,37,0.08);
+  border-left:4px solid var(--accent, #0F5C57);
+  border-radius:12px;
+  padding:13px 14px 13px 14px;
+  box-shadow:
+    0 10px 30px -8px rgba(19,32,37,0.28),
+    0 2px 8px rgba(19,32,37,0.08);
+  overflow:hidden;
+  transform:translateX(120%);
+  opacity:0;
+  max-height:200px;
+  transition:
+    transform 0.45s cubic-bezier(0.16,1,0.3,1),
+    opacity 0.35s ease,
+    max-height 0.35s ease 0.05s,
+    margin-top 0.35s ease 0.05s,
+    padding 0.35s ease 0.05s;
+}
+
+@media (max-width:560px){
+  .toast{ transform:translateY(120%); }
+  .toast.show{ transform:translateY(0) !important; }
+  .toast.hide{ transform:translateY(120%) !important; }
+}
+
+.toast.show{
+  transform:translateX(0);
+  opacity:1;
+}
+
+.toast.hide{
+  transform:translateX(120%);
+  opacity:0;
+  max-height:0;
+  margin-top:-10px;
+  padding-top:0;
+  padding-bottom:0;
+  border-width:0;
+}
+
+.toast .icon{
+  flex:0 0 auto;
+  width:22px;height:22px;
+  border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--accent, #0F5C57);
+  color:#fff;
+  margin-top:1px;
+}
+.toast .icon svg{width:12px;height:12px;}
+
+.toast .body{flex:1; min-width:0;}
+
+.toast .msg{
+  font-size:13.5px;
+  line-height:1.45;
+  color:#132025;
+  font-weight:500;
+  white-space:pre-line;
+  word-break:break-word;
+}
+
+.toast .close{
+  flex:0 0 auto;
+  background:none;
+  border:none;
+  cursor:pointer;
+  color:#6B7A78;
+  padding:2px;
+  border-radius:5px;
+  display:flex;
+  margin:-2px -4px 0 0;
+}
+.toast .close:hover{color:#132025; background:rgba(19,32,37,0.06);}
+.toast .close svg{width:14px;height:14px;}
+
+.toast .bar{
+  position:absolute;
+  bottom:0; left:0;
+  height:2.5px;
+  background:var(--accent, #0F5C57);
+  opacity:0.55;
+  width:100%;
+  transform-origin:left;
+  animation:toast-shrink linear forwards;
+}
+
+@keyframes toast-shrink{
+  from{transform:scaleX(1);}
+  to{transform:scaleX(0);}
+}
+
+@media (prefers-reduced-motion: reduce){
+  .toast{transition:opacity 0.2s ease;}
+  .toast.show, .toast.hide{transform:none;}
+  .bar{animation:none; display:none;}
+}
+
 .descoHeaderCard {
   background: linear-gradient(90deg, rgba(17,35,71,0.8), rgba(5,14,32,0.8));
   border: 1px solid var(--border);
@@ -2269,6 +2402,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 </head>
 
 <body>
+<div id="toast-stack" aria-live="polite" aria-atomic="false"></div>
 
 
 
@@ -2477,6 +2611,88 @@ Next Due in 30 Days
 </section>
 
 <script>
+
+(function(){
+  const STACK = document.getElementById('toast-stack');
+  const DURATION = 4500; // ms before auto-dismiss
+
+  const ICONS = {
+    success: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+    error:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+    warning: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>',
+    info:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="16" x2="12" y2="11"/><line x1="12" y1="8" x2="12.01" y2="8"/><circle cx="12" cy="12" r="10"/></svg>'
+  };
+
+  const ACCENTS = {
+    success: '#3C9A6E',
+    error:   '#C24A3D',
+    warning: '#E8A33D',
+    info:    '#3E6FA8'
+  };
+
+  const CLOSE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+
+  function showToast(message, type = 'info', duration = DURATION){
+    type = ICONS[type] ? type : 'info';
+
+    const el = document.createElement('div');
+    el.className = 'toast';
+    el.style.setProperty('--accent', ACCENTS[type]);
+    el.setAttribute('role', type === 'error' ? 'alert' : 'status');
+
+    el.innerHTML =
+      '<div class="icon">' + ICONS[type] + '</div>' +
+      '<div class="body"><div class="msg"></div></div>' +
+      '<button class="close" aria-label="Dismiss">' + CLOSE_ICON + '</button>' +
+      '<div class="bar" style="animation-duration:' + duration + 'ms"></div>';
+
+    el.querySelector('.msg').textContent = message;
+
+    STACK.appendChild(el);
+    requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('show')));
+
+    let timer = setTimeout(() => dismiss(el), duration);
+
+    el.addEventListener('mouseenter', () => {
+      clearTimeout(timer);
+      el.querySelector('.bar').style.animationPlayState = 'paused';
+    });
+    el.addEventListener('mouseleave', () => {
+      el.querySelector('.bar').style.animationPlayState = 'running';
+      timer = setTimeout(() => dismiss(el), 1200);
+    });
+
+    el.querySelector('.close').addEventListener('click', () => {
+      clearTimeout(timer);
+      dismiss(el);
+    });
+
+    return el;
+  }
+
+  function dismiss(el){
+    if(!el || el.dataset.dismissing) return;
+    el.dataset.dismissing = '1';
+    el.classList.remove('show');
+    el.classList.add('hide');
+    setTimeout(() => el.remove(), 400);
+  }
+
+  // Route every existing alert(...) call straight into a toast.
+  // Type is guessed from the message text, so none of the 8 call
+  // sites in the handover doc need to change.
+  window.alert = function(msg){
+    let text = String(msg);
+    let type = 'info';
+    const lower = text.toLowerCase();
+    if (lower.includes('success') || lower.includes('successfully') || lower.includes('copied')) type = 'success';
+    else if (lower.includes('fail') || lower.includes('error')) type = 'error';
+    else if (lower.includes('please') || lower.includes('warning') || lower.includes('not found')) type = 'warning';
+    showToast(text, type);
+  };
+
+  window.showToast = showToast; // optional: call directly for explicit control
+})();
 
 /* 
   URL HASH ROUTER CONFIGURATION
