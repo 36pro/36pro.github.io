@@ -2035,23 +2035,42 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   transform: translateY(-1px);
 }
 
+.uniqueStatsPage {
+  overflow-y: auto !important;
+  overflow-x: hidden;
+  padding-bottom: 80px;
+}
+
+.uniqueStatsPage::-webkit-scrollbar {
+  width: 8px;
+}
+.uniqueStatsPage::-webkit-scrollbar-track {
+  background: rgba(3, 8, 22, 0.6);
+}
+.uniqueStatsPage::-webkit-scrollbar-thumb {
+  background: rgba(56, 189, 248, 0.25);
+  border-radius: 4px;
+}
+.uniqueStatsPage::-webkit-scrollbar-thumb:hover {
+  background: rgba(56, 189, 248, 0.45);
+}
+
 #uniqueStatsContent {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
-  max-width: 1100px;
+  grid-template-columns: 1fr;
+  gap: 28px;
+  width: 100%;
+  max-width: 100%;
   margin: 0 auto;
-}
-@media only screen and (max-width: 768px) {
-  #uniqueStatsContent {
-    grid-template-columns: 1fr;
-  }
+  box-sizing: border-box;
 }
 .stat-card {
+  width: 100%;
+  box-sizing: border-box;
   background: #0d1119;
   border: 1px solid rgba(255,255,255,0.06);
   border-radius: 16px;
-  padding: 22px 22px 18px;
+  padding: 24px 28px 22px;
   position: relative;
   overflow: hidden;
 }
@@ -2063,10 +2082,10 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   background: var(--accent, #38bdf8);
 }
 .stat-card-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: #cbd5e1;
-  margin-bottom: 14px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin-bottom: 18px;
   letter-spacing: 0.02em;
 }
 
@@ -5521,6 +5540,29 @@ function buildPrepaidCycles(payments) {
   });
 }
 
+function get12RollingMonths() {
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const fullMonthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const now = new Date();
+  const list = [];
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const mIdx = d.getMonth();
+    const y = d.getFullYear();
+    const yStrShort = String(y).substr(-2);
+    list.push({
+      shortLabel: `${monthNames[mIdx]} '${yStrShort}`,
+      fullLabel: `${fullMonthNames[mIdx]} ${y}`,
+      shortMonthName: monthNames[mIdx],
+      fullMonthName: fullMonthNames[mIdx],
+      year: y,
+      yearShort: yStrShort,
+      monthIndex: mIdx
+    });
+  }
+  return list;
+}
+
 // Chart 1: Next Recharge Forecast Gauge
 function renderForecastGauge(payments) {
   const cycles = buildPrepaidCycles(payments);
@@ -5575,16 +5617,16 @@ function renderForecastGauge(payments) {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         
-        ctx.font = 'bold 15px sans-serif';
+        ctx.font = 'bold 18px "JetBrains Mono", sans-serif';
         ctx.fillStyle = color;
         const line1 = daysLeft < 0 ? `Overdue by ${Math.abs(daysLeft)}d` : `~${daysLeft} days left`;
-        ctx.fillText(line1, left + width / 2, top + height / 2 - 8);
+        ctx.fillText(line1, left + width / 2, top + height / 2 - 10);
         
-        ctx.font = '11px sans-serif';
-        ctx.fillStyle = '#64748b';
+        ctx.font = 'bold 13px "JetBrains Mono", sans-serif';
+        ctx.fillStyle = '#94a3b8';
         const estDateObj = new Date(lastPayDate.getTime() + estCycleDays * 86400000);
         const line2 = `Est. ${estDateObj.toLocaleDateString('default', { month: 'short', day: 'numeric' })}`;
-        ctx.fillText(line2, left + width / 2, top + height / 2 + 12);
+        ctx.fillText(line2, left + width / 2, top + height / 2 + 14);
         
         ctx.restore();
       }
@@ -5592,14 +5634,34 @@ function renderForecastGauge(payments) {
   });
 }
 
-// Chart 2: Usage Rate Trend Line
+// Chart 2: Usage Rate Trend Line (12 Months Timeline)
 function renderRateTrendChart(payments) {
+  const rolling12 = get12RollingMonths();
   const cycles = buildPrepaidCycles(payments);
-  const dataPoints = cycles.filter(c => c.daysPer1000 !== null);
+  const validCycles = cycles.filter(c => c.daysPer1000 !== null);
   
-  const n = dataPoints.length;
+  const labels = rolling12.map(m => m.shortLabel);
+  const values = [];
+  const hasData = [];
+  
+  rolling12.forEach(m => {
+    const matching = validCycles.filter(c => {
+      const pDate = new Date(c.payDate);
+      return pDate.getFullYear() === m.year && pDate.getMonth() === m.monthIndex;
+    });
+    if (matching.length > 0) {
+      const avgRate = matching.reduce((sum, c) => sum + c.daysPer1000, 0) / matching.length;
+      values.push(Math.round(avgRate * 10) / 10);
+      hasData.push(true);
+    } else {
+      values.push(null);
+      hasData.push(false);
+    }
+  });
+  
+  const n = validCycles.length;
   let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
-  dataPoints.forEach((pt, i) => {
+  validCycles.forEach((pt, i) => {
     sumX += i;
     sumY += pt.daysPer1000;
     sumXY += i * pt.daysPer1000;
@@ -5629,59 +5691,91 @@ function renderRateTrendChart(payments) {
     uniqueChartInstances['rateTrend'].destroy();
   }
   
-  const labels = dataPoints.map(c => formatDateFriendlyShort(c.payDate));
-  const values = dataPoints.map(c => c.daysPer1000);
-  
   uniqueChartInstances['rateTrend'] = new Chart(ctx, {
     type: 'line',
     data: {
       labels: labels,
       datasets: [{
-        label: 'Days Per ৳1,000',
+        label: 'Days Per 1,000',
         data: values,
         borderColor: '#a78bfa',
-        backgroundColor: 'rgba(167, 139, 250, 0.05)',
+        backgroundColor: 'rgba(167, 139, 250, 0.08)',
         fill: true,
         tension: 0.3,
         borderWidth: 2,
-        pointBackgroundColor: '#a78bfa'
+        spanGaps: true,
+        pointBackgroundColor: '#a78bfa',
+        pointRadius: 4
       }]
     },
+    plugins: [{
+      id: 'rateTrendLabels',
+      afterDatasetsDraw(chart) {
+        const { ctx } = chart;
+        ctx.save();
+        ctx.font = 'bold 11px "JetBrains Mono", monospace';
+        ctx.fillStyle = '#a78bfa';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        const meta = chart.getDatasetMeta(0);
+        meta.data.forEach((element, index) => {
+          const val = values[index];
+          if (val !== undefined && val !== null) {
+            ctx.fillText(`${val}d`, element.x, element.y - 4);
+          }
+        });
+        ctx.restore();
+      }
+    }],
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      layout: { padding: { top: 16 } },
       plugins: {
         legend: { display: false }
       },
       scales: {
-        x: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#64748b', font: { size: 10 } } },
-        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b', font: { size: 10 } } }
+        x: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#94a3b8', font: { size: 11 } } },
+        y: { grace: '18%', grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', font: { size: 11 } } }
       }
     }
   });
 }
 
-// Chart 3: Bill Month vs. Pay Date Bar Lag
+// Chart 3: Bill Month vs. Pay Date Bar Lag (12 Months Timeline)
 function renderBillLagChart(payments) {
-  const sorted = [...payments].sort((a, b) => new Date(a.payDate) - new Date(b.payDate));
-  
-  const labels = [];
+  const rolling12 = get12RollingMonths();
+  const labels = rolling12.map(m => m.shortLabel);
   const lags = [];
   const backgroundColors = [];
+  const hasData = [];
   
-  sorted.forEach(p => {
-    if (!p.billMonth) return;
-    const paidMonthDate = parseBillMonth(p.billMonth);
-    if (!paidMonthDate) return;
+  rolling12.forEach(m => {
+    const matchingPayment = payments.find(p => {
+      if (p.billMonth) {
+        const bm = p.billMonth.toLowerCase();
+        const mShort = m.shortMonthName.toLowerCase();
+        const mFull = m.fullMonthName.toLowerCase();
+        const matchMonth = bm.includes(mShort) || bm.includes(mFull);
+        const matchYear = bm.includes(String(m.year)) || bm.includes(m.yearShort);
+        if (matchMonth && matchYear) return true;
+      }
+      const pDate = new Date(p.payDate);
+      return pDate.getFullYear() === m.year && pDate.getMonth() === m.monthIndex;
+    });
     
-    const lastDayOfBillMonth = new Date(paidMonthDate.getFullYear(), paidMonthDate.getMonth() + 1, 0);
-    const payDate = new Date(p.payDate);
-    
-    const lag = Math.round((payDate - lastDayOfBillMonth) / 86400000);
-    
-    labels.push(p.billMonth);
-    lags.push(lag);
-    backgroundColors.push(lag > 0 ? '#fb7185' : '#2dd4bf');
+    if (matchingPayment) {
+      const lastDayOfBillMonth = new Date(m.year, m.monthIndex + 1, 0);
+      const payDate = new Date(matchingPayment.payDate);
+      const lag = Math.round((payDate - lastDayOfBillMonth) / 86400000);
+      lags.push(lag);
+      backgroundColors.push(lag > 0 ? '#fb7185' : '#2dd4bf');
+      hasData.push(true);
+    } else {
+      lags.push(0);
+      backgroundColors.push('transparent');
+      hasData.push(false);
+    }
   });
   
   const card = document.getElementById('card-billLag');
@@ -5691,7 +5785,7 @@ function renderBillLagChart(payments) {
     
     const footnote = document.createElement('div');
     footnote.className = 'footnote';
-    footnote.style.cssText = "font-size: 10px; color: #475569; margin-top: 10px; text-align: left; font-style: italic;";
+    footnote.style.cssText = "font-size: 11px; color: #64748b; margin-top: 10px; text-align: left; font-style: italic;";
     footnote.innerText = "* Lag estimated from bill month, not an actual due date.";
     card.appendChild(footnote);
   }
@@ -5714,34 +5808,62 @@ function renderBillLagChart(payments) {
         borderRadius: 4
       }]
     },
+    plugins: [{
+      id: 'billLagLabels',
+      afterDatasetsDraw(chart) {
+        const { ctx } = chart;
+        ctx.save();
+        ctx.font = 'bold 11px "JetBrains Mono", monospace';
+        ctx.textAlign = 'center';
+        const meta = chart.getDatasetMeta(0);
+        meta.data.forEach((element, index) => {
+          if (hasData[index]) {
+            const val = lags[index];
+            ctx.fillStyle = val > 0 ? '#fb7185' : '#2dd4bf';
+            const text = val > 0 ? `+${val}d` : `${val}d`;
+            const yPos = val >= 0 ? element.y - 4 : element.y + 14;
+            ctx.fillText(text, element.x, yPos);
+          }
+        });
+        ctx.restore();
+      }
+    }],
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      layout: { padding: { top: 16 } },
       plugins: {
         legend: { display: false }
       },
       scales: {
-        x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 10 } } },
-        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b', font: { size: 10 } } }
+        x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 11 } } },
+        y: { grace: '18%', grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', font: { size: 11 } } }
       }
     }
   });
 }
 
-// Chart 4: Monthly Total Line
+// Chart 4: Monthly Total Line (12 Months Timeline)
 function renderMonthlyTotalChart(payments) {
-  const sorted = [...payments].sort((a, b) => new Date(a.payDate) - new Date(b.payDate));
+  const rolling12 = get12RollingMonths();
+  const labels = rolling12.map(m => m.shortLabel);
+  const values = [];
+  const hasData = [];
   
-  const monthlySums = {};
-  sorted.forEach(p => {
-    const d = new Date(p.payDate);
-    const monthName = d.toLocaleString('default', { month: 'short' });
-    const label = `${monthName} ${d.getFullYear()}`;
-    monthlySums[label] = (monthlySums[label] || 0) + parseFloat(p.amount);
+  rolling12.forEach(m => {
+    const matching = payments.filter(p => {
+      const pDate = new Date(p.payDate);
+      return pDate.getFullYear() === m.year && pDate.getMonth() === m.monthIndex;
+    });
+    if (matching.length > 0) {
+      const sum = matching.reduce((acc, p) => acc + parseFloat(p.amount), 0);
+      values.push(sum);
+      hasData.push(true);
+    } else {
+      values.push(0);
+      hasData.push(false);
+    }
   });
-  
-  const labels = Object.keys(monthlySums);
-  const values = Object.values(monthlySums);
   
   const ctx = document.getElementById('monthlyTotalCanvas');
   if (!ctx) return;
@@ -5755,38 +5877,84 @@ function renderMonthlyTotalChart(payments) {
     data: {
       labels: labels,
       datasets: [{
-        label: 'Monthly Total (৳)',
+        label: 'Monthly Total',
         data: values,
         borderColor: '#2dd4bf',
-        backgroundColor: 'rgba(45, 212, 191, 0.05)',
+        backgroundColor: 'rgba(45, 212, 191, 0.08)',
         fill: true,
         tension: 0.3,
         borderWidth: 2,
-        pointBackgroundColor: '#2dd4bf'
+        pointBackgroundColor: '#2dd4bf',
+        pointRadius: 4
       }]
     },
+    plugins: [{
+      id: 'monthlyTotalLabels',
+      afterDatasetsDraw(chart) {
+        const { ctx } = chart;
+        ctx.save();
+        ctx.font = 'bold 11px "JetBrains Mono", monospace';
+        ctx.fillStyle = '#2dd4bf';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        const meta = chart.getDatasetMeta(0);
+        meta.data.forEach((element, index) => {
+          if (hasData[index]) {
+            const val = values[index];
+            ctx.fillText(Math.round(val).toLocaleString(), element.x, element.y - 4);
+          }
+        });
+        ctx.restore();
+      }
+    }],
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      layout: { padding: { top: 16 } },
       plugins: {
         legend: { display: false }
       },
       scales: {
-        x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 10 } } },
-        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b', font: { size: 10 } } }
+        x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 11 } } },
+        y: { grace: '18%', grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', font: { size: 11 } } }
       }
     }
   });
 }
 
-// Chart 5: Amount vs Duration Combo Chart
+// Chart 5: Amount vs Duration Combo Chart (12 Months Timeline)
 function renderAmountVsDurationChart(payments) {
+  const rolling12 = get12RollingMonths();
+  const labels = rolling12.map(m => m.shortLabel);
   const cycles = buildPrepaidCycles(payments);
-  const validCycles = cycles.filter(c => c.daysUntilNext !== null);
   
-  const labels = validCycles.map(c => formatDateFriendlyShort(c.payDate));
-  const amounts = validCycles.map(c => c.amount);
-  const durations = validCycles.map(c => c.daysUntilNext);
+  const amounts = [];
+  const durations = [];
+  const hasData = [];
+  
+  rolling12.forEach(m => {
+    const matchingPayments = payments.filter(p => {
+      const pDate = new Date(p.payDate);
+      return pDate.getFullYear() === m.year && pDate.getMonth() === m.monthIndex;
+    });
+    
+    const matchingCycles = cycles.filter(c => {
+      const pDate = new Date(c.payDate);
+      return pDate.getFullYear() === m.year && pDate.getMonth() === m.monthIndex && c.daysUntilNext !== null;
+    });
+    
+    if (matchingPayments.length > 0) {
+      const sumAmt = matchingPayments.reduce((acc, p) => acc + parseFloat(p.amount), 0);
+      const sumDur = matchingCycles.reduce((acc, c) => acc + c.daysUntilNext, 0);
+      amounts.push(sumAmt);
+      durations.push(sumDur > 0 ? sumDur : null);
+      hasData.push(true);
+    } else {
+      amounts.push(0);
+      durations.push(null);
+      hasData.push(false);
+    }
+  });
   
   const ctx = document.getElementById('amountVsDurationCanvas');
   if (!ctx) return;
@@ -5802,7 +5970,7 @@ function renderAmountVsDurationChart(payments) {
       datasets: [
         {
           type: 'bar',
-          label: 'Amount Paid (৳)',
+          label: 'Amount Paid',
           data: amounts,
           backgroundColor: '#818cf8',
           yAxisID: 'yAmount',
@@ -5816,31 +5984,69 @@ function renderAmountVsDurationChart(payments) {
           borderWidth: 2,
           fill: false,
           tension: 0.2,
+          spanGaps: true,
           pointBackgroundColor: '#4ade80',
+          pointRadius: 4,
           yAxisID: 'yDuration'
         }
       ]
     },
+    plugins: [{
+      id: 'amountVsDurationLabels',
+      afterDatasetsDraw(chart) {
+        const { ctx } = chart;
+        ctx.save();
+        ctx.font = 'bold 11px "JetBrains Mono", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        
+        // Amounts on bars
+        const metaBar = chart.getDatasetMeta(0);
+        metaBar.data.forEach((element, index) => {
+          if (hasData[index]) {
+            const val = amounts[index];
+            if (val > 0) {
+              ctx.fillStyle = '#818cf8';
+              ctx.fillText(Math.round(val).toLocaleString(), element.x, element.y - 4);
+            }
+          }
+        });
+        
+        // Durations on points
+        const metaLine = chart.getDatasetMeta(1);
+        metaLine.data.forEach((element, index) => {
+          const val = durations[index];
+          if (val !== undefined && val !== null && val > 0) {
+            ctx.fillStyle = '#4ade80';
+            ctx.fillText(`${Math.round(val)}d`, element.x, element.y - 6);
+          }
+        });
+        ctx.restore();
+      }
+    }],
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      layout: { padding: { top: 16 } },
       interaction: {
         mode: 'index',
         intersect: false
       },
       scales: {
-        x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 10 } } },
+        x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 11 } } },
         yAmount: {
           type: 'linear',
           position: 'left',
+          grace: '18%',
           grid: { color: 'rgba(255,255,255,0.05)' },
-          ticks: { color: '#64748b', font: { size: 10 } }
+          ticks: { color: '#818cf8', font: { size: 11 } }
         },
         yDuration: {
           type: 'linear',
           position: 'right',
+          grace: '18%',
           grid: { display: false },
-          ticks: { color: '#64748b', font: { size: 10 } }
+          ticks: { color: '#4ade80', font: { size: 11 } }
         }
       }
     }
@@ -5908,21 +6114,24 @@ function renderUniqueStatsPage(billId) {
   
   if (applicable.length === 0) {
     container.innerHTML = `
-      <div style="text-align: center; padding: 100px 0; color: #64748b; font-size: 1.2rem; grid-column: span 2;">
+      <div style="text-align: center; padding: 100px 0; color: #64748b; font-size: 1.2rem;">
         Not enough payment history yet — add another payment to see stats.
       </div>
     `;
     return;
   }
 
-  container.innerHTML = applicable.map(chart => `
-    <div class="stat-card" id="card-${chart.id}" style="--accent: ${chart.accent || '#38bdf8'};">
-      <div class="stat-card-title">${chart.title}</div>
-      <div style="position: relative; height: 200px; width: 100%;">
-        <canvas id="${chart.id}Canvas"></canvas>
+  container.innerHTML = applicable.map(chart => {
+    const height = chart.id === 'forecastGauge' ? '250px' : '320px';
+    return `
+      <div class="stat-card" id="card-${chart.id}" style="--accent: ${chart.accent || '#38bdf8'};">
+        <div class="stat-card-title">${chart.title}</div>
+        <div style="position: relative; height: ${height}; width: 100%;">
+          <canvas id="${chart.id}Canvas"></canvas>
+        </div>
       </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 
   applicable.forEach(chart => {
     try {
@@ -8160,8 +8369,8 @@ Payment Gap Summary
   </div>
 </section>
 
-<section id="uniqueStatsPage" class="page hidden">
-  <div class="container" style="max-width: 1200px; padding-bottom: 80px;">
+<section id="uniqueStatsPage" class="page uniqueStatsPage hidden">
+  <div class="container" style="width: min(1450px, 95%); max-width: 1450px; padding: 0 10px 80px; box-sizing: border-box;">
     <div class="logo">BILLZY</div>
     <div class="glow"></div>
     <div class="backBtn" id="uniqueStatsBackBtn" onclick="goHome()">
@@ -8172,7 +8381,7 @@ Payment Gap Summary
       <!-- Title Injected Dynamically -->
     </div>
     
-    <div id="uniqueStatsContent" style="margin-top:24px;">
+    <div id="uniqueStatsContent" style="margin-top:24px; width: 100%;">
       <!-- Injected Dynamically -->
     </div>
   </div>
