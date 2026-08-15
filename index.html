@@ -2019,6 +2019,41 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   transform: translateY(-1px);
 }
 
+#uniqueStatsContent {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+@media only screen and (max-width: 768px) {
+  #uniqueStatsContent {
+    grid-template-columns: 1fr;
+  }
+}
+.stat-card {
+  background: #0d1119;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px;
+  padding: 22px 22px 18px;
+  position: relative;
+  overflow: hidden;
+}
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--accent, #38bdf8);
+}
+.stat-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #cbd5e1;
+  margin-bottom: 14px;
+  letter-spacing: 0.02em;
+}
+
 .descoHeaderCard {
   background: linear-gradient(90deg, rgba(17,35,71,0.8), rgba(5,14,32,0.8));
   border: 1px solid var(--border);
@@ -2455,7 +2490,7 @@ function handleRouting() {
   const hash = window.location.hash;
   
   // Clean classes by hiding everything by default
-  const pages = document.querySelectorAll('.billPage, .dashboardPage, .databasePage, .statsPage, #descoStatsPage');
+  const pages = document.querySelectorAll('.billPage, .dashboardPage, .databasePage, .statsPage, #descoStatsPage, #uniqueStatsPage');
   pages.forEach(page => page.classList.add('hidden'));
   document.getElementById('landingPage').classList.add('hidden');
   
@@ -2473,6 +2508,10 @@ function handleRouting() {
     document.getElementById('descoStatsPage').classList.remove('hidden');
     // Call openDescoStatsPage with fromRouting=true to execute fetch and render logic without loop
     openDescoStatsPage(billId, true);
+  } else if (hash.startsWith('#unique-stats/')) {
+    const billId = hash.split('/')[1];
+    document.getElementById('uniqueStatsPage').classList.remove('hidden');
+    openUniqueStatsPage(billId, true);
   } else if (hash.startsWith('#bill/')) {
     const billId = hash.split('/')[1];
     const targetPage = document.getElementById(billId);
@@ -3305,11 +3344,6 @@ function uniqueStatsBtnHtml(billId) {
     'width:max-content;">' +
     'Unique Stats</div>';
 }
-
-function openUniqueStatsPage(billId) {
-  alert(`Unique Stats for ${billId} are under development!`);
-}
-
 // Rendering UI dynamically
 function renderBillPages() {
   document.querySelectorAll('.billPage').forEach(el => el.remove());
@@ -3412,8 +3446,9 @@ function renderBillPages() {
       </div>
     ` : '';
     
-    const isDescoPage = bill.id === 'rupnagarDesco' || bill.id === 'uttaraDesco';
-    const isUniqueStatsPage = bill.id !== 'rupnagarDesco' && bill.id !== 'uttaraDesco';
+    const DESCO_BILL_IDS = ['rupnagarDesco', 'uttaraDesco'];
+    const isDescoPage = DESCO_BILL_IDS.includes(bill.id);
+    const isUniqueStatsPage = !isDescoPage;
 
     const actionRowHtml = (portalUrl || isDescoPage || isUniqueStatsPage) ?
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;">' +
@@ -5222,6 +5257,457 @@ function sortPaymentsData() {
     const aTime = a.savedAt ? new Date(a.savedAt).getTime() : 0;
     return bTime - aTime;
   });
+}
+
+let uniqueChartInstances = {};
+
+// Helper: build prepaid recharges duration and rate math
+function buildPrepaidCycles(payments) {
+  const sorted = [...payments].sort((a, b) => new Date(a.payDate) - new Date(b.payDate));
+  return sorted.map((p, i) => {
+    const next = sorted[i + 1];
+    const amount = parseFloat(p.amount);
+    const daysUntilNext = next
+      ? (new Date(next.payDate) - new Date(p.payDate)) / 86400000
+      : null;
+    return {
+      payDate: p.payDate,
+      amount,
+      daysUntilNext,
+      daysPer1000: daysUntilNext !== null ? Math.round((daysUntilNext / (amount / 1000)) * 10) / 10 : null
+    };
+  });
+}
+
+// Chart 1: Next Recharge Forecast Gauge
+function renderForecastGauge(payments) {
+  const cycles = buildPrepaidCycles(payments);
+  const validCycles = cycles.filter(c => c.daysPer1000 !== null);
+  if (validCycles.length === 0) return;
+  const avgRate = validCycles.reduce((sum, c) => sum + c.daysPer1000, 0) / validCycles.length;
+  
+  const lastPayment = [...payments].sort((a, b) => new Date(a.payDate) - new Date(b.payDate)).pop();
+  const lastPayDate = new Date(lastPayment.payDate);
+  const lastAmount = parseFloat(lastPayment.amount);
+  const estCycleDays = Math.round(avgRate * (lastAmount / 1000));
+  
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  lastPayDate.setHours(0, 0, 0, 0);
+  const elapsedDays = Math.floor((today - lastPayDate) / 86400000);
+  const daysLeft = estCycleDays - elapsedDays;
+  const pctElapsed = Math.min(Math.max(elapsedDays / estCycleDays, 0), 1);
+  
+  const color = daysLeft < 0 ? '#fb7185' : '#fbbf24';
+  const ctx = document.getElementById('forecastGaugeCanvas');
+  if (!ctx) return;
+  
+  if (uniqueChartInstances['forecastGauge']) {
+    uniqueChartInstances['forecastGauge'].destroy();
+  }
+  
+  uniqueChartInstances['forecastGauge'] = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      datasets: [{
+        data: [pctElapsed * 100, (1 - pctElapsed) * 100],
+        backgroundColor: [color, 'rgba(255,255,255,0.06)'],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      cutout: '78%',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { enabled: false }
+      }
+    },
+    plugins: [{
+      id: 'gaugeText',
+      afterDraw: function(chart) {
+        const { ctx, chartArea: { top, bottom, left, right, width, height } } = chart;
+        ctx.save();
+        
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        ctx.font = 'bold 15px sans-serif';
+        ctx.fillStyle = color;
+        const line1 = daysLeft < 0 ? `Overdue by ${Math.abs(daysLeft)}d` : `~${daysLeft} days left`;
+        ctx.fillText(line1, left + width / 2, top + height / 2 - 8);
+        
+        ctx.font = '11px sans-serif';
+        ctx.fillStyle = '#64748b';
+        const estDateObj = new Date(lastPayDate.getTime() + estCycleDays * 86400000);
+        const line2 = `Est. ${estDateObj.toLocaleDateString('default', { month: 'short', day: 'numeric' })}`;
+        ctx.fillText(line2, left + width / 2, top + height / 2 + 12);
+        
+        ctx.restore();
+      }
+    }]
+  });
+}
+
+// Chart 2: Usage Rate Trend Line
+function renderRateTrendChart(payments) {
+  const cycles = buildPrepaidCycles(payments);
+  const dataPoints = cycles.filter(c => c.daysPer1000 !== null);
+  
+  const n = dataPoints.length;
+  let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+  dataPoints.forEach((pt, i) => {
+    sumX += i;
+    sumY += pt.daysPer1000;
+    sumXY += i * pt.daysPer1000;
+    sumXX += i * i;
+  });
+  const slope = n > 1 ? (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX) : 0;
+  
+  const titleEl = document.querySelector('#card-rateTrend .stat-card-title');
+  if (titleEl) {
+    const existingBadge = titleEl.querySelector('.slope-badge');
+    if (existingBadge) existingBadge.remove();
+    
+    const badgeColor = slope > 0 ? '#2dd4bf' : '#fb7185';
+    const badgeBg = slope > 0 ? 'rgba(45, 212, 191, 0.1)' : 'rgba(251, 113, 133, 0.1)';
+    const badgeText = slope > 0 ? '↑ improving' : '↓ declining';
+    titleEl.innerHTML += `
+      <span class="slope-badge" style="float: right; font-size: 11px; padding: 2px 8px; border-radius: 12px; background: ${badgeBg}; color: ${badgeColor}; font-weight: 700; text-transform: uppercase;">
+        ${badgeText}
+      </span>
+    `;
+  }
+  
+  const ctx = document.getElementById('rateTrendCanvas');
+  if (!ctx) return;
+  
+  if (uniqueChartInstances['rateTrend']) {
+    uniqueChartInstances['rateTrend'].destroy();
+  }
+  
+  const labels = dataPoints.map(c => formatDateFriendlyShort(c.payDate));
+  const values = dataPoints.map(c => c.daysPer1000);
+  
+  uniqueChartInstances['rateTrend'] = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Days Per ৳1,000',
+        data: values,
+        borderColor: '#a78bfa',
+        backgroundColor: 'rgba(167, 139, 250, 0.05)',
+        fill: true,
+        tension: 0.3,
+        borderWidth: 2,
+        pointBackgroundColor: '#a78bfa'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#64748b', font: { size: 10 } } },
+        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b', font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+// Chart 3: Bill Month vs. Pay Date Bar Lag
+function renderBillLagChart(payments) {
+  const sorted = [...payments].sort((a, b) => new Date(a.payDate) - new Date(b.payDate));
+  
+  const labels = [];
+  const lags = [];
+  const backgroundColors = [];
+  
+  sorted.forEach(p => {
+    if (!p.billMonth) return;
+    const paidMonthDate = parseBillMonth(p.billMonth);
+    if (!paidMonthDate) return;
+    
+    const lastDayOfBillMonth = new Date(paidMonthDate.getFullYear(), paidMonthDate.getMonth() + 1, 0);
+    const payDate = new Date(p.payDate);
+    
+    const lag = Math.round((payDate - lastDayOfBillMonth) / 86400000);
+    
+    labels.push(p.billMonth);
+    lags.push(lag);
+    backgroundColors.push(lag > 0 ? '#fb7185' : '#2dd4bf');
+  });
+  
+  const card = document.getElementById('card-billLag');
+  if (card) {
+    const existingFootnote = card.querySelector('.footnote');
+    if (existingFootnote) existingFootnote.remove();
+    
+    const footnote = document.createElement('div');
+    footnote.className = 'footnote';
+    footnote.style.cssText = "font-size: 10px; color: #475569; margin-top: 10px; text-align: left; font-style: italic;";
+    footnote.innerText = "* Lag estimated from bill month, not an actual due date.";
+    card.appendChild(footnote);
+  }
+  
+  const ctx = document.getElementById('billLagCanvas');
+  if (!ctx) return;
+  
+  if (uniqueChartInstances['billLag']) {
+    uniqueChartInstances['billLag'].destroy();
+  }
+  
+  uniqueChartInstances['billLag'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Payment Lag (Days)',
+        data: lags,
+        backgroundColor: backgroundColors,
+        borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 10 } } },
+        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b', font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+// Chart 4: Monthly Total Line
+function renderMonthlyTotalChart(payments) {
+  const sorted = [...payments].sort((a, b) => new Date(a.payDate) - new Date(b.payDate));
+  
+  const monthlySums = {};
+  sorted.forEach(p => {
+    const d = new Date(p.payDate);
+    const monthName = d.toLocaleString('default', { month: 'short' });
+    const label = `${monthName} ${d.getFullYear()}`;
+    monthlySums[label] = (monthlySums[label] || 0) + parseFloat(p.amount);
+  });
+  
+  const labels = Object.keys(monthlySums);
+  const values = Object.values(monthlySums);
+  
+  const ctx = document.getElementById('monthlyTotalCanvas');
+  if (!ctx) return;
+  
+  if (uniqueChartInstances['monthlyTotal']) {
+    uniqueChartInstances['monthlyTotal'].destroy();
+  }
+  
+  uniqueChartInstances['monthlyTotal'] = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Monthly Total (৳)',
+        data: values,
+        borderColor: '#2dd4bf',
+        backgroundColor: 'rgba(45, 212, 191, 0.05)',
+        fill: true,
+        tension: 0.3,
+        borderWidth: 2,
+        pointBackgroundColor: '#2dd4bf'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 10 } } },
+        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b', font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+// Chart 5: Amount vs Duration Combo Chart
+function renderAmountVsDurationChart(payments) {
+  const cycles = buildPrepaidCycles(payments);
+  const validCycles = cycles.filter(c => c.daysUntilNext !== null);
+  
+  const labels = validCycles.map(c => formatDateFriendlyShort(c.payDate));
+  const amounts = validCycles.map(c => c.amount);
+  const durations = validCycles.map(c => c.daysUntilNext);
+  
+  const ctx = document.getElementById('amountVsDurationCanvas');
+  if (!ctx) return;
+  
+  if (uniqueChartInstances['amountVsDuration']) {
+    uniqueChartInstances['amountVsDuration'].destroy();
+  }
+  
+  uniqueChartInstances['amountVsDuration'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          type: 'bar',
+          label: 'Amount Paid (৳)',
+          data: amounts,
+          backgroundColor: '#818cf8',
+          yAxisID: 'yAmount',
+          borderRadius: 4
+        },
+        {
+          type: 'line',
+          label: 'Duration (Days)',
+          data: durations,
+          borderColor: '#4ade80',
+          borderWidth: 2,
+          fill: false,
+          tension: 0.2,
+          pointBackgroundColor: '#4ade80',
+          yAxisID: 'yDuration'
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        mode: 'index',
+        intersect: false
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 10 } } },
+        yAmount: {
+          type: 'linear',
+          position: 'left',
+          grid: { color: 'rgba(255,255,255,0.05)' },
+          ticks: { color: '#64748b', font: { size: 10 } }
+        },
+        yDuration: {
+          type: 'linear',
+          position: 'right',
+          grid: { display: false },
+          ticks: { color: '#64748b', font: { size: 10 } }
+        }
+      }
+    }
+  });
+}
+
+// Chart Registry defining limits, visibility targets, and colors
+const CHART_REGISTRY = [
+  {
+    id: 'forecastGauge',
+    title: 'Next Recharge Forecast',
+    appliesTo: ['Prepaid'],
+    minPayments: 2,
+    accent: '#fbbf24',
+    render: renderForecastGauge
+  },
+  {
+    id: 'rateTrend',
+    title: 'Usage Rate Trend',
+    appliesTo: ['Prepaid'],
+    minPayments: 3,
+    accent: '#a78bfa',
+    render: renderRateTrendChart
+  },
+  {
+    id: 'billLag',
+    title: 'Bill Month vs. Pay Date',
+    appliesTo: ['Postpaid'],
+    minPayments: 1,
+    accent: '#fb7185',
+    render: renderBillLagChart
+  },
+  {
+    id: 'monthlyTotal',
+    title: 'Monthly Total',
+    appliesTo: ['Prepaid', 'Postpaid'],
+    minPayments: 1,
+    accent: '#2dd4bf',
+    render: renderMonthlyTotalChart
+  },
+  {
+    id: 'amountVsDuration',
+    title: 'Amount vs. Duration',
+    appliesTo: ['Prepaid'],
+    minPayments: 2,
+    accent: '#818cf8',
+    render: renderAmountVsDurationChart
+  }
+];
+
+// Injects appropriate cards dynamically and executes drawing functions
+function renderUniqueStatsPage(billId) {
+  const bill = billPages.find(b => b.id === billId);
+  if (!bill) return;
+
+  const billPayments = paymentsData.filter(p => p.billId === billId);
+  const billType = bill.type; // 'Prepaid' | 'Postpaid'
+
+  const applicable = CHART_REGISTRY.filter(chart =>
+    chart.appliesTo.includes(billType) &&
+    billPayments.length >= chart.minPayments
+  );
+
+  const container = document.getElementById('uniqueStatsContent');
+  
+  if (applicable.length === 0) {
+    container.innerHTML = `
+      <div style="text-align: center; padding: 100px 0; color: #64748b; font-size: 1.2rem; grid-column: span 2;">
+        Not enough payment history yet — add another payment to see stats.
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = applicable.map(chart => `
+    <div class="stat-card" id="card-${chart.id}" style="--accent: ${chart.accent || '#38bdf8'};">
+      <div class="stat-card-title">${chart.title}</div>
+      <div style="position: relative; height: 200px; width: 100%;">
+        <canvas id="${chart.id}Canvas"></canvas>
+      </div>
+    </div>
+  `).join('');
+
+  applicable.forEach(chart => {
+    try {
+      chart.render(billPayments);
+    } catch (e) {
+      console.error(`Failed to render chart ${chart.id}:`, e);
+    }
+  });
+}
+
+// Target hash routing handler for unique stats view
+async function openUniqueStatsPage(billId, fromRouting = false) {
+  if (!fromRouting) {
+    window.location.hash = `#unique-stats/${billId}`;
+    return;
+  }
+  
+  document.getElementById('uniqueStatsBackBtn').onclick = () => openPage(billId);
+  
+  const bill = billPages.find(b => b.id === billId);
+  if (bill) {
+    document.getElementById('uniqueStatsTitle').innerHTML = `
+      <span style="font-size:1.8rem; font-weight:800; color:var(--accent2);">${bill.name} Statistics</span>
+    `;
+  }
+  
+  renderUniqueStatsPage(billId);
 }
 
 let descoChartInstances = {};
@@ -7324,6 +7810,24 @@ Payment Gap Summary
     </div>
     
     <div id="descoStatsContent" style="margin-top:24px;">
+      <!-- Injected Dynamically -->
+    </div>
+  </div>
+</section>
+
+<section id="uniqueStatsPage" class="page hidden">
+  <div class="container" style="max-width: 1200px; padding-bottom: 80px;">
+    <div class="logo">BILLZY</div>
+    <div class="glow"></div>
+    <div class="backBtn" id="uniqueStatsBackBtn" onclick="goHome()">
+      ← Back to Bill Details
+    </div>
+    
+    <div id="uniqueStatsTitle" style="margin-top: 24px; margin-bottom: 16px;">
+      <!-- Title Injected Dynamically -->
+    </div>
+    
+    <div id="uniqueStatsContent" style="margin-top:24px;">
       <!-- Injected Dynamically -->
     </div>
   </div>
