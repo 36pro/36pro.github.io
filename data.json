@@ -1,15 +1,5 @@
 [
   {
-    "uid": "mrfzjeg1xdwd",
-    "billId": "matuailGas",
-    "billName": "Matuail Gas",
-    "billType": "postpaid",
-    "billMonth": "July 2026",
-    "amount": "900",
-    "payDate": "2026-08-15",
-    "savedAt": "2026-08-15T11:16:38.959Z"
-  },
-  {
     "uid": "mrftafop8hku",
     "billId": "rupnagarGas",
     "billName": "Rupnagar Gas",
