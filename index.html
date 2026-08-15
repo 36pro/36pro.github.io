@@ -1871,21 +1871,22 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 .descoTableHeader, .descoTableRow {
   display: grid;
-  grid-template-columns: 1.5fr 1fr 1fr 2fr;
-  padding: 12px 14px;
+  grid-template-columns: minmax(80px, 1.1fr) minmax(65px, 0.9fr) minmax(65px, 0.9fr) minmax(95px, 1.1fr);
+  padding: 10px 12px;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .descoTableHeader {
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   font-weight: 700;
+  font-size: 0.85rem;
   color: #dce7ff;
 }
 
 .descoTableRow {
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-  font-size: 0.95rem;
+  font-size: 0.88rem;
 }
 
 .descoTableRow:last-child {
@@ -1893,32 +1894,45 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 .tokenBox {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
-  padding: 4px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  padding: 2px 6px;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.85rem;
-  width: fit-content;
+  font-size: 0.78rem;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.tokenText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.76rem;
+  letter-spacing: -0.01em;
+  color: #cbd5e1;
 }
 
 .copyBtn {
-  background: transparent;
-  border: none;
-  color: var(--accent2);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  color: #79c7ff;
   cursor: pointer;
-  padding: 2px 4px;
-  font-size: 0.8rem;
+  padding: 2px 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
   border-radius: 4px;
   transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 
 .copyBtn:hover {
-  background: rgba(34, 211, 238, 0.1);
+  background: rgba(34, 211, 238, 0.15);
   color: white;
+  border-color: #22d3ee;
 }
 
 .corsWarningCard {
@@ -2326,21 +2340,22 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 .descoTableHeader, .descoTableRow {
   display: grid;
-  grid-template-columns: 1.2fr 1fr 1fr 1fr 2fr;
-  padding: 12px 14px;
+  grid-template-columns: minmax(80px, 1.1fr) minmax(65px, 0.9fr) minmax(65px, 0.9fr) minmax(55px, 0.7fr) minmax(95px, 1.1fr);
+  padding: 10px 12px;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .descoTableHeader {
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   font-weight: 700;
+  font-size: 0.85rem;
   color: #dce7ff;
 }
 
 .descoTableRow {
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-  font-size: 0.95rem;
+  font-size: 0.88rem;
 }
 
 .descoTableRow:last-child {
@@ -2354,13 +2369,17 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 .calcInputGroup {
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: 1fr 110px;
   gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .calcInput {
-  flex: 1;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   height: 42px;
   border-radius: 10px;
   border: 1px solid var(--border);
@@ -2371,6 +2390,12 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   font-weight: 800;
   font-family: 'JetBrains Mono', monospace;
   outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.calcInput:focus {
+  border-color: var(--accent2);
+  box-shadow: 0 0 10px rgba(99, 255, 104, 0.2);
 }
 
 .calcBreakdown {
@@ -4341,7 +4366,7 @@ function renderStatsPage() {
           afterDatasetsDraw(chart) {
             const { ctx } = chart;
             ctx.save();
-            ctx.font = 'bold 12px "JetBrains Mono", monospace'; // Increased from 10px to 12px
+            ctx.font = 'bold 13px "JetBrains Mono", monospace';
             ctx.fillStyle = '#22d3ee';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'bottom';
@@ -4355,8 +4380,8 @@ function renderStatsPage() {
               meta.data.forEach((element, index) => {
                 const val = dataset.data[index];
                 if (val > 0) {
-                  const formatted = '৳' + Math.round(val).toLocaleString();
-                  ctx.fillText(formatted, element.x, element.y - 10); // Offset shifted to -10 for larger text
+                  const formatted = Math.round(val).toLocaleString();
+                  ctx.fillText(formatted, element.x, element.y - 10);
                 }
               });
             });
@@ -4498,7 +4523,7 @@ function renderStatsPage() {
           afterDatasetsDraw(chart) {
             const { ctx } = chart;
             ctx.save();
-            ctx.font = 'bold 10px "JetBrains Mono", monospace';
+            ctx.font = 'bold 12px "JetBrains Mono", monospace';
             ctx.fillStyle = '#63ff68';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'bottom';
@@ -4513,7 +4538,7 @@ function renderStatsPage() {
               if (val !== null && val > 0) {
                 const latestIdx = dataset.data.filter(v => v !== null).length - 1;
                 if (index === 0 || index === Math.floor(latestIdx / 2) || index === latestIdx) {
-                  const formatted = '৳' + Math.round(val).toLocaleString();
+                  const formatted = Math.round(val).toLocaleString();
                   ctx.fillText(formatted, element.x, element.y - 8);
                 }
               }
@@ -4701,7 +4726,7 @@ function renderStatsPage() {
           afterDatasetsDraw(chart) {
             const { ctx } = chart;
             ctx.save();
-            ctx.font = 'bold 9px "JetBrains Mono", monospace';
+            ctx.font = 'bold 11px "JetBrains Mono", monospace';
             ctx.fillStyle = '#ffffff';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
@@ -4718,7 +4743,7 @@ function renderStatsPage() {
                 if (val > 0) {
                   const height = Math.abs(element.y - element.base);
                   if (height > 14) {
-                    const formatted = '৳' + Math.round(val).toLocaleString();
+                    const formatted = Math.round(val).toLocaleString();
                     const textY = (element.y + element.base) / 2;
                     ctx.fillText(formatted, element.x, textY);
                   }
@@ -5032,7 +5057,7 @@ function renderStatsPage() {
           afterDatasetsDraw(chart) {
             const { ctx } = chart;
             ctx.save();
-            ctx.font = 'bold 11px "JetBrains Mono", monospace';
+            ctx.font = 'bold 13px "JetBrains Mono", monospace';
             ctx.fillStyle = '#f4f7ff';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'bottom';
@@ -5045,7 +5070,7 @@ function renderStatsPage() {
               meta.data.forEach((element, index) => {
                 const val = dataset.data[index];
                 if (val > 0) {
-                  const formatted = '৳' + Math.round(val).toLocaleString();
+                  const formatted = Math.round(val).toLocaleString();
                   ctx.fillText(formatted, element.x, element.y - 8);
                 }
               });
@@ -5139,7 +5164,7 @@ function renderStatsPage() {
           afterDatasetsDraw(chart) {
             const { ctx } = chart;
             ctx.save();
-            ctx.font = 'bold 11px "JetBrains Mono", monospace';
+            ctx.font = 'bold 12px "JetBrains Mono", monospace';
             ctx.fillStyle = '#f4f7ff';
             ctx.textAlign = 'left';
             ctx.textBaseline = 'middle';
@@ -5152,7 +5177,7 @@ function renderStatsPage() {
               meta.data.forEach((element, index) => {
                 const val = dataset.data[index];
                 if (val > 0) {
-                  const formatted = '৳' + Math.round(val).toLocaleString();
+                  const formatted = Math.round(val).toLocaleString();
                   ctx.fillText(formatted, element.x + 8, element.y);
                 }
               });
@@ -6038,23 +6063,24 @@ async function loadLiveDESCOData(billId, accountNo) {
             <div>Date</div>
             <div>Paid</div>
             <div>Energy</div>
-            <div>Recharge Token</div>
+            <div style="text-align: right;">Token</div>
           </div>
           ${recharge.slice(0, 5).map(r => {
             const rDate = r.rechargeDate ? r.rechargeDate.split(' ')[0] : '-';
             const rToken = r.tokenNo ? r.tokenNo.trim() : '';
+            const shortToken = rToken.length > 9 ? `${rToken.slice(0, 4)}…${rToken.slice(-4)}` : rToken;
             const tokenHtml = rToken ? `
-              <div class="tokenBox">
-                <span class="tokenText" style="user-select: all;">${rToken}</span>
-                <button class="copyBtn" onclick="navigator.clipboard.writeText('${rToken}'); alert('Token copied to clipboard!');" title="Copy Token">📋</button>
+              <div class="tokenBox" title="${rToken}">
+                <span class="tokenText" style="user-select: all;">${shortToken}</span>
+                <button class="copyBtn" onclick="navigator.clipboard.writeText('${rToken}'); alert('Token copied: ${rToken}');" title="Copy Full Token">Copy</button>
               </div>
             ` : '-';
             return `
               <div class="descoTableRow">
-                <div>${rDate}</div>
-                <div style="font-weight:700;">৳ ${Math.round(r.totalAmount || 0)}</div>
-                <div style="color:var(--muted);">৳ ${Math.round(r.energyAmount || 0)}</div>
-                <div>${tokenHtml}</div>
+                <div style="white-space: nowrap;">${rDate}</div>
+                <div style="font-weight: 700; color: #63ff68; white-space: nowrap;">৳ ${Math.round(r.totalAmount || 0).toLocaleString()}</div>
+                <div style="color: var(--muted); white-space: nowrap;">৳ ${Math.round(r.energyAmount || 0).toLocaleString()}</div>
+                <div style="display: flex; justify-content: flex-end;">${tokenHtml}</div>
               </div>
             `;
           }).join('')}
@@ -6125,9 +6151,32 @@ async function loadLiveDESCOData(billId, accountNo) {
               borderSkipped: false
             }]
           },
+          plugins: [{
+            id: 'livePreviewLabels',
+            afterDatasetsDraw(chart) {
+              const { ctx } = chart;
+              ctx.save();
+              ctx.font = 'bold 11px "JetBrains Mono", monospace';
+              ctx.fillStyle = '#22d3ee';
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'bottom';
+              ctx.shadowColor = 'rgba(3, 8, 22, 0.9)';
+              ctx.shadowBlur = 4;
+              
+              const meta = chart.getDatasetMeta(0);
+              meta.data.forEach((element, index) => {
+                const val = units[index];
+                if (val > 0) {
+                  ctx.fillText(Math.round(val).toString(), element.x, element.y - 4);
+                }
+              });
+              ctx.restore();
+            }
+          }],
           options: {
             responsive: true,
             maintainAspectRatio: false,
+            layout: { padding: { top: 14 } },
             plugins: {
               legend: { display: false },
               tooltip: {
@@ -6149,6 +6198,7 @@ async function loadLiveDESCOData(billId, accountNo) {
                 ticks: { color: '#91a5c6', font: { size: 10 } }
               },
               y: {
+                grace: '18%',
                 grid: { color: 'rgba(29, 57, 105, 0.15)', drawBorder: false },
                 ticks: { color: '#91a5c6', font: { size: 10 } }
               }
@@ -6279,7 +6329,7 @@ async function openDescoStatsPage(billId, fromRouting = false) {
   const bill = billPages.find(b => b.id === billId);
   if (!bill) return;
   const cleanAccountNo = bill.account.replace(/-/g, '');
-  const locationName = bill.id === 'rupnagarDesco' ? 'Just Mirpur' : 'Uttara';
+  const locationName = bill.id === 'rupnagarDesco' ? 'Mirpur' : 'Uttara';
   
   const baseUrls = [
     'https://prepaid.desco.org.bd/api/unified/customer',
@@ -6455,24 +6505,25 @@ function renderDescoStatsDashboard(billId, bill, locationName, apiData) {
             <div>Paid</div>
             <div>Energy</div>
             <div>VAT</div>
-            <div>Token Number</div>
+            <div style="text-align: right;">Token</div>
           </div>
           ${last10Recharges.map(r => {
             const rDate = r.rechargeDate ? r.rechargeDate.split(' ')[0] : '-';
             const rToken = r.tokenNo ? r.tokenNo.trim() : '';
+            const shortToken = rToken.length > 9 ? `${rToken.slice(0, 4)}…${rToken.slice(-4)}` : rToken;
             const tokenHtml = rToken ? `
-              <div class="tokenBox">
-                <span class="tokenText" style="user-select:all; font-size:0.8rem;">${rToken}</span>
-                <button class="copyBtn" onclick="navigator.clipboard.writeText('${rToken}'); alert('Token copied!');" title="Copy Token" style="font-size: 0.72rem; padding: 4px 8px; border-radius: 6px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: #79c7ff; cursor: pointer; transition: all 0.2s;">Copy</button>
+              <div class="tokenBox" title="${rToken}">
+                <span class="tokenText" style="user-select:all;">${shortToken}</span>
+                <button class="copyBtn" onclick="navigator.clipboard.writeText('${rToken}'); alert('Token copied: ${rToken}');" title="Copy Full Token">Copy</button>
               </div>
             ` : '-';
             return `
               <div class="descoTableRow">
-                <div>${rDate}</div>
-                <div style="font-weight:800; color:#63ff68;">৳ ${Math.round(r.totalAmount || 0)}</div>
-                <div style="color:var(--text);">৳ ${Math.round(r.energyAmount || 0)}</div>
-                <div style="color:var(--muted);">৳ ${Math.round(r.VAT || 0)}</div>
-                <div>${tokenHtml}</div>
+                <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${rDate}</div>
+                <div style="font-weight: 800; color: #63ff68; white-space: nowrap;">৳ ${Math.round(r.totalAmount || 0).toLocaleString()}</div>
+                <div style="color: var(--text); white-space: nowrap;">৳ ${Math.round(r.energyAmount || 0).toLocaleString()}</div>
+                <div style="color: var(--muted); white-space: nowrap;">৳ ${Math.round(r.VAT || 0).toLocaleString()}</div>
+                <div style="display: flex; justify-content: flex-end;">${tokenHtml}</div>
               </div>
             `;
           }).join('')}
@@ -6632,11 +6683,11 @@ function renderDescoStatsDashboard(billId, bill, locationName, apiData) {
           </details>
           
           <div class="calcInputGroup" style="margin-top:10px;">
-            <div style="flex:1;">
+            <div style="min-width:0;">
               <div class="descoLabel">Enter Monthly Units (kWh)</div>
               <input type="number" id="calcUnitsInput" value="${Math.round(latestMonthInfo.consumedUnit || 150)}" class="calcInput" oninput="updateLiveCalculator()">
             </div>
-            <div style="width:100px;">
+            <div style="min-width:0;">
               <div class="descoLabel">Load (kW)</div>
               <input type="number" id="calcLoadInput" value="${sanctionLoad}" class="calcInput" oninput="updateLiveCalculator()">
             </div>
@@ -6679,6 +6730,62 @@ function renderDescoStatsDashboard(billId, bill, locationName, apiData) {
     }
   });
   
+  const descoAlwaysShowValuesPlugin = {
+    id: 'descoAlwaysShowValues',
+    afterDatasetsDraw(chart) {
+      const { ctx } = chart;
+      chart.data.datasets.forEach((dataset, datasetIndex) => {
+        const meta = chart.getDatasetMeta(datasetIndex);
+        if (meta.hidden) return;
+        
+        const isLine = dataset.type === 'line' || (chart.config.type === 'line' && dataset.type !== 'bar');
+        
+        meta.data.forEach((element, index) => {
+          const val = dataset.data[index];
+          if (val === undefined || val === null || val === 0) return;
+          
+          ctx.save();
+          ctx.font = 'bold 11px "JetBrains Mono", monospace, sans-serif';
+          
+          let labelText = '';
+          const dsLabel = dataset.label || '';
+          if ((dsLabel.includes('kW') && !dsLabel.includes('kWh')) || (chart.canvas && chart.canvas.id.includes('maxDemand'))) {
+            labelText = `${Number(val).toFixed(2)}`;
+          } else if (typeof val === 'number' && !Number.isInteger(val)) {
+            labelText = val.toFixed(1);
+          } else {
+            labelText = `${Math.round(val).toLocaleString()}`;
+          }
+          
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'bottom';
+          
+          if (dataset.borderColor && isLine) {
+            ctx.fillStyle = dataset.borderColor;
+          } else if (dataset.backgroundColor === '#1d3969') {
+            ctx.fillStyle = '#8ab4f8';
+          } else if (dataset.backgroundColor && typeof dataset.backgroundColor === 'string' && !dataset.backgroundColor.startsWith('rgba')) {
+            ctx.fillStyle = dataset.backgroundColor;
+          } else if (dataset.borderColor) {
+            ctx.fillStyle = dataset.borderColor;
+          } else {
+            ctx.fillStyle = '#f4f7ff';
+          }
+          
+          const x = element.x;
+          let y = element.y - 4;
+          
+          if (y < chart.chartArea.top + 9) {
+            y = chart.chartArea.top + 10;
+          }
+          
+          ctx.fillText(labelText, x, y);
+          ctx.restore();
+        });
+      });
+    }
+  };
+
   const dailyCtx = document.getElementById(`descoChart_daily_${billId}`);
   if (dailyCtx) {
     const dailyUnits = dailyUsageData.map(d => d.units);
@@ -6695,18 +6802,21 @@ function renderDescoStatsDashboard(billId, bill, locationName, apiData) {
           data: dailyUsageData.map(d => d.units),
           backgroundColor: '#22d3ee',
           borderRadius: 4,
-          barPercentage: 0.35,
-          categoryPercentage: 0.6
+          barPercentage: 0.45,
+          categoryPercentage: 0.7
         }]
       },
+      plugins: [descoAlwaysShowValuesPlugin],
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        layout: { padding: { top: 14 } },
         plugins: { legend: { display: false } },
         scales: {
           x: { grid: { display: false }, ticks: { color: '#91a5c6', font: { size: 9 } } },
           y: { 
             min: dailyMinScale,
+            grace: '18%',
             grid: { color: 'rgba(29, 57, 105, 0.1)' }, 
             ticks: { color: '#91a5c6', font: { size: 9 } } 
           }
@@ -6730,13 +6840,19 @@ function renderDescoStatsDashboard(billId, bill, locationName, apiData) {
           fill: false
         }]
       },
+      plugins: [descoAlwaysShowValuesPlugin],
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        layout: { padding: { top: 14 } },
         plugins: { legend: { display: false } },
         scales: {
           x: { grid: { display: false }, ticks: { color: '#91a5c6', font: { size: 9 } } },
-          y: { grid: { color: 'rgba(29, 57, 105, 0.1)' }, ticks: { color: '#91a5c6', font: { size: 9 } } }
+          y: { 
+            grace: '18%',
+            grid: { color: 'rgba(29, 57, 105, 0.1)' }, 
+            ticks: { color: '#91a5c6', font: { size: 9 } } 
+          }
         }
       }
     });
@@ -6763,13 +6879,19 @@ function renderDescoStatsDashboard(billId, bill, locationName, apiData) {
           }
         ]
       },
+      plugins: [descoAlwaysShowValuesPlugin],
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        layout: { padding: { top: 14 } },
         plugins: { legend: { display: true, labels: { color: '#91a5c6', font: { size: 9 } } } },
         scales: {
           x: { grid: { display: false }, ticks: { color: '#91a5c6', font: { size: 9 } } },
-          y: { grid: { color: 'rgba(29, 57, 105, 0.1)' }, ticks: { color: '#91a5c6', font: { size: 9 } } }
+          y: { 
+            grace: '18%',
+            grid: { color: 'rgba(29, 57, 105, 0.1)' }, 
+            ticks: { color: '#91a5c6', font: { size: 9 } } 
+          }
         }
       }
     });
@@ -6796,13 +6918,19 @@ function renderDescoStatsDashboard(billId, bill, locationName, apiData) {
           }
         ]
       },
+      plugins: [descoAlwaysShowValuesPlugin],
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        layout: { padding: { top: 14 } },
         plugins: { legend: { display: true, labels: { color: '#91a5c6', font: { size: 9 } } } },
         scales: {
           x: { grid: { display: false }, ticks: { color: '#91a5c6', font: { size: 9 } } },
-          y: { grid: { color: 'rgba(29, 57, 105, 0.1)' }, ticks: { color: '#91a5c6', font: { size: 9 } } }
+          y: { 
+            grace: '18%',
+            grid: { color: 'rgba(29, 57, 105, 0.1)' }, 
+            ticks: { color: '#91a5c6', font: { size: 9 } } 
+          }
         }
       }
     });
@@ -6838,19 +6966,23 @@ function renderDescoStatsDashboard(billId, bill, locationName, apiData) {
           }
         ]
       },
+      plugins: [descoAlwaysShowValuesPlugin],
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        layout: { padding: { top: 14 } },
         plugins: { legend: { display: true, labels: { color: '#91a5c6', font: { size: 9 } } } },
         scales: {
           x: { grid: { display: false }, ticks: { color: '#91a5c6', font: { size: 9 } } },
           y: {
             position: 'left',
+            grace: '18%',
             grid: { color: 'rgba(29, 57, 105, 0.1)' },
             ticks: { color: '#22d3ee', font: { size: 9 } }
           },
           y1: {
             position: 'right',
+            grace: '18%',
             grid: { drawOnChartArea: false },
             ticks: { color: '#63ff68', font: { size: 9 } }
           }
