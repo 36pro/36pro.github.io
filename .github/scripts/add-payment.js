@@ -67,6 +67,7 @@ function main() {
     billMonth: billMonth.trim() || '',
     amount: String(parsedAmount),
     payDate: payDate,
+    note: 'Added from iOS Shortcut',
     savedAt: new Date().toISOString()
   };
 
