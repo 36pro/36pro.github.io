@@ -58,6 +58,22 @@ function main() {
 
   const bill = BILL_MAP[billId];
 
+  // Read existing data.json (needed before month resolution for auto-detection)
+  const dataPath = path.join(__dirname, '../../data.json');
+  let payments = [];
+  try {
+    const raw = fs.readFileSync(dataPath, 'utf8');
+    payments = JSON.parse(raw);
+    if (!Array.isArray(payments)) {
+      console.error('data.json is not an array. Resetting.');
+      payments = [];
+    }
+  } catch (err) {
+    console.error('Error reading data.json:', err.message);
+    console.log('Creating new data.json...');
+    payments = [];
+  }
+
   // Resolve billMonth keywords → full "Month Year" string
   // Accepts: "auto", "last", "this", "none", "" or a full string like "August 2026"
   const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -65,18 +81,19 @@ function main() {
   const keyword = billMonth.trim().toLowerCase();
 
   if (keyword === 'none' || keyword === '') {
-    // For bills that need a month and keyword is 'auto' handled below, otherwise empty
     billMonth = '';
   }
 
   if (keyword === 'auto') {
-    if (bill.needsMonth) {
+    if (billId === 'inspireBroadband') {
+      // Inspire Broadband: find the latest paid month and assign the next one
+      billMonth = getNextUnpaidMonth(payments, 'inspireBroadband', monthNames, bdNow);
+    } else if (bill.needsMonth) {
       if (bill.type === 'postpaid') {
         // Postpaid: bill month is typically the previous month
         const prev = new Date(bdNow.getFullYear(), bdNow.getMonth() - 1, 1);
         billMonth = `${monthNames[prev.getMonth()]} ${prev.getFullYear()}`;
       } else {
-        // Prepaid with month (e.g. Inspire Broadband): current month
         billMonth = `${monthNames[bdNow.getMonth()]} ${bdNow.getFullYear()}`;
       }
     } else {
@@ -103,22 +120,6 @@ function main() {
     savedAt: new Date().toISOString()
   };
 
-  // Read existing data.json
-  const dataPath = path.join(__dirname, '../../data.json');
-  let payments = [];
-  try {
-    const raw = fs.readFileSync(dataPath, 'utf8');
-    payments = JSON.parse(raw);
-    if (!Array.isArray(payments)) {
-      console.error('data.json is not an array. Resetting.');
-      payments = [];
-    }
-  } catch (err) {
-    console.error('Error reading data.json:', err.message);
-    console.log('Creating new data.json...');
-    payments = [];
-  }
-
   // Prepend new entry (newest first, matching existing order)
   payments.unshift(entry);
 
@@ -132,6 +133,44 @@ function main() {
   console.log(`  Month:   ${billMonth || '(none)'}`);
   console.log(`  UID:     ${entry.uid}`);
   console.log(`  Total entries: ${payments.length}`);
+}
+
+/**
+ * Finds the next unpaid month for Inspire Broadband.
+ * Looks at all existing payments, finds the latest billMonth, and returns the next one.
+ * If no payments exist, returns the current month.
+ */
+function getNextUnpaidMonth(payments, billId, monthNames, bdNow) {
+  const billPayments = payments.filter(p => p.billId === billId && p.billMonth);
+
+  if (billPayments.length === 0) {
+    // No history — default to current month
+    return `${monthNames[bdNow.getMonth()]} ${bdNow.getFullYear()}`;
+  }
+
+  // Parse each billMonth into a Date for comparison
+  let latestDate = null;
+  billPayments.forEach(p => {
+    const parts = p.billMonth.trim().split(' ');
+    if (parts.length === 2) {
+      const mIdx = monthNames.findIndex(m => m.toLowerCase() === parts[0].toLowerCase());
+      const year = parseInt(parts[1]);
+      if (mIdx !== -1 && !isNaN(year)) {
+        const d = new Date(year, mIdx, 1);
+        if (!latestDate || d > latestDate) {
+          latestDate = d;
+        }
+      }
+    }
+  });
+
+  if (!latestDate) {
+    return `${monthNames[bdNow.getMonth()]} ${bdNow.getFullYear()}`;
+  }
+
+  // Next month after the latest paid month
+  const next = new Date(latestDate.getFullYear(), latestDate.getMonth() + 1, 1);
+  return `${monthNames[next.getMonth()]} ${next.getFullYear()}`;
 }
 
 main();
