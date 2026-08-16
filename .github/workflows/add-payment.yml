@@ -1,0 +1,58 @@
+name: Add Payment Entry
+
+on:
+  workflow_dispatch:
+    inputs:
+      billId:
+        description: 'Bill ID'
+        required: true
+        type: choice
+        options:
+          - rupnagarDesco
+          - uttaraDesco
+          - rupnagarGas
+          - uttaraWater
+          - noakhaliPalli
+          - matuailGas
+          - inspireBroadband
+      amount:
+        description: 'Amount paid (numbers only)'
+        required: true
+        type: string
+      payDate:
+        description: 'Payment date (YYYY-MM-DD). Leave empty for today.'
+        required: false
+        type: string
+      billMonth:
+        description: 'Bill month (e.g. "August 2026"). Leave empty for prepaid balance bills.'
+        required: false
+        type: string
+
+jobs:
+  add-payment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Add Payment to data.json
+        run: node .github/scripts/add-payment.js
+        env:
+          INPUT_BILL_ID: ${{ inputs.billId }}
+          INPUT_AMOUNT: ${{ inputs.amount }}
+          INPUT_PAY_DATE: ${{ inputs.payDate }}
+          INPUT_BILL_MONTH: ${{ inputs.billMonth }}
+
+      - name: Commit and Push
+        run: |
+          git config user.name "Billzy Bot"
+          git config user.email "billzy-bot@users.noreply.github.com"
+          git add data.json
+          git diff --cached --quiet && echo "No changes to commit" && exit 0
+          git commit -m "Add payment: ${{ inputs.billId }} - ${{ inputs.amount }}"
+          git push
