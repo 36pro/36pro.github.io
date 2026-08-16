@@ -1,5 +1,15 @@
 [
   {
+    "uid": "mrj0vv2dsdgp",
+    "billId": "rupnagarDesco",
+    "billName": "Rupnagar DESCO",
+    "billType": "prepaid",
+    "billMonth": "",
+    "amount": "1010",
+    "payDate": "2026-08-16",
+    "savedAt": "2026-08-16T06:00:56.242Z"
+  },
+  {
     "uid": "mrl7oa79ibqa",
     "billId": "uttaraDesco",
     "billName": "Uttara DESCO",
