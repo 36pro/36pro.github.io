@@ -101,7 +101,7 @@ function buildAlertEmail(alerts) {
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
             <tr>
               <td style="font-family: ${FONT}; font-size: 17px; color: #2f2440; font-weight: 400;">
-                ⚡ ${a.name}
+                ${a.name}
               </td>
               <td align="right" style="font-family: ${SANS}; font-size: 22px; font-weight: 700; color: ${balanceColor};">
                 ৳${Math.round(a.balance).toLocaleString()}
@@ -147,7 +147,7 @@ function buildAlertEmail(alerts) {
           <!-- Top mark -->
           <tr>
             <td align="center" style="padding-bottom:22px;">
-              <span style="display:inline-block; width:40px; height:40px; line-height:40px; border-radius:50%; background-color:#c1613f; color:#f3ede3; font-family:${SANS}; font-size:17px; font-weight:700; text-align:center;">⚡</span>
+              <span style="display:inline-block; width:40px; height:40px; line-height:40px; border-radius:50%; background-color:#c1613f; color:#f3ede3; font-family:${SANS}; font-size:17px; font-weight:700; text-align:center;">B</span>
             </td>
           </tr>
 
@@ -258,7 +258,7 @@ async function main() {
       body: JSON.stringify({
         from: 'Billzy Alerts <onboarding@resend.dev>',
         to: toEmail,
-        subject: `⚡ Low Balance: ${accountNames}`,
+        subject: `Low Balance Alert: ${accountNames}`,
         html: htmlContent
       })
     });
