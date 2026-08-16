@@ -6,6 +6,8 @@
  * Only sends an email if at least one account is below its threshold.
  */
 
+const https = require('https');
+
 const ACCOUNTS = [
   {
     id: 'rupnagarDesco',
@@ -26,18 +28,60 @@ const API_BASE_URLS = [
   'https://prepaid.desco.org.bd/api/tkdes/customer'
 ];
 
+/**
+ * Makes an HTTPS GET request with browser-like headers.
+ * Uses the https module directly for better compatibility with
+ * servers that may reject Node's native fetch.
+ */
+function httpsGet(url) {
+  return new Promise((resolve, reject) => {
+    const parsedUrl = new URL(url);
+    const options = {
+      hostname: parsedUrl.hostname,
+      path: parsedUrl.pathname + parsedUrl.search,
+      method: 'GET',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Referer': 'https://prepaid.desco.org.bd/',
+        'Origin': 'https://prepaid.desco.org.bd'
+      },
+      timeout: 15000,
+      // Accept self-signed or problematic certs from DESCO's server
+      rejectUnauthorized: false
+    };
+
+    const req = https.request(options, (res) => {
+      let data = '';
+      res.on('data', chunk => { data += chunk; });
+      res.on('end', () => {
+        try {
+          resolve({ ok: res.statusCode >= 200 && res.statusCode < 300, status: res.statusCode, json: JSON.parse(data) });
+        } catch (e) {
+          reject(new Error(`Invalid JSON response (status ${res.statusCode}): ${data.substring(0, 200)}`));
+        }
+      });
+    });
+
+    req.on('error', (err) => reject(err));
+    req.on('timeout', () => { req.destroy(); reject(new Error('Request timed out')); });
+    req.end();
+  });
+}
+
 async function fetchBalance(accountNo) {
   for (const baseUrl of API_BASE_URLS) {
+    const url = `${baseUrl}/getBalance?accountNo=${accountNo}`;
     try {
-      const res = await fetch(`${baseUrl}/getBalance?accountNo=${accountNo}`);
-      if (res.ok) {
-        const json = await res.json();
-        if (json.code === 200 && json.data) {
-          return json.data;
-        }
+      console.log(`    Trying: ${url}`);
+      const res = await httpsGet(url);
+      console.log(`    Response status: ${res.status}`);
+      if (res.ok && res.json.code === 200 && res.json.data) {
+        return res.json.data;
       }
     } catch (err) {
-      console.warn(`Failed to fetch from ${baseUrl}:`, err.message);
+      console.warn(`    Failed: ${err.message}`);
     }
   }
   return null;
