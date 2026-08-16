@@ -58,6 +58,38 @@ function main() {
 
   const bill = BILL_MAP[billId];
 
+  // Resolve billMonth keywords → full "Month Year" string
+  // Accepts: "auto", "last", "this", "none", "" or a full string like "August 2026"
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const bdNow = new Date(new Date().getTime() + 6 * 60 * 60 * 1000);
+  const keyword = billMonth.trim().toLowerCase();
+
+  if (keyword === 'none' || keyword === '') {
+    // For bills that need a month and keyword is 'auto' handled below, otherwise empty
+    billMonth = '';
+  }
+
+  if (keyword === 'auto') {
+    if (bill.needsMonth) {
+      if (bill.type === 'postpaid') {
+        // Postpaid: bill month is typically the previous month
+        const prev = new Date(bdNow.getFullYear(), bdNow.getMonth() - 1, 1);
+        billMonth = `${monthNames[prev.getMonth()]} ${prev.getFullYear()}`;
+      } else {
+        // Prepaid with month (e.g. Inspire Broadband): current month
+        billMonth = `${monthNames[bdNow.getMonth()]} ${bdNow.getFullYear()}`;
+      }
+    } else {
+      billMonth = '';
+    }
+  } else if (keyword === 'last') {
+    const prev = new Date(bdNow.getFullYear(), bdNow.getMonth() - 1, 1);
+    billMonth = `${monthNames[prev.getMonth()]} ${prev.getFullYear()}`;
+  } else if (keyword === 'this') {
+    billMonth = `${monthNames[bdNow.getMonth()]} ${bdNow.getFullYear()}`;
+  }
+  // Otherwise keep whatever the user typed (e.g. "August 2026")
+
   // Build the new payment entry
   const entry = {
     uid: generateUID(),

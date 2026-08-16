@@ -24,7 +24,7 @@ on:
         required: false
         type: string
       billMonth:
-        description: 'Bill month (e.g. "August 2026"). Leave empty for prepaid balance bills.'
+        description: 'Use: "auto", "last", "this", "none", or full like "August 2026"'
         required: false
         type: string
 
