@@ -239,87 +239,90 @@ body{
   margin-top:16px !important;
 }
 
-/* HERO */
 
+/* HERO CARDS OVERHAUL */
 .heroGrid{
   margin-top:20px;
-
   display:grid;
-  grid-template-columns:
-  repeat(3,minmax(0,1fr));
-
-  gap:28px;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:24px;
 }
 
 .heroCard{
   height:145px;
-
-  border-radius:28px;
-
-  background:linear-gradient(
-  135deg,
-  rgba(16,34,68,.95),
-  rgba(5,14,32,.95)
-  );
-
+  border-radius:24px;
+  background:linear-gradient(135deg, rgba(16,36,72,0.85), rgba(7,18,38,0.95));
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
   border:1px solid var(--border);
-
   display:flex;
   align-items:center;
   justify-content:flex-start;
-  padding-left:20px;
-  gap:16px;
-
+  padding-left:22px;
+  gap:18px;
   cursor:pointer;
+  transition:all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow:0 10px 30px rgba(0,0,0,0.5);
+  position:relative;
+  overflow:hidden;
+}
 
-  transition:.25s ease;
+.heroCard::before{
+  content:'';
+  position:absolute;
+  top:0;
+  left:0;
+  right:0;
+  height:2px;
+  background:transparent;
+  transition:background 0.3s ease;
+}
 
-  box-shadow:var(--shadow);
+.heroCard:nth-child(1):hover::before{
+  background:linear-gradient(90deg, transparent, #00E676, transparent);
+}
+.heroCard:nth-child(2):hover::before{
+  background:linear-gradient(90deg, transparent, #00C2FF, transparent);
+}
+.heroCard:nth-child(3):hover::before{
+  background:linear-gradient(90deg, transparent, #FF7A00, transparent);
 }
 
 .heroCard:hover{
-  transform:translateY(-4px);
-  border-color:#2d62c0;
-}
-
-.heroCard:nth-child(2){
-  gap:36px;
+  transform:translateY(-5px);
+  box-shadow:0 18px 40px -10px rgba(0,0,0,0.7), 0 0 25px rgba(0,194,255,0.18);
+  border-color:rgba(0,194,255,0.5);
 }
 
 .heroIcon{
-  width:110px;
-  height:110px;
-
-  border-radius:26px;
-
+  width:95px;
+  height:95px;
+  border-radius:20px;
   background:transparent;
-
   border:none;
-
   display:flex;
   align-items:center;
   justify-content:center;
-
   font-size:3rem;
+  transition:transform 0.3s ease;
+}
+
+.heroCard:hover .heroIcon{
+  transform:scale(1.06);
 }
 
 .heroTitle{
-  font-size:3.4rem;
+  font-size:3rem;
   font-weight:800;
+  letter-spacing:-0.5px;
 }
 
-/* BILL GRID */
-
+/* BILL GRID OVERHAUL */
 .billGrid{
   margin-top:24px;
-
   display:grid;
-
-  grid-template-columns:
-  repeat(24,minmax(0,1fr));
-
-  gap:24px;
-
+  grid-template-columns:repeat(24,minmax(0,1fr));
+  gap:22px;
   width:100%;
 }
 
@@ -337,81 +340,267 @@ body{
 
 .billCard{
   grid-column: span 6;
-  min-height:245px;
+  min-height:250px;
   height:auto;
-
-  border-radius:28px;
-
-  background:linear-gradient(
-  180deg,
-  rgba(13,28,54,.96),
-  rgba(5,14,32,.96)
-  );
-
+  border-radius:24px;
+  background:linear-gradient(180deg, rgba(14,30,60,0.9), rgba(6,16,36,0.96));
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
   border:1px solid var(--border);
-
-  box-shadow:var(--shadow);
-
+  box-shadow:0 10px 25px rgba(0,0,0,0.4);
   display:flex;
   flex-direction:column;
   align-items:center;
-
-  padding:22px 18px;
-
+  padding:24px 18px 20px;
   cursor:pointer;
+  transition:all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  position:relative;
+  overflow:hidden;
+}
 
-  transition:.25s;
+.billCard::before{
+  content:'';
+  position:absolute;
+  top:0;
+  left:15%;
+  right:15%;
+  height:2px;
+  border-radius:999px;
+  background:transparent;
+  transition:all 0.3s ease;
+}
+
+/* Electric Utility Theme (DESCO, Palli) */
+.billCard[data-utility="electric"]:hover{
+  border-color:rgba(0, 230, 118, 0.6);
+  transform:translateY(-6px);
+  box-shadow:0 20px 40px -15px rgba(0,0,0,0.8), 0 0 25px rgba(0, 230, 118, 0.22);
+}
+.billCard[data-utility="electric"]::before,
+.billCard[data-utility="electric"]:hover::before{
+  background:linear-gradient(90deg, transparent, #00E676, transparent);
+}
+
+/* Water Utility Theme (WASA) */
+.billCard[data-utility="water"]:hover{
+  border-color:rgba(0, 194, 255, 0.6);
+  transform:translateY(-6px);
+  box-shadow:0 20px 40px -15px rgba(0,0,0,0.8), 0 0 25px rgba(0, 194, 255, 0.22);
+}
+.billCard[data-utility="water"]::before,
+.billCard[data-utility="water"]:hover::before{
+  background:linear-gradient(90deg, transparent, #00C2FF, transparent);
+}
+
+/* Gas & Broadband Utility Theme (Titas, Inspire) */
+.billCard[data-utility="gas"]:hover{
+  border-color:rgba(255, 122, 0, 0.6);
+  transform:translateY(-6px);
+  box-shadow:0 20px 40px -15px rgba(0,0,0,0.8), 0 0 25px rgba(255, 122, 0, 0.22);
+}
+.billCard[data-utility="gas"]::before,
+.billCard[data-utility="gas"]:hover::before{
+  background:linear-gradient(90deg, transparent, #FF7A00, transparent);
 }
 
 .billCard:hover{
-  transform:translateY(-4px);
-  border-color:#2e63c0;
+  transform:translateY(-6px);
+  border-color:rgba(0, 194, 255, 0.6);
+  box-shadow:0 20px 40px -15px rgba(0,0,0,0.8), 0 0 25px rgba(0, 194, 255, 0.2);
 }
 
 .billIcon{
-  width:92px;
-  height:92px;
-
+  width:84px;
+  height:84px;
   border-radius:50%;
-
   background:transparent;
-
   border:none;
-
   display:flex;
   align-items:center;
   justify-content:center;
-
-  font-size:3rem;
-
-  margin-bottom:20px;
+  font-size:2.8rem;
+  margin-bottom:16px;
+  transition:transform 0.3s ease;
+}
+.billCard:hover .billIcon{
+  transform:scale(1.08);
 }
 
 .billName{
   text-align:center;
-
-  font-size:2rem;
-  line-height:1.05;
-
+  font-size:1.85rem;
+  line-height:1.1;
   font-weight:800;
+  letter-spacing:-0.3px;
 }
 
 .billStatus{
   margin-top:auto;
-
-  color:#a5b5c9;
-
+  color:#94a3b8;
   text-align:center;
-
-  font-size:1.35rem;
+  font-size:1.25rem;
   font-weight:700;
+  padding-top:10px;
+}
+
+.billStatus .amount-highlight{
+  font-family:var(--font-amount);
+  font-feature-settings:'tnum' 1;
+  font-weight:900;
+  font-size:1.35rem;
 }
 
 .billSub{
-  margin-top:5px;
-
+  margin-top:4px;
   color:var(--muted);
+  font-size:0.95rem;
+}
 
+/* KPI METRIC CARDS OVERHAUL */
+.kpiGrid{
+  margin-top:22px;
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:20px;
+}
+
+.kpiCard{
+  background:linear-gradient(180deg, rgba(14,30,60,0.92), rgba(6,16,36,0.98));
+  backdrop-filter:blur(12px);
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:22px 24px;
+  box-shadow:0 10px 25px rgba(0,0,0,0.4);
+  position:relative;
+  overflow:hidden;
+  transition:transform 0.25s ease, border-color 0.25s ease;
+}
+.kpiCard:hover{
+  transform:translateY(-3px);
+  border-color:rgba(0,194,255,0.45);
+}
+
+.kpiCard::before{
+  content:'';
+  position:absolute;
+  top:0;
+  left:0;
+  right:0;
+  height:3px;
+}
+
+.kpiCard:nth-child(1)::before{ background: #00E676; } /* Mint */
+.kpiCard:nth-child(2)::before{ background: #00C2FF; } /* Aqua */
+.kpiCard:nth-child(3)::before{ background: #FF7A00; } /* Amber */
+.kpiCard:nth-child(4)::before{ background: #38BDF8; } /* Light Cyan */
+
+.kpiLabel{
+  color:#94a3b8;
+  font-size:0.85rem;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:0.8px;
+}
+
+.kpiValue{
+  margin-top:10px;
+  font-size:2.2rem;
+  font-weight:900;
+  font-family:var(--font-amount);
+  font-feature-settings:'tnum' 1;
+  letter-spacing:-0.5px;
+  line-height:1.1;
+  color:#f8fafc;
+}
+
+.kpiCard:nth-child(1) .kpiValue{ color: #00E676; }
+.kpiCard:nth-child(2) .kpiValue{ color: #00C2FF; }
+.kpiCard:nth-child(3) .kpiValue{ color: #FF7A00; }
+.kpiCard:nth-child(4) .kpiValue{ color: #f8fafc; }
+
+.kpiSub{
+  margin-top:8px;
+  color:#64748b;
+  font-size:0.82rem;
+  font-weight:600;
+}
+
+/* STAT CARDS ON DETAIL BILL PAGES */
+.statsGrid{
+  margin-top:18px;
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:18px;
+}
+
+.statCard{
+  background:linear-gradient(180deg, rgba(14,30,60,0.92), rgba(6,16,36,0.98));
+  backdrop-filter:blur(12px);
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:20px;
+  box-shadow:0 8px 20px rgba(0,0,0,0.35);
+  transition:all 0.25s ease;
+}
+.statCard:hover{
+  transform:translateY(-2px);
+  border-color:rgba(0,194,255,0.4);
+}
+
+.statLabel{
+  color:#94a3b8;
+  font-size:0.88rem;
+  font-weight:600;
+}
+
+.statValue{
+  margin-top:8px;
+  font-size:2rem;
+  font-weight:900;
+  font-family:var(--font-amount);
+  font-feature-settings:'tnum' 1;
+  letter-spacing:-0.5px;
+}
+
+.statValue.green{
+  color:var(--accent);
+}
+.statValue.blue{
+  color:var(--accent2);
+}
+.statValue.orange{
+  color:var(--accent-gas);
+}
+.statValue.red{
+  color:var(--danger);
+}
+
+/* CHART CARDS OVERHAUL */
+.chartCard{
+  background:linear-gradient(180deg, rgba(14,30,60,0.92), rgba(6,16,36,0.98));
+  backdrop-filter:blur(12px);
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:24px;
+  box-shadow:0 10px 25px rgba(0,0,0,0.4);
+}
+
+.chartTitle{
+  font-size:1.15rem;
+  font-weight:800;
+  letter-spacing:-0.3px;
+  margin-bottom:18px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+/* TABLE AMOUNT CELL */
+.amountCell{
+  color:var(--accent);
+  font-family:var(--font-amount);
+  font-feature-settings:'tnum' 1;
+  font-weight:800;
   font-size:1.05rem;
 }
 
@@ -2606,7 +2795,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 <div class="billGrid">
 
-<div class="billCard" onclick="openPage('rupnagarDesco')">
+<div class="billCard" data-utility="electric" onclick="openPage('rupnagarDesco')">
 <div class="billIcon">⚡</div>
 
 <div class="billName">
@@ -2619,7 +2808,7 @@ Last Paid 2000
 </div>
 </div>
 
-<div class="billCard" onclick="openPage('rupnagarGas')">
+<div class="billCard" data-utility="gas" onclick="openPage('rupnagarGas')">
 <div class="billIcon">🔥</div>
 
 <div class="billName">
@@ -2632,7 +2821,7 @@ Last Paid 2014
 </div>
 </div>
 
-<div class="billCard" onclick="openPage('uttaraDesco')">
+<div class="billCard" data-utility="electric" onclick="openPage('uttaraDesco')">
 <div class="billIcon">🗼</div>
 
 <div class="billName">
@@ -2645,7 +2834,7 @@ Last Paid 3500
 </div>
 </div>
 
-<div class="billCard" onclick="openPage('uttaraWater')">
+<div class="billCard" data-utility="water" onclick="openPage('uttaraWater')">
 <div class="billIcon">💧</div>
 
 <div class="billName">
@@ -2657,7 +2846,7 @@ Next Due in 15 Days
 </div>
 </div>
 
-<div class="billCard" onclick="openPage('matuailGas')">
+<div class="billCard" data-utility="gas" onclick="openPage('matuailGas')">
 <div class="billIcon">🔥</div>
 
 <div class="billName">
@@ -2669,7 +2858,7 @@ Next Due in 30 Days
 </div>
 </div>
 
-<div class="billCard" onclick="openPage('noakhaliPalli')">
+<div class="billCard" data-utility="electric" onclick="openPage('noakhaliPalli')">
 <div class="billIcon">⚡</div>
 
 <div class="billName">
@@ -2681,7 +2870,7 @@ Next Due in 30 Days
 </div>
 </div>
 
-<div class="billCard" onclick="openPage('inspireBroadband')">
+<div class="billCard" data-utility="gas" onclick="openPage('inspireBroadband')">
 <div class="billIcon">📶</div>
 
 <div class="billName">
@@ -2902,6 +3091,7 @@ const billPages = [
 
 {
 id:'rupnagarDesco',
+  utility:'electric',
 icon:'⚡',
 name:'Rupnagar<br>DESCO',
 account:'140-10-368',
@@ -2918,6 +3108,7 @@ form:'prepaid'
 
 {
 id:'rupnagarGas',
+  utility:'gas',
 icon:'🔥',
 name:'Rupnagar<br>Gas',
 account:'110-407-082-016',
@@ -2934,6 +3125,7 @@ form:'prepaid'
 
 {
 id:'uttaraDesco',
+  utility:'electric',
 icon:'🗼',
 name:'Uttara<br>DESCO',
 account:'250-38-654',
@@ -2950,6 +3142,7 @@ form:'prepaid'
 
 {
 id:'uttaraWater',
+  utility:'water',
 icon:'💧',
 name:'Uttara<br>Water',
 account:'0901798991',
@@ -2966,6 +3159,7 @@ form:'postpaid'
 
 {
 id:'matuailGas',
+  utility:'gas',
 icon:'🔥',
 name:'Matuail<br>Gas',
 account:'108-26-719',
@@ -2982,6 +3176,7 @@ form:'postpaid'
 
 {
 id:'noakhaliPalli',
+  utility:'electric',
 icon:'⚡',
 name:'Noakhali<br>Palli',
 account:'103-102-312-7100',
@@ -2998,6 +3193,7 @@ form:'postpaid'
 
 {
 id:'inspireBroadband',
+  utility:'gas',
 icon:'📶',
 name:'Inspire<br>Broadband',
 account:'rpmehedi6',
@@ -3823,7 +4019,7 @@ function renderLandingPageCards() {
   grid.innerHTML = '';
   
   function getDaysColor(days) {
-    if (days < 5) return '#63ff68';      // Very green
+    if (days < 5) return '#00E676';      // Very green
     if (days < 10) return '#a3ff63';     // Bit green
     if (days < 18) return '#ffe663';     // Yellowish green / Yellow
     if (days < 25) return '#ff9f63';     // Orange
@@ -3861,7 +4057,7 @@ function renderLandingPageCards() {
         }
         
         statusHtml = `
-          Last Paid <span style="color:#63ff68; font-weight:700;">৳ ${parseInt(lastPayment.amount).toLocaleString()}</span>
+          Last Paid <span class="amount-highlight" style="color:var(--accent);">৳ ${parseInt(lastPayment.amount).toLocaleString()}</span>
           <div class="billSub" style="color:${subColor}; font-weight:600; margin-top: 4px;">${subText}</div>
         `;
       } else if (bill.id === 'inspireBroadband') {
@@ -3889,13 +4085,13 @@ function renderLandingPageCards() {
         }
         
         statusHtml = `
-          Last Paid <span style="color:#63ff68; font-weight:700;">৳ ${parseInt(lastPayment.amount).toLocaleString()}</span>
+          Last Paid <span class="amount-highlight" style="color:var(--accent);">৳ ${parseInt(lastPayment.amount).toLocaleString()}</span>
           <div class="billSub" style="color:${subColor}; font-weight:600; margin-top: 4px;">${subText}</div>
         `;
       } else {
         const days = Math.floor((new Date() - new Date(lastPayment.payDate)) / (1000 * 60 * 60 * 24));
         statusHtml = `
-          Last Paid <span style="color:#63ff68; font-weight:700;">৳ ${parseInt(lastPayment.amount).toLocaleString()}</span>
+          Last Paid <span class="amount-highlight" style="color:var(--accent);">৳ ${parseInt(lastPayment.amount).toLocaleString()}</span>
           <div class="billSub" style="color:${getDaysColor(days)}; font-weight:600; margin-top: 4px;">${days === 0 ? 'Today' : `${days} Days Ago`}</div>
         `;
       }
@@ -3908,6 +4104,7 @@ function renderLandingPageCards() {
     
     const card = document.createElement('div');
     card.className = 'billCard';
+    card.setAttribute('data-utility', bill.utility || 'electric');
     card.onclick = () => openPage(bill.id);
     card.innerHTML = `
       <div class="billIcon">${getBillIconHtml(bill, 'billIcon')}</div>
@@ -4366,12 +4563,12 @@ function renderStatsPage() {
           datasets: [{
             label: 'Monthly Spend',
             data: monthsList.map(label => monthSums[label] || 0),
-            borderColor: '#22d3ee',
+            borderColor: '#00C2FF',
             borderWidth: 3,
             backgroundColor: gradient,
             fill: true,
             tension: 0.4,
-            pointBackgroundColor: '#22d3ee',
+            pointBackgroundColor: '#00C2FF',
             pointBorderColor: '#0b1730',
             pointBorderWidth: 2,
             pointRadius: 4,
@@ -4394,7 +4591,7 @@ function renderStatsPage() {
             tooltip: {
               backgroundColor: '#0b1730',
               titleColor: '#f4f7ff',
-              bodyColor: '#22d3ee',
+              bodyColor: '#00C2FF',
               borderColor: '#1d3969',
               borderWidth: 1,
               titleFont: { family: 'Inter', weight: 'bold' },
@@ -4440,7 +4637,7 @@ function renderStatsPage() {
             const { ctx } = chart;
             ctx.save();
             ctx.font = 'bold 13px "JetBrains Mono", monospace';
-            ctx.fillStyle = '#22d3ee';
+            ctx.fillStyle = '#00C2FF';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'bottom';
             
@@ -4532,13 +4729,13 @@ function renderStatsPage() {
             {
               label: `${currentYear} Cumulative`,
               data: currentYearCumulative,
-              borderColor: '#63ff68',
+              borderColor: '#00E676',
               borderWidth: 3,
               backgroundColor: gradientCurr,
               fill: true,
               tension: 0.3,
               pointRadius: 4,
-              pointBackgroundColor: '#63ff68'
+              pointBackgroundColor: '#00E676'
             }
           ]
         },
@@ -4561,7 +4758,7 @@ function renderStatsPage() {
             tooltip: {
               backgroundColor: '#0b1730',
               titleColor: '#f4f7ff',
-              bodyColor: '#63ff68',
+              bodyColor: '#00E676',
               borderColor: '#1d3969',
               borderWidth: 1,
               titleFont: { family: 'Inter', weight: 'bold' },
@@ -4597,7 +4794,7 @@ function renderStatsPage() {
             const { ctx } = chart;
             ctx.save();
             ctx.font = 'bold 12px "JetBrains Mono", monospace';
-            ctx.fillStyle = '#63ff68';
+            ctx.fillStyle = '#00E676';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'bottom';
             
@@ -4764,7 +4961,7 @@ function renderStatsPage() {
             tooltip: {
               backgroundColor: '#0b1730',
               titleColor: '#f4f7ff',
-              bodyColor: '#22d3ee',
+              bodyColor: '#00C2FF',
               borderColor: '#1d3969',
               borderWidth: 1,
               callbacks: {
@@ -4856,10 +5053,10 @@ function renderStatsPage() {
             label: 'Payments',
             data: bubbleData,
             backgroundColor: 'rgba(34, 211, 238, 0.35)',
-            borderColor: '#22d3ee',
+            borderColor: '#00C2FF',
             borderWidth: 2,
             hoverBackgroundColor: 'rgba(99, 255, 104, 0.45)',
-            hoverBorderColor: '#63ff68'
+            hoverBorderColor: '#00E676'
           }]
         },
         options: {
@@ -4870,7 +5067,7 @@ function renderStatsPage() {
             tooltip: {
               backgroundColor: '#0b1730',
               titleColor: '#f4f7ff',
-              bodyColor: '#22d3ee',
+              bodyColor: '#00C2FF',
               borderColor: '#1d3969',
               borderWidth: 1,
               callbacks: {
@@ -5082,8 +5279,8 @@ function renderStatsPage() {
           datasets: [{
             label: 'Avg Monthly Spend',
             data: [summerAvg, winterAvg],
-            backgroundColor: ['#ffb84d', '#22d3ee'],
-            borderColor: ['#ffb84d', '#22d3ee'],
+            backgroundColor: ['#ffb84d', '#00C2FF'],
+            borderColor: ['#ffb84d', '#00C2FF'],
             borderRadius: 8,
             borderSkipped: false,
             barThickness: 50
@@ -5302,8 +5499,8 @@ function renderStatsPage() {
             {
               label: `${currentYear} Spend`,
               data: currentYearData,
-              backgroundColor: '#63ff68',
-              borderColor: '#63ff68',
+              backgroundColor: '#00E676',
+              borderColor: '#00E676',
               borderRadius: 6,
               borderSkipped: false
             }
@@ -5322,7 +5519,7 @@ function renderStatsPage() {
             tooltip: {
               backgroundColor: '#0b1730',
               titleColor: '#f4f7ff',
-              bodyColor: '#63ff68',
+              bodyColor: '#00E676',
               borderColor: '#1d3969',
               borderWidth: 1,
               titleFont: { family: 'Inter', weight: 'bold' },
@@ -6033,12 +6230,12 @@ function renderAmountVsDurationChart(payments) {
           type: 'line',
           label: 'Duration (Days)',
           data: durations,
-          borderColor: '#4ade80',
+          borderColor: '#00E676',
           borderWidth: 2,
           fill: false,
           tension: 0.2,
           spanGaps: true,
-          pointBackgroundColor: '#4ade80',
+          pointBackgroundColor: '#00E676',
           pointRadius: 4,
           yAxisID: 'yDuration'
         }
@@ -6070,7 +6267,7 @@ function renderAmountVsDurationChart(payments) {
         metaLine.data.forEach((element, index) => {
           const val = durations[index];
           if (val !== undefined && val !== null && val > 0) {
-            ctx.fillStyle = '#4ade80';
+            ctx.fillStyle = '#00E676';
             ctx.fillText(`${Math.round(val)}d`, element.x, element.y - 6);
           }
         });
@@ -6099,7 +6296,7 @@ function renderAmountVsDurationChart(payments) {
           position: 'right',
           grace: '18%',
           grid: { display: false },
-          ticks: { color: '#4ade80', font: { size: 11 } }
+          ticks: { color: '#00E676', font: { size: 11 } }
         }
       }
     }
@@ -6408,8 +6605,8 @@ async function loadLiveDESCOData(billId, accountNo) {
             datasets: [{
               label: 'Energy Consumed (kWh)',
               data: units,
-              backgroundColor: '#22d3ee',
-              borderColor: '#22d3ee',
+              backgroundColor: '#00C2FF',
+              borderColor: '#00C2FF',
               borderRadius: 6,
               borderSkipped: false
             }]
@@ -6420,7 +6617,7 @@ async function loadLiveDESCOData(billId, accountNo) {
               const { ctx } = chart;
               ctx.save();
               ctx.font = 'bold 11px "JetBrains Mono", monospace';
-              ctx.fillStyle = '#22d3ee';
+              ctx.fillStyle = '#00C2FF';
               ctx.textAlign = 'center';
               ctx.textBaseline = 'bottom';
               ctx.shadowColor = 'rgba(3, 8, 22, 0.9)';
@@ -6445,7 +6642,7 @@ async function loadLiveDESCOData(billId, accountNo) {
               tooltip: {
                 backgroundColor: '#0b1730',
                 titleColor: '#f4f7ff',
-                bodyColor: '#22d3ee',
+                bodyColor: '#00C2FF',
                 borderColor: '#1d3969',
                 borderWidth: 1,
                 callbacks: {
@@ -6744,7 +6941,7 @@ function renderDescoStatsDashboard(billId, bill, locationName, apiData) {
     alertColor = '#ffe663';
   } else {
     alertText = `Healthy: Sufficient balance.`;
-    alertColor = '#63ff68';
+    alertColor = '#00E676';
   }
   
   const formattedBalance = parseFloat(balance.balance).toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0});
@@ -7063,7 +7260,7 @@ function renderDescoStatsDashboard(billId, bill, locationName, apiData) {
         labels: dailyUsageData.map(d => d.date),
         datasets: [{
           data: dailyUsageData.map(d => d.units),
-          backgroundColor: '#22d3ee',
+          backgroundColor: '#00C2FF',
           borderRadius: 4,
           barPercentage: 0.45,
           categoryPercentage: 0.7
@@ -7137,7 +7334,7 @@ function renderDescoStatsDashboard(billId, bill, locationName, apiData) {
           {
             label: 'Current Year (৳)',
             data: currTaka,
-            backgroundColor: '#63ff68',
+            backgroundColor: '#00E676',
             borderRadius: 4
           }
         ]
@@ -7176,7 +7373,7 @@ function renderDescoStatsDashboard(billId, bill, locationName, apiData) {
           {
             label: 'Current Year (kWh)',
             data: currUnit,
-            backgroundColor: '#22d3ee',
+            backgroundColor: '#00C2FF',
             borderRadius: 4
           }
         ]
@@ -7211,7 +7408,7 @@ function renderDescoStatsDashboard(billId, bill, locationName, apiData) {
             label: 'Units (kWh)',
             data: currUnit,
             backgroundColor: 'rgba(34, 211, 238, 0.3)',
-            borderColor: '#22d3ee',
+            borderColor: '#00C2FF',
             borderWidth: 1,
             borderRadius: 6,
             yAxisID: 'y'
@@ -7220,8 +7417,8 @@ function renderDescoStatsDashboard(billId, bill, locationName, apiData) {
             type: 'line',
             label: 'Cost (৳)',
             data: currTaka,
-            borderColor: '#63ff68',
-            pointBackgroundColor: '#63ff68',
+            borderColor: '#00E676',
+            pointBackgroundColor: '#00E676',
             borderWidth: 2,
             tension: 0.3,
             fill: false,
@@ -7241,13 +7438,13 @@ function renderDescoStatsDashboard(billId, bill, locationName, apiData) {
             position: 'left',
             grace: '18%',
             grid: { color: 'rgba(29, 57, 105, 0.1)' },
-            ticks: { color: '#22d3ee', font: { size: 9 } }
+            ticks: { color: '#00C2FF', font: { size: 9 } }
           },
           y1: {
             position: 'right',
             grace: '18%',
             grid: { drawOnChartArea: false },
-            ticks: { color: '#63ff68', font: { size: 9 } }
+            ticks: { color: '#00E676', font: { size: 9 } }
           }
         }
       }
