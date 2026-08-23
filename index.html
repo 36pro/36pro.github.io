@@ -158,17 +158,16 @@ body{
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  gap:12px;
+  gap:14px;
   margin:0 auto;
-  padding:6px 0 0 0;
+  padding:4px 0 0 0;
   cursor:pointer;
   text-decoration:none;
-  transform:translateY(-2px);
 }
 
 .logoSvgMark{
-  width:44px;
-  height:44px;
+  width:42px;
+  height:42px;
   flex-shrink:0;
   filter:drop-shadow(0 0 14px rgba(0,230,118,0.45));
   transition:transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -178,50 +177,38 @@ body{
   transform:scale(1.08) rotate(4deg);
 }
 
-.logoTextWrap{
-  display:flex;
-  flex-direction:column;
-  align-items:flex-start;
-  text-align:left;
-}
-
 .logoWordmark{
   font-family:var(--font-logo);
   font-weight:800;
-  font-size:2.8rem;
-  line-height:0.95;
+  font-size:3.2rem;
+  line-height:1;
   letter-spacing:-0.5px;
   color:#FFFFFF;
-  text-shadow:0 0 20px rgba(0,230,118,0.25);
+  text-shadow:0 0 24px rgba(0,230,118,0.28);
 }
 
 .logoWordmark span{
   color:var(--accent);
 }
 
-.logoSubtitle{
-  font-family:var(--font-body);
-  font-weight:700;
-  font-size:0.6rem;
-  letter-spacing:2.8px;
-  color:var(--accent2);
-  text-transform:uppercase;
-  margin-top:2px;
-}
-
 .glow{
-  width:100%;
-  height:2px;
-  margin-top:6px;
+  width:min(640px, 85%);
+  height:1.5px;
+  margin:10px auto 0;
+  border-radius:999px;
   background:linear-gradient(
-  90deg,
-  transparent,
-  rgba(0,230,118,.85) 35%,
-  rgba(0,194,255,.85) 65%,
-  transparent
+    90deg,
+    transparent 0%,
+    rgba(0, 230, 118, 0.4) 20%,
+    rgba(0, 230, 118, 0.9) 38%,
+    rgba(0, 194, 255, 0.95) 50%,
+    rgba(255, 122, 0, 0.85) 65%,
+    rgba(255, 122, 0, 0.3) 80%,
+    transparent 100%
   );
   box-shadow:
-  0 0 18px rgba(0,230,118,.45);
+    0 0 10px rgba(0, 194, 255, 0.45),
+    0 0 22px rgba(0, 230, 118, 0.25);
 }
 
 .backBtn{
@@ -2594,10 +2581,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     <circle cx="30" cy="30" r="4.5" fill="#FFFFFF"/>
     <circle cx="30" cy="30" r="2" fill="#020817"/>
   </svg>
-  <div class="logoTextWrap">
-    <div class="logoWordmark">billzy<span>°</span></div>
-    <div class="logoSubtitle">Continuous Trefoil Flow</div>
-  </div>
+  <div class="logoWordmark">billzy<span>°</span></div>
 </div>
 <div class="glow"></div>
 
@@ -3788,10 +3772,7 @@ function renderBillPages() {
     <circle cx="30" cy="30" r="4.5" fill="#FFFFFF"/>
     <circle cx="30" cy="30" r="2" fill="#020817"/>
   </svg>
-  <div class="logoTextWrap">
-    <div class="logoWordmark">billzy<span>°</span></div>
-    <div class="logoSubtitle">Continuous Trefoil Flow</div>
-  </div>
+  <div class="logoWordmark">billzy<span>°</span></div>
 </div>
         <div class="glow"></div>
         <div class="backBtn" onclick="goHome()">
@@ -7315,10 +7296,7 @@ window.addEventListener('DOMContentLoaded', () => {
     <circle cx="30" cy="30" r="4.5" fill="#FFFFFF"/>
     <circle cx="30" cy="30" r="2" fill="#020817"/>
   </svg>
-  <div class="logoTextWrap">
-    <div class="logoWordmark">billzy<span>°</span></div>
-    <div class="logoSubtitle">Continuous Trefoil Flow</div>
-  </div>
+  <div class="logoWordmark">billzy<span>°</span></div>
 </div>
 <div class="glow"></div>
 
@@ -7857,10 +7835,7 @@ Pay now
     <circle cx="30" cy="30" r="4.5" fill="#FFFFFF"/>
     <circle cx="30" cy="30" r="2" fill="#020817"/>
   </svg>
-  <div class="logoTextWrap">
-    <div class="logoWordmark">billzy<span>°</span></div>
-    <div class="logoSubtitle">Continuous Trefoil Flow</div>
-  </div>
+  <div class="logoWordmark">billzy<span>°</span></div>
 </div>
 <div class="glow"></div>
 
@@ -8097,10 +8072,7 @@ placeholder="Search payments..."
     <circle cx="30" cy="30" r="4.5" fill="#FFFFFF"/>
     <circle cx="30" cy="30" r="2" fill="#020817"/>
   </svg>
-  <div class="logoTextWrap">
-    <div class="logoWordmark">billzy<span>°</span></div>
-    <div class="logoSubtitle">Continuous Trefoil Flow</div>
-  </div>
+  <div class="logoWordmark">billzy<span>°</span></div>
 </div>
 <div class="glow"></div>
 
@@ -8473,10 +8445,7 @@ Payment Gap Summary
     <circle cx="30" cy="30" r="4.5" fill="#FFFFFF"/>
     <circle cx="30" cy="30" r="2" fill="#020817"/>
   </svg>
-  <div class="logoTextWrap">
-    <div class="logoWordmark">billzy<span>°</span></div>
-    <div class="logoSubtitle">Continuous Trefoil Flow</div>
-  </div>
+  <div class="logoWordmark">billzy<span>°</span></div>
 </div>
     <div class="glow"></div>
     <div class="backBtn" id="descoStatsBackBtn" onclick="goHome()">
@@ -8499,10 +8468,7 @@ Payment Gap Summary
     <circle cx="30" cy="30" r="4.5" fill="#FFFFFF"/>
     <circle cx="30" cy="30" r="2" fill="#020817"/>
   </svg>
-  <div class="logoTextWrap">
-    <div class="logoWordmark">billzy<span>°</span></div>
-    <div class="logoSubtitle">Continuous Trefoil Flow</div>
-  </div>
+  <div class="logoWordmark">billzy<span>°</span></div>
 </div>
     <div class="glow"></div>
     <div class="backBtn" id="uniqueStatsBackBtn" onclick="goHome()">
