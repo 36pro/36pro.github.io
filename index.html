@@ -8,7 +8,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="apple-touch-icon" href="assets/billzy-icon-app.svg">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&family=Outfit:wght@600;700;800;900&family=Plus+Jakarta+Sans:ital,wght@0,600;0,700;0,800;0,900;1,800&display=swap" rel="stylesheet">
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -20,14 +22,20 @@
   --surface2:#102448;
   --border:#1d3969;
 
-  --accent:#63ff68;
-  --accent2:#22d3ee;
+  --accent:#00E676;
+  --accent2:#00C2FF;
+  --accent-gas:#FF7A00;
 
   --danger:#ff6077;
   --warning:#ffb84d;
 
-  --text:#f4f7ff;
-  --muted:#91a5c6;
+  --text:#f8fafc;
+  --muted:#94a3b8;
+
+  --font-logo:'Plus Jakarta Sans',system-ui,sans-serif;
+  --font-amount:'Outfit',system-ui,sans-serif;
+  --font-body:'Inter',system-ui,sans-serif;
+  --font-mono:'JetBrains Mono',monospace;
 
   --shadow:0 0 35px rgba(0,0,0,.35);
 }
@@ -147,42 +155,73 @@ body{
 }
 
 .logo{
-  text-align:center;
-
-  color:var(--accent);
-
-  font-size:4rem;
-  font-weight:900;
-
-  letter-spacing:2px;
-
-  line-height:1;
-
-  margin:0;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  margin:0 auto;
   padding:6px 0 0 0;
+  cursor:pointer;
+  text-decoration:none;
+  transform:translateY(-2px);
+}
 
-  transform:translateY(-4px);
+.logoSvgMark{
+  width:44px;
+  height:44px;
+  flex-shrink:0;
+  filter:drop-shadow(0 0 14px rgba(0,230,118,0.45));
+  transition:transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
 
-  text-shadow:
-  0 0 16px rgba(99,255,104,.4),
-  0 0 45px rgba(99,255,104,.12);
+.logo:hover .logoSvgMark{
+  transform:scale(1.08) rotate(4deg);
+}
+
+.logoTextWrap{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  text-align:left;
+}
+
+.logoWordmark{
+  font-family:var(--font-logo);
+  font-weight:800;
+  font-size:2.8rem;
+  line-height:0.95;
+  letter-spacing:-0.5px;
+  color:#FFFFFF;
+  text-shadow:0 0 20px rgba(0,230,118,0.25);
+}
+
+.logoWordmark span{
+  color:var(--accent);
+}
+
+.logoSubtitle{
+  font-family:var(--font-body);
+  font-weight:700;
+  font-size:0.6rem;
+  letter-spacing:2.8px;
+  color:var(--accent2);
+  text-transform:uppercase;
+  margin-top:2px;
 }
 
 .glow{
   width:100%;
   height:2px;
-
   margin-top:6px;
-
   background:linear-gradient(
   90deg,
   transparent,
-  rgba(99,255,104,.9),
+  rgba(0,230,118,.85) 35%,
+  rgba(0,194,255,.85) 65%,
   transparent
   );
-
   box-shadow:
-  0 0 18px rgba(99,255,104,.45);
+  0 0 18px rgba(0,230,118,.45);
 }
 
 .backBtn{
@@ -537,6 +576,11 @@ body{
 
   font-size:1.8rem;
   font-weight:700;
+
+  font-family:var(--font-amount);
+  font-feature-settings:'tnum' 1;
+  font-weight:900;
+  letter-spacing:-0.5px;
 }
 
 .red{
@@ -1542,6 +1586,10 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   font-family:"JetBrains Mono",monospace;
 
   font-weight:700;
+
+  font-family:var(--font-amount);
+  font-feature-settings:'tnum' 1;
+  font-weight:800;
 }
 
 .noteMuted{
@@ -2538,7 +2586,19 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 <button class="settingsBtn" onclick="openSettingsModal()" title="GitHub Settings">⚙</button>
 
-<div class="logo">BILLZY</div>
+<div class="logo" onclick="goHome()" title="Billzy — Home">
+  <svg class="logoSvgMark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60" fill="none">
+    <path d="M30 30 C30 10, 42 6, 30 6 C18 6, 30 10, 30 30 Z" stroke="#00E676" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+    <path d="M30 30 C46 22, 54 36, 46 44 C38 52, 38 38, 30 30 Z" stroke="#00C2FF" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+    <path d="M30 30 C14 22, 6 36, 14 44 C22 52, 22 38, 30 30 Z" stroke="#FF7A00" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+    <circle cx="30" cy="30" r="4.5" fill="#FFFFFF"/>
+    <circle cx="30" cy="30" r="2" fill="#020817"/>
+  </svg>
+  <div class="logoTextWrap">
+    <div class="logoWordmark">billzy<span>°</span></div>
+    <div class="logoSubtitle">Continuous Trefoil Flow</div>
+  </div>
+</div>
 <div class="glow"></div>
 
 <div class="heroGrid">
@@ -3720,7 +3780,19 @@ function renderBillPages() {
     
     section.innerHTML = `
       <div class="container">
-        <div class="logo">BILLZY</div>
+        <div class="logo" onclick="goHome()" title="Billzy — Home">
+  <svg class="logoSvgMark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60" fill="none">
+    <path d="M30 30 C30 10, 42 6, 30 6 C18 6, 30 10, 30 30 Z" stroke="#00E676" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+    <path d="M30 30 C46 22, 54 36, 46 44 C38 52, 38 38, 30 30 Z" stroke="#00C2FF" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+    <path d="M30 30 C14 22, 6 36, 14 44 C22 52, 22 38, 30 30 Z" stroke="#FF7A00" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+    <circle cx="30" cy="30" r="4.5" fill="#FFFFFF"/>
+    <circle cx="30" cy="30" r="2" fill="#020817"/>
+  </svg>
+  <div class="logoTextWrap">
+    <div class="logoWordmark">billzy<span>°</span></div>
+    <div class="logoSubtitle">Continuous Trefoil Flow</div>
+  </div>
+</div>
         <div class="glow"></div>
         <div class="backBtn" onclick="goHome()">
           ← Back to Home
@@ -7235,7 +7307,19 @@ window.addEventListener('DOMContentLoaded', () => {
 
 <button class="settingsBtn" onclick="openSettingsModal()" title="GitHub Settings">⚙</button>
 
-<div class="logo">BILLZY</div>
+<div class="logo" onclick="goHome()" title="Billzy — Home">
+  <svg class="logoSvgMark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60" fill="none">
+    <path d="M30 30 C30 10, 42 6, 30 6 C18 6, 30 10, 30 30 Z" stroke="#00E676" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+    <path d="M30 30 C46 22, 54 36, 46 44 C38 52, 38 38, 30 30 Z" stroke="#00C2FF" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+    <path d="M30 30 C14 22, 6 36, 14 44 C22 52, 22 38, 30 30 Z" stroke="#FF7A00" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+    <circle cx="30" cy="30" r="4.5" fill="#FFFFFF"/>
+    <circle cx="30" cy="30" r="2" fill="#020817"/>
+  </svg>
+  <div class="logoTextWrap">
+    <div class="logoWordmark">billzy<span>°</span></div>
+    <div class="logoSubtitle">Continuous Trefoil Flow</div>
+  </div>
+</div>
 <div class="glow"></div>
 
 <div class="backBtn" onclick="goHome()">
@@ -7765,7 +7849,19 @@ Pay now
 
 <button class="settingsBtn" onclick="openSettingsModal()" title="GitHub Settings">⚙</button>
 
-<div class="logo">BILLZY</div>
+<div class="logo" onclick="goHome()" title="Billzy — Home">
+  <svg class="logoSvgMark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60" fill="none">
+    <path d="M30 30 C30 10, 42 6, 30 6 C18 6, 30 10, 30 30 Z" stroke="#00E676" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+    <path d="M30 30 C46 22, 54 36, 46 44 C38 52, 38 38, 30 30 Z" stroke="#00C2FF" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+    <path d="M30 30 C14 22, 6 36, 14 44 C22 52, 22 38, 30 30 Z" stroke="#FF7A00" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+    <circle cx="30" cy="30" r="4.5" fill="#FFFFFF"/>
+    <circle cx="30" cy="30" r="2" fill="#020817"/>
+  </svg>
+  <div class="logoTextWrap">
+    <div class="logoWordmark">billzy<span>°</span></div>
+    <div class="logoSubtitle">Continuous Trefoil Flow</div>
+  </div>
+</div>
 <div class="glow"></div>
 
 <div class="backBtn" onclick="goHome()">
@@ -7993,7 +8089,19 @@ placeholder="Search payments..."
 
 <button class="settingsBtn" onclick="openSettingsModal()" title="GitHub Settings">⚙</button>
 
-<div class="logo">BILLZY</div>
+<div class="logo" onclick="goHome()" title="Billzy — Home">
+  <svg class="logoSvgMark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60" fill="none">
+    <path d="M30 30 C30 10, 42 6, 30 6 C18 6, 30 10, 30 30 Z" stroke="#00E676" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+    <path d="M30 30 C46 22, 54 36, 46 44 C38 52, 38 38, 30 30 Z" stroke="#00C2FF" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+    <path d="M30 30 C14 22, 6 36, 14 44 C22 52, 22 38, 30 30 Z" stroke="#FF7A00" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+    <circle cx="30" cy="30" r="4.5" fill="#FFFFFF"/>
+    <circle cx="30" cy="30" r="2" fill="#020817"/>
+  </svg>
+  <div class="logoTextWrap">
+    <div class="logoWordmark">billzy<span>°</span></div>
+    <div class="logoSubtitle">Continuous Trefoil Flow</div>
+  </div>
+</div>
 <div class="glow"></div>
 
 <div class="backBtn" onclick="goHome()">
@@ -8357,7 +8465,19 @@ Payment Gap Summary
 
 <section id="descoStatsPage" class="page descoStatsPage hidden">
   <div class="container" style="max-width: 1200px; padding-bottom: 80px;">
-    <div class="logo">BILLZY</div>
+    <div class="logo" onclick="goHome()" title="Billzy — Home">
+  <svg class="logoSvgMark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60" fill="none">
+    <path d="M30 30 C30 10, 42 6, 30 6 C18 6, 30 10, 30 30 Z" stroke="#00E676" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+    <path d="M30 30 C46 22, 54 36, 46 44 C38 52, 38 38, 30 30 Z" stroke="#00C2FF" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+    <path d="M30 30 C14 22, 6 36, 14 44 C22 52, 22 38, 30 30 Z" stroke="#FF7A00" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+    <circle cx="30" cy="30" r="4.5" fill="#FFFFFF"/>
+    <circle cx="30" cy="30" r="2" fill="#020817"/>
+  </svg>
+  <div class="logoTextWrap">
+    <div class="logoWordmark">billzy<span>°</span></div>
+    <div class="logoSubtitle">Continuous Trefoil Flow</div>
+  </div>
+</div>
     <div class="glow"></div>
     <div class="backBtn" id="descoStatsBackBtn" onclick="goHome()">
       ← Back to Bill Details
@@ -8371,7 +8491,19 @@ Payment Gap Summary
 
 <section id="uniqueStatsPage" class="page uniqueStatsPage hidden">
   <div class="container" style="width: min(1450px, 95%); max-width: 1450px; padding: 0 10px 80px; box-sizing: border-box;">
-    <div class="logo">BILLZY</div>
+    <div class="logo" onclick="goHome()" title="Billzy — Home">
+  <svg class="logoSvgMark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60" fill="none">
+    <path d="M30 30 C30 10, 42 6, 30 6 C18 6, 30 10, 30 30 Z" stroke="#00E676" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+    <path d="M30 30 C46 22, 54 36, 46 44 C38 52, 38 38, 30 30 Z" stroke="#00C2FF" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+    <path d="M30 30 C14 22, 6 36, 14 44 C22 52, 22 38, 30 30 Z" stroke="#FF7A00" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+    <circle cx="30" cy="30" r="4.5" fill="#FFFFFF"/>
+    <circle cx="30" cy="30" r="2" fill="#020817"/>
+  </svg>
+  <div class="logoTextWrap">
+    <div class="logoWordmark">billzy<span>°</span></div>
+    <div class="logoSubtitle">Continuous Trefoil Flow</div>
+  </div>
+</div>
     <div class="glow"></div>
     <div class="backBtn" id="uniqueStatsBackBtn" onclick="goHome()">
       ← Back to Bill Details
