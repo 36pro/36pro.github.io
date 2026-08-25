@@ -865,20 +865,38 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   border-radius:18px;
 
   background:linear-gradient(
-  90deg,
-  #63ff68,
-  #43dc64
+    135deg,
+    #00E676 0%,
+    #00C2FF 50%,
+    #FF7A00 100%
   );
 
-  color:#001707;
+  color:#020817;
 
-  font-size:1.7rem;
+  font-size:1.6rem;
   font-weight:900;
+  font-family:var(--font-body);
+  letter-spacing:-0.3px;
 
   cursor:pointer;
+  transition:all .25s ease;
 
   box-shadow:
-  0 0 28px rgba(99,255,104,.22);
+  0 4px 25px rgba(0,230,118,.3),
+  0 2px 10px rgba(0,194,255,.2);
+}
+
+.saveBtn:hover{
+  filter:brightness(1.08);
+  transform:translateY(-2px);
+  box-shadow:
+  0 6px 32px rgba(0,230,118,.4),
+  0 4px 16px rgba(0,194,255,.3);
+}
+
+.saveBtn:active{
+  transform:translateY(0);
+  filter:brightness(0.96);
 }
 
 @media(max-width:1400px){
