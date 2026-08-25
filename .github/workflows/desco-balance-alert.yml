@@ -2,7 +2,8 @@ name: DESCO Low Balance Alert
 
 on:
   schedule:
-    - cron: '0 5 * * *'   # Runs at 5:00 AM UTC (11:00 AM Bangladesh Time) every day
+    # Runs at 18:15 UTC (12:15 AM Bangladesh Standard Time) every night right after midnight reading sync
+    - cron: '15 18 * * *'
   workflow_dispatch:       # Allows triggering manually from the GitHub Actions tab
 
 jobs:

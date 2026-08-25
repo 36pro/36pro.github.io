@@ -1,8 +1,9 @@
 /**
  * DESCO Low Balance Alert
  *
- * Runs daily at 11:00 AM Bangladesh time via GitHub Actions.
- * Checks the prepaid balance for each DESCO account via the public API.
+ * Runs daily at 12:15 AM Bangladesh Standard Time (18:15 UTC) via GitHub Actions,
+ * right after DESCO smart meters synchronize their midnight readings.
+ * Checks prepaid balance for each DESCO account via the public API.
  * Only sends an email if at least one account is below its threshold.
  */
 
@@ -30,8 +31,6 @@ const API_BASE_URLS = [
 
 /**
  * Makes an HTTPS GET request with browser-like headers.
- * Uses the https module directly for better compatibility with
- * servers that may reject Node's native fetch.
  */
 function httpsGet(url) {
   return new Promise((resolve, reject) => {
@@ -48,7 +47,6 @@ function httpsGet(url) {
         'Origin': 'https://prepaid.desco.org.bd'
       },
       timeout: 15000,
-      // Accept self-signed or problematic certs from DESCO's server
       rejectUnauthorized: false
     };
 
@@ -88,28 +86,48 @@ async function fetchBalance(accountNo) {
 }
 
 function buildAlertEmail(alerts) {
-  const FONT = "Georgia, 'Iowan Old Style', 'Times New Roman', serif";
-  const SANS = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
-  const DASHBOARD_URL = 'https://36pro.github.io/#home';
+  const DASHBOARD_URL = 'https://36pro.github.io/';
+  const FONT_SANS = "-apple-system, BlinkMacSystemFont, 'Plus Jakarta Sans', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+  const FONT_MONO = "'JetBrains Mono', Consolas, Monaco, monospace";
+  const FONT_AMOUNT = "'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 
-  const alertRows = alerts.map(a => {
-    const balanceColor = '#c1613f';
-    const thresholdNote = `Threshold: ৳${a.threshold.toLocaleString()}`;
+  const alertCardsHtml = alerts.map(a => {
     return `
       <tr>
-        <td style="padding: 16px 20px; border-bottom: 1px solid #f1e9dc;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+        <td style="padding: 12px 0;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #050e20; border: 1px solid #1d3969; border-left: 4px solid #ff6077; border-radius: 14px; padding: 18px 20px;">
             <tr>
-              <td style="font-family: ${FONT}; font-size: 17px; color: #2f2440; font-weight: 400;">
-                ${a.name}
+              <td>
+                <div style="font-family: ${FONT_SANS}; font-size: 16px; font-weight: 700; color: #FFFFFF; letter-spacing: -0.2px;">
+                  ${a.name}
+                </div>
+                <div style="font-family: ${FONT_MONO}; font-size: 12px; color: #94a3b8; margin-top: 4px;">
+                  Meter Account: <span style="color: #00C2FF;">${a.accountDisplay}</span>
+                </div>
               </td>
-              <td align="right" style="font-family: ${SANS}; font-size: 22px; font-weight: 700; color: ${balanceColor};">
-                ৳${Math.round(a.balance).toLocaleString()}
+              <td align="right" style="vertical-align: middle;">
+                <div style="font-family: ${FONT_AMOUNT}; font-size: 26px; font-weight: 900; color: #ff6077; line-height: 1; letter-spacing: -0.5px;">
+                  ৳ ${Math.round(a.balance).toLocaleString()}
+                </div>
+                <div style="font-family: ${FONT_SANS}; font-size: 11px; font-weight: 700; color: #FF7A00; text-transform: uppercase; margin-top: 4px; letter-spacing: 0.5px;">
+                  Limit: ৳${a.threshold}
+                </div>
               </td>
             </tr>
             <tr>
-              <td colspan="2" style="padding-top: 4px; font-family: ${SANS}; font-size: 12px; color: #a89d8a;">
-                ${thresholdNote} · Account: ${a.accountDisplay} · Reading: ${a.readingTime || 'N/A'}
+              <td colspan="2" style="padding-top: 12px; border-top: 1px solid rgba(29, 57, 105, 0.4); margin-top: 12px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td style="font-family: ${FONT_SANS}; font-size: 11px; color: #64748b;">
+                      Midnight Reading: <span style="color: #94a3b8; font-family: ${FONT_MONO};">${a.readingTime || 'Just synced'}</span>
+                    </td>
+                    <td align="right">
+                      <span style="display: inline-block; padding: 2px 8px; background: rgba(255, 96, 119, 0.15); border: 1px solid rgba(255, 96, 119, 0.3); border-radius: 6px; font-size: 10px; font-weight: 700; color: #ff6077; font-family: ${FONT_MONO}; text-transform: uppercase;">
+                        Recharge Required
+                      </span>
+                    </td>
+                  </tr>
+                </table>
               </td>
             </tr>
           </table>
@@ -122,64 +140,84 @@ function buildAlertEmail(alerts) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="color-scheme" content="light">
-<title>DESCO Low Balance Alert</title>
+<meta name="color-scheme" content="dark">
+<title>Billzy — Low Balance Alert</title>
 <style>
-  body, table, td { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
-  body { margin: 0; padding: 0; background-color: #f3ede3; }
+  body, table, td, p, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+  body { margin: 0; padding: 0; background-color: #020817; font-family: ${FONT_SANS}; }
   a { text-decoration: none; }
   @media only screen and (max-width: 620px) {
     .billzy-wrapper { width: 100% !important; }
-    .billzy-card { padding: 30px 22px !important; }
+    .billzy-card { padding: 24px 18px !important; }
   }
 </style>
 </head>
-<body style="margin:0; padding:0; background-color:#f3ede3;">
+<body style="margin:0; padding:0; background-color:#020817; color:#f8fafc;">
+  <!-- Hidden Preheader -->
   <div style="display:none; max-height:0; overflow:hidden; opacity:0;">
-    ${alerts.length === 1 ? `${alerts[0].name} balance is low: ৳${Math.round(alerts[0].balance)}` : `${alerts.length} DESCO accounts have low balance`}
+    ${alerts.length === 1 ? `${alerts[0].name} balance is low: ৳${Math.round(alerts[0].balance)} (Threshold: ৳${alerts[0].threshold})` : `${alerts.length} DESCO accounts dropped below their threshold after midnight reading.`}
   </div>
 
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f3ede3; padding: 40px 16px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#020817; padding: 32px 12px;">
     <tr>
       <td align="center">
         <table role="presentation" class="billzy-wrapper" width="580" cellpadding="0" cellspacing="0" border="0" style="width:580px; max-width:580px;">
 
-          <!-- Top mark -->
+          <!-- Main Container Card -->
           <tr>
-            <td align="center" style="padding-bottom:22px;">
-              <span style="display:inline-block; width:40px; height:40px; line-height:40px; border-radius:50%; background-color:#c1613f; color:#f3ede3; font-family:${SANS}; font-size:17px; font-weight:700; text-align:center;">B</span>
-            </td>
-          </tr>
-
-          <!-- Card -->
-          <tr>
-            <td class="billzy-card" style="background-color:#fffdf9; border:1px solid #e8dfd0; border-radius:6px; padding:44px 48px; font-family:${SANS};">
-
-              <p style="margin:0; font-family:${FONT}; font-size:25px; font-weight:400; color:#2f2440; letter-spacing:0.2px;">
-                Low balance alert
-              </p>
-              <p style="margin:10px 0 0 0; font-size:14px; line-height:1.6; color:#8a7f6f;">
-                One or more of your DESCO prepaid accounts has dropped below its set threshold. Consider recharging soon.
-              </p>
-
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:28px;">
-                <tr><td style="border-top:1px solid #ece3d3; font-size:1px; line-height:1px;">&nbsp;</td></tr>
-              </table>
-
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:20px; border:1px solid #f1e9dc; border-radius:4px;">
-                ${alertRows}
-              </table>
-
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:38px;">
+            <td class="billzy-card" style="background-color: #0b1730; border: 1px solid #1d3969; border-radius: 20px; padding: 36px 36px 32px; box-shadow: 0 20px 40px rgba(0,0,0,0.6);">
+              
+              <!-- Brand Header Bar -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 28px;">
                 <tr>
-                  <td align="center">
-                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                  <td align="left" style="vertical-align: middle;">
+                    <table role="presentation" border="0" cellspacing="0" cellpadding="0">
                       <tr>
-                        <td align="center" style="background-color:#2f2440; border-radius:4px;">
-                          <a href="${DASHBOARD_URL}" style="display:inline-block; padding:15px 34px; font-family:${SANS}; font-size:14px; letter-spacing:0.4px; font-weight:600; color:#f3ede3;">VIEW DASHBOARD</a>
+                        <td style="vertical-align: middle;">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60" width="32" height="32" fill="none">
+                            <path d="M30 30 C30 10, 42 6, 30 6 C18 6, 30 10, 30 30 Z" stroke="#00E676" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+                            <path d="M30 30 C46 22, 54 36, 46 44 C38 52, 38 38, 30 30 Z" stroke="#00C2FF" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+                            <path d="M30 30 C14 22, 6 36, 14 44 C22 52, 22 38, 30 30 Z" stroke="#FF7A00" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+                            <circle cx="30" cy="30" r="4.5" fill="#FFFFFF"/>
+                            <circle cx="30" cy="30" r="2" fill="#020817"/>
+                          </svg>
+                        </td>
+                        <td style="padding-left: 10px; vertical-align: middle;">
+                          <div style="font-family: ${FONT_SANS}; font-size: 22px; font-weight: 800; color: #FFFFFF; line-height: 1; letter-spacing: -0.5px;">
+                            billzy<span style="color: #00E676;">°</span>
+                          </div>
                         </td>
                       </tr>
                     </table>
+                  </td>
+                  <td align="right" style="vertical-align: middle;">
+                    <span style="display: inline-block; padding: 4px 10px; background: rgba(255, 96, 119, 0.15); border: 1px solid rgba(255, 96, 119, 0.3); border-radius: 999px; font-size: 11px; font-weight: 700; color: #ff6077; font-family: ${FONT_MONO}; text-transform: uppercase; letter-spacing: 0.5px;">
+                      Low Balance Alert
+                    </span>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Alert Banner -->
+              <div style="font-size: 22px; font-weight: 800; color: #FFFFFF; letter-spacing: -0.3px; margin-bottom: 6px;">
+                Prepaid Balance Below Threshold
+              </div>
+              <div style="font-size: 13.5px; color: #94a3b8; line-height: 1.5; margin-bottom: 20px;">
+                Midnight meter reading indicates one or more accounts are running low. Please recharge soon to avoid disconnection.
+              </div>
+
+              <!-- Alert Cards -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top: 10px; margin-bottom: 24px;">
+                ${alertCardsHtml}
+              </table>
+
+              <!-- CTA Button -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top: 24px;">
+                <tr>
+                  <td align="center">
+                    <a href="${DASHBOARD_URL}" style="display: inline-block; background-color: #00E676; color: #020817; font-family: ${FONT_SANS}; font-weight: 800; font-size: 14px; padding: 14px 32px; border-radius: 12px; text-decoration: none; letter-spacing: 0.2px; box-shadow: 0 10px 20px rgba(0, 230, 118, 0.25);">
+                      RECHARGE VIA BILLZY &rarr;
+                    </a>
                   </td>
                 </tr>
               </table>
@@ -189,8 +227,11 @@ function buildAlertEmail(alerts) {
 
           <!-- Footer -->
           <tr>
-            <td align="center" style="padding-top:26px;">
-              <span style="font-family:${SANS}; font-size:11.5px; color:#a89d8a;">Sent automatically by Billzy Actions Engine · Low Balance Monitor</span>
+            <td align="center" style="padding-top: 24px;">
+              <div style="font-family: ${FONT_SANS}; font-size: 11px; color: #64748b; line-height: 1.6;">
+                Sent automatically by Billzy Actions Engine &middot; DESCO Midnight Monitor<br>
+                Synced directly from official prepaid smart metering servers.
+              </div>
             </td>
           </tr>
 
@@ -218,7 +259,7 @@ async function main() {
     const data = await fetchBalance(account.accountNo);
 
     if (!data) {
-      console.warn(`  ⚠ Could not fetch balance for ${account.name}. Skipping.`);
+      console.warn(`  Could not fetch balance for ${account.name}. Skipping.`);
       continue;
     }
 
@@ -226,15 +267,15 @@ async function main() {
     console.log(`  Balance: ৳${balance} | Threshold: ৳${account.threshold}`);
 
     if (balance < account.threshold) {
-      console.log(`  🔴 BELOW THRESHOLD — will alert.`);
+      console.log(`  BELOW THRESHOLD — will alert.`);
       alerts.push({
         ...account,
         balance: balance,
         accountDisplay: account.accountNo.replace(/(\d{3})(\d{2})(\d{3})/, '$1-$2-$3'),
-        readingTime: data.readingTime ? data.readingTime.split(' ')[0] : null
+        readingTime: data.readingTime || null
       });
     } else {
-      console.log(`  ✅ OK.`);
+      console.log(`  OK.`);
     }
   }
 
