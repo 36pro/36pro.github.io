@@ -5334,15 +5334,25 @@ function renderStatsPage() {
   
   
   // -------------------------------------------------------------
-  // PREPAID RECHARGE EFFICIENCY CALCULATION (Days per ৳ 1,000)
+  // UTILITY SPEND EFFICIENCY CALCULATION (Days per ৳ 1,000)
+  // Includes Prepaid Meters + Noakhali Palli & Uttara WASA
   // -------------------------------------------------------------
-  const prepaidBills = billPages.filter(b => b.type === 'Prepaid' && b.id !== 'inspireBroadband');
+  const eligibleBills = billPages.filter(b => b.type === 'Prepaid' || b.id === 'noakhaliPalli' || b.id === 'uttaraWater' || b.id === 'matuailGas');
   const efficiencyByBill = [];
   let totalDaysSum = 0;
   let totalAmountSum = 0;
   let totalValidCycles = 0;
 
-  prepaidBills.forEach(bill => {
+  function formatDaysWithMonths(days) {
+    if (days >= 30) {
+      const m = Math.floor(days / 30);
+      const rem = Math.round(days % 30);
+      return rem > 0 ? `${m}M ${rem} days` : `${m}M 0 days`;
+    }
+    return `${days.toFixed(1)} days`;
+  }
+
+  eligibleBills.forEach(bill => {
     // Sort payments chronological (oldest to newest)
     const bPayments = paymentsData
       .filter(p => p.billId === bill.id)
@@ -5396,7 +5406,7 @@ function renderStatsPage() {
   // Populate DOM elements
   const statOverallDaysPer1kEl = document.getElementById('statOverallDaysPer1k');
   if (statOverallDaysPer1kEl) {
-    statOverallDaysPer1kEl.innerText = overallDaysPer1k > 0 ? `${overallDaysPer1k.toFixed(1)} Days` : 'N/A';
+    statOverallDaysPer1kEl.innerText = overallDaysPer1k > 0 ? formatDaysWithMonths(overallDaysPer1k) : 'N/A';
   }
 
   const statDailyBurnRateEl = document.getElementById('statDailyBurnRate');
@@ -5408,11 +5418,11 @@ function renderStatsPage() {
   const statBestEfficiencySubEl = document.getElementById('statBestEfficiencySub');
   if (statBestEfficiencyEl && statBestEfficiencySubEl) {
     if (bestMeter) {
-      statBestEfficiencyEl.innerText = `${bestMeter.daysPer1k.toFixed(1)} Days`;
+      statBestEfficiencyEl.innerText = formatDaysWithMonths(bestMeter.daysPer1k);
       statBestEfficiencySubEl.innerText = bestMeter.name;
     } else {
       statBestEfficiencyEl.innerText = '-';
-      statBestEfficiencySubEl.innerText = 'Need ≥ 2 recharges';
+      statBestEfficiencySubEl.innerText = 'Need ≥ 2 payments';
     }
   }
 
@@ -5427,7 +5437,7 @@ function renderStatsPage() {
     if (efficiencyByBill.length === 0) {
       efficiencyBarsContainer.innerHTML = `
         <div style="padding:16px; text-align:center; color:#94a3b8; font-size:0.85rem;">
-          Recorded recharges will automatically compute your Days per ৳ 1,000 burn rate once multiple cycles exist.
+          Recorded payments will automatically compute your Days per ৳ 1,000 burn rate once multiple cycles exist.
         </div>
       `;
     } else {
@@ -5441,7 +5451,7 @@ function renderStatsPage() {
               <div class="barFill" style="width:${pct}%; background: linear-gradient(90deg, #00E676, #00C2FF);"></div>
             </div>
             <div class="barAmount" style="font-family:var(--font-mono); font-size:0.85rem; color:#00E676; font-weight:800;">
-              ${item.daysPer1k.toFixed(1)} Days
+              ${formatDaysWithMonths(item.daysPer1k)}
             </div>
           </div>
         `;
@@ -9663,7 +9673,7 @@ YTD Spend by Bill
       <div class="chartCard fullWidth" id="rechargeEfficiencySection">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
           <div class="chartTitle" style="margin-bottom:0;">
-            Prepaid Recharge Efficiency (Days per ৳ 1,000)
+            Utility Spend Efficiency (Days per ৳ 1,000)
           </div>
           <div style="font-family:var(--font-mono); font-size:0.75rem; font-weight:700; color:#00E676; background:rgba(0,230,118,0.12); border:1px solid rgba(0,230,118,0.3); border-radius:999px; padding:4px 12px; text-transform:uppercase; letter-spacing:0.5px;">
             Burn Rate Intelligence
