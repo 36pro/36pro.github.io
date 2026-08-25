@@ -5066,9 +5066,10 @@ function renderStatsPage() {
       surchargeTrendChartInstance.destroy();
     }
     
-    // Group surcharges by month
+    // Group surcharges by month (Rolling 6 Months)
+    const surchargeMonths = monthsList.slice(-6);
     const monthlyFees = {};
-    monthsList.forEach(m => monthlyFees[m] = 0);
+    surchargeMonths.forEach(m => monthlyFees[m] = 0);
     
     paymentsData.forEach(rawP => {
       const p = parsePaymentRecord(rawP);
@@ -5084,10 +5085,10 @@ function renderStatsPage() {
     surchargeTrendChartInstance = new Chart(ctxSurcharge, {
       type: 'bar',
       data: {
-        labels: monthsList,
+        labels: surchargeMonths,
         datasets: [{
           label: 'Surcharges (৳)',
-          data: monthsList.map(m => monthlyFees[m] || 0),
+          data: surchargeMonths.map(m => monthlyFees[m] || 0),
           backgroundColor: 'rgba(255, 122, 0, 0.45)',
           borderColor: '#FF7A00',
           borderWidth: 1.5,
