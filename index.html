@@ -1022,7 +1022,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 
 /* FULL WIDTH CARDS SPAN ACROSS BOTH COLUMNS */
-.surchargeCard,
 .surchargeCard.fullWidth,
 .chartCard.fullWidth,
 .descoStatsCard.fullWidth {
@@ -4933,16 +4932,18 @@ function renderStatsPage() {
   const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const now = new Date();
   const currentYear = now.getFullYear();
-  const prevYear = currentYear - 1;
   const statsStartDate = new Date(2026, 5, 1);
   
-  // Build rolling months list for charts
+  // Build rolling months list for all charts
   const monthsList = [];
   const monthSums = {};
   const monthlyFees = {};
   
-  let curr = new Date(2026, 0, 1);
-  while (curr <= now) {
+  const startDate = new Date(2026, 4, 1); // Start from May 2026
+  const endDate = new Date();
+  
+  let curr = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+  while (curr <= endDate) {
     const label = `${monthNames[curr.getMonth()]} ${String(curr.getFullYear()).substr(-2)}`;
     monthsList.push(label);
     monthSums[label] = 0;
@@ -4968,31 +4969,24 @@ function renderStatsPage() {
   let highestBillLabel = '-';
   let statsMonthsSum = 0;
   
-  const spendByBillMap = {};
-  billPages.forEach(b => spendByBillMap[b.name.replace('<br>', ' ')] = 0);
-  
-  const categorySums = { Electricity: 0, Water: 0, Gas: 0, Internet: 0 };
+  const getShortenedBillName = (fullName) => {
+    const mapping = {
+      'Uttara DESCO': 'U.DESCO',
+      'Rupnagar DESCO': 'R.DESCO',
+      'Uttara Water': 'U.WATER',
+      'Rupnagar Gas': 'R.GAS',
+      'Inspire Broadband': 'INSPIRE.B',
+      'Noakhali Palli': 'N.PALLI',
+      'Matuail Gas': 'M.GAS'
+    };
+    return mapping[fullName.trim()] || fullName;
+  };
   
   paymentsData.forEach(rawP => {
     const p = parsePaymentRecord(rawP);
     totalSpend += p.total;
     totalBaseSpend += p.baseAmount;
     totalSurcharges += p.fee;
-    
-    if (spendByBillMap[p.billName] !== undefined) {
-      spendByBillMap[p.billName] += p.total;
-    }
-    
-    const nameLower = p.billName.toLowerCase();
-    if (nameLower.includes('desco') || nameLower.includes('palli') || nameLower.includes('bidyut')) {
-      categorySums.Electricity += p.total;
-    } else if (nameLower.includes('water') || nameLower.includes('wasa')) {
-      categorySums.Water += p.total;
-    } else if (nameLower.includes('gas')) {
-      categorySums.Gas += p.total;
-    } else if (nameLower.includes('broadband') || nameLower.includes('internet') || nameLower.includes('inspire')) {
-      categorySums.Internet += p.total;
-    }
     
     if (p.hasFee) {
       feeTransactionsCount++;
@@ -5018,81 +5012,7 @@ function renderStatsPage() {
     if (pDate >= statsStartDate && pDate <= now) {
       statsMonthsSum += p.total;
     }
-    
-    const monthLabel = `${monthNames[pDate.getMonth()]} ${String(pDate.getFullYear()).substr(-2)}`;
-    if (monthSums[monthLabel] !== undefined) {
-      monthSums[monthLabel] += p.total;
-    }
-    if (p.hasFee && monthlyFees[monthLabel] !== undefined) {
-      monthlyFees[monthLabel] += p.fee;
-    }
   });
-
-  // Top KPI Cards
-  const elapsedMonths = Math.max(1, (now.getFullYear() - 2026) * 12 + (now.getMonth() - 5) + 1);
-  const avgMonthlySpend = statsMonthsSum / elapsedMonths;
-  
-  const kpiCards = document.querySelectorAll('.kpiCard');
-  if (kpiCards.length >= 4) {
-    kpiCards[0].querySelector('.kpiValue').innerText = `৳ ${Math.round(totalSpend).toLocaleString()}`;
-    kpiCards[1].querySelector('.kpiValue').innerText = `৳ ${Math.round(ytdSpend).toLocaleString()}`;
-    
-    const currentMonthName = now.toLocaleString('en-US', { month: 'short' });
-    kpiCards[1].querySelector('.kpiSub').innerText = `Jan — ${currentMonthName} ${currentYear}`;
-    
-    kpiCards[2].querySelector('.kpiValue').innerText = `৳ ${Math.round(highestBill).toLocaleString()}`;
-    kpiCards[2].querySelector('.kpiSub').innerText = highestBillLabel;
-    kpiCards[3].querySelector('.kpiValue').innerText = `৳ ${Math.round(avgMonthlySpend).toLocaleString()}`;
-  }
-
-  // Populate Horizontal Bars (Total Spend & YTD)
-  const totalSpendSorted = Object.entries(spendByBillMap).sort((a, b) => b[1] - a[1]);
-  const maxTotalSpend = Math.max(...totalSpendSorted.map(x => x[1]), 1);
-  
-  const totalSpendContainer = document.querySelectorAll('.horizontalBars')[0];
-  if (totalSpendContainer) {
-    totalSpendContainer.innerHTML = totalSpendSorted.map(([name, amt]) => {
-      const pct = (amt / maxTotalSpend) * 100;
-      return `
-        <div class="barRow">
-          <div class="barLabel">${name}</div>
-          <div class="barTrack">
-            <div class="barFill barAccent" style="width:${pct}%"></div>
-          </div>
-          <div class="barAmount">৳ ${Math.round(amt).toLocaleString()}</div>
-        </div>
-      `;
-    }).join('');
-  }
-
-  const ytdSpendByBillMap = {};
-  billPages.forEach(b => ytdSpendByBillMap[b.name.replace('<br>', ' ')] = 0);
-  paymentsData.forEach(rawP => {
-    const p = parsePaymentRecord(rawP);
-    const pDate = new Date(p.payDate);
-    if (pDate.getFullYear() === currentYear && ytdSpendByBillMap[p.billName] !== undefined) {
-      ytdSpendByBillMap[p.billName] += p.total;
-    }
-  });
-  
-  const ytdSpendSorted = Object.entries(ytdSpendByBillMap).sort((a, b) => b[1] - a[1]);
-  const maxYtdSpend = Math.max(...ytdSpendSorted.map(x => x[1]), 1);
-  
-  const ytdSpendContainer = document.querySelectorAll('.horizontalBars')[1];
-  if (ytdSpendContainer) {
-    ytdSpendContainer.innerHTML = ytdSpendSorted.map(([name, amt]) => {
-      const pct = (amt / maxYtdSpend) * 100;
-      return `
-        <div class="barRow">
-          <div class="barLabel">${name}</div>
-          <div class="barTrack">
-            <div class="barFill barSuccess" style="width:${pct}%"></div>
-          </div>
-          <div class="barAmount">৳ ${Math.round(amt).toLocaleString()}</div>
-        </div>
-      `;
-    }).join('');
-  }
 
   // Populate Surcharge Intelligence Elements
   const statTotalFeesEl = document.getElementById('statTotalFees');
@@ -5114,13 +5034,13 @@ function renderStatsPage() {
   }
   
   const surchargeElecEl = document.getElementById('surchargeElecText');
-  if (surchargeElecEl) surchargeElecEl.innerText = `Electricity Surcharges: ৳ ${elecFees.toLocaleString()}`;
+  if (surchargeElecEl) surchargeElecEl.innerText = `Electricity: ৳ ${elecFees.toLocaleString()}`;
   
   const surchargeGasEl = document.getElementById('surchargeGasText');
-  if (surchargeGasEl) surchargeGasEl.innerText = `Gas Surcharges: ৳ ${gasFees.toLocaleString()}`;
+  if (surchargeGasEl) surchargeGasEl.innerText = `Gas: ৳ ${gasFees.toLocaleString()}`;
   
   const surchargeOtherEl = document.getElementById('surchargeOtherText');
-  if (surchargeOtherEl) surchargeOtherEl.innerText = `Other Surcharges: ৳ ${otherFees.toLocaleString()}`;
+  if (surchargeOtherEl) surchargeOtherEl.innerText = `Other Utilities: ৳ ${otherFees.toLocaleString()}`;
 
   // Update Surcharge Allocation Bar
   const totalCombined = totalBaseSpend + totalSurcharges;
@@ -5139,13 +5059,28 @@ function renderStatsPage() {
   const feeBar = document.getElementById('feeSpendBar');
   if (feeBar) feeBar.style.width = `${feePct}%`;
 
-  // Render Surcharge Trend Chart
+  // Render Monthly Surcharge Trend Chart
   const ctxSurcharge = document.getElementById('surchargeTrendChart');
   if (ctxSurcharge && typeof Chart !== 'undefined') {
     if (surchargeTrendChartInstance) {
       surchargeTrendChartInstance.destroy();
     }
     
+    // Group surcharges by month
+    const monthlyFees = {};
+    monthsList.forEach(m => monthlyFees[m] = 0);
+    
+    paymentsData.forEach(rawP => {
+      const p = parsePaymentRecord(rawP);
+      if (p.hasFee) {
+        const pDate = new Date(p.payDate);
+        const label = `${monthNames[pDate.getMonth()]} ${String(pDate.getFullYear()).substr(-2)}`;
+        if (monthlyFees[label] !== undefined) {
+          monthlyFees[label] += p.fee;
+        }
+      }
+    });
+
     surchargeTrendChartInstance = new Chart(ctxSurcharge, {
       type: 'bar',
       data: {
@@ -5153,7 +5088,7 @@ function renderStatsPage() {
         datasets: [{
           label: 'Surcharges (৳)',
           data: monthsList.map(m => monthlyFees[m] || 0),
-          backgroundColor: 'rgba(255, 122, 0, 0.55)',
+          backgroundColor: 'rgba(255, 122, 0, 0.45)',
           borderColor: '#FF7A00',
           borderWidth: 1.5,
           borderRadius: 6
@@ -5194,380 +5129,3176 @@ function renderStatsPage() {
       }
     });
   }
-
-  // Render Monthly Spend Chart
-  const ctxMonthly = document.getElementById('monthlySpendChart');
-  if (ctxMonthly && typeof Chart !== 'undefined') {
-    if (monthlySpendChartInstance) {
-      monthlySpendChartInstance.destroy();
-    }
+  
+  // Calculate elapsed months dynamically from June 2026 (inclusive) to current date
+  const elapsedMonths = Math.max(1, (now.getFullYear() - 2026) * 12 + (now.getMonth() - 5) + 1);
+  const avgMonthlySpend = statsMonthsSum / elapsedMonths;
+  
+  const kpiCards = document.querySelectorAll('.kpiCard');
+  if (kpiCards.length >= 4) {
+    kpiCards[0].querySelector('.kpiValue').innerText = `৳ ${totalSpend.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}`;
+    kpiCards[1].querySelector('.kpiValue').innerText = `৳ ${ytdSpend.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}`;
     
-    const chartCtx = ctxMonthly.getContext('2d');
-    const gradient = chartCtx.createLinearGradient(0, 0, 0, 300);
-    gradient.addColorStop(0, 'rgba(0, 194, 255, 0.45)');
-    gradient.addColorStop(1, 'rgba(0, 194, 255, 0.0)');
+    // Dynamically format YTD subtext to show the current month and current year
+    const currentMonthName = now.toLocaleString('en-US', { month: 'short' });
+    kpiCards[1].querySelector('.kpiSub').innerText = `Jan — ${currentMonthName} ${currentYear}`;
     
-    monthlySpendChartInstance = new Chart(ctxMonthly, {
-      type: 'line',
-      data: {
-        labels: monthsList,
-        datasets: [{
-          label: 'Monthly Spend',
-          data: monthsList.map(label => monthSums[label] || 0),
-          borderColor: '#00C2FF',
-          borderWidth: 3,
-          backgroundColor: gradient,
-          fill: true,
-          tension: 0.4,
-          pointBackgroundColor: '#00C2FF',
-          pointBorderColor: '#0b1730',
-          pointBorderWidth: 2,
-          pointRadius: 4,
-          pointHoverRadius: 6
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        layout: {
-          padding: { top: 24, right: 24 }
-        },
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: '#0b1730',
-            titleColor: '#f4f7ff',
-            bodyColor: '#00C2FF',
-            borderColor: '#1d3969',
-            borderWidth: 1,
-            titleFont: { family: 'Inter', weight: 'bold' },
-            bodyFont: { family: 'JetBrains Mono' },
-            callbacks: {
-              label: function(context) {
-                return ' ৳ ' + Math.round(context.parsed.y).toLocaleString();
-              }
-            }
-          }
-        },
-        scales: {
-          x: {
-            grid: { color: 'rgba(29, 57, 105, 0.25)', drawBorder: false },
-            ticks: { color: '#91a5c6', font: { family: 'Inter', size: 11 } }
-          },
-          y: {
-            grid: { color: 'rgba(29, 57, 105, 0.25)', drawBorder: false },
-            ticks: {
-              color: '#91a5c6',
-              font: { family: 'JetBrains Mono', size: 11 },
-              callback: function(value) { return '৳' + value.toLocaleString(); }
-            }
-          }
-        }
-      }
-    });
+    kpiCards[2].querySelector('.kpiValue').innerText = `৳ ${highestBill.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}`;
+    kpiCards[2].querySelector('.kpiSub').innerText = highestBillLabel;
+    kpiCards[3].querySelector('.kpiValue').innerText = `৳ ${avgMonthlySpend.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}`;
   }
-
-  // Render Cumulative YoY Chart
-  const ctxCumulative = document.getElementById('cumulativeCompareChart');
-  if (ctxCumulative && typeof Chart !== 'undefined') {
-    if (cumulativeCompareChartInstance) {
-      cumulativeCompareChartInstance.destroy();
+  
+  const spendByBillMap = {};
+  billPages.forEach(b => spendByBillMap[b.name.replace('<br>', ' ')] = 0);
+  paymentsData.forEach(p => {
+    if (spendByBillMap[p.billName] !== undefined) {
+      spendByBillMap[p.billName] += parseFloat(p.amount);
+    }
+  });
+  
+  const totalSpendSorted = Object.entries(spendByBillMap).sort((a, b) => b[1] - a[1]);
+  const maxTotalSpend = Math.max(...totalSpendSorted.map(x => x[1]), 1);
+  
+  const totalSpendContainer = document.querySelectorAll('.horizontalBars')[0];
+  if (totalSpendContainer) {
+    totalSpendContainer.innerHTML = totalSpendSorted.map(([name, amt]) => {
+      const pct = (amt / maxTotalSpend) * 100;
+      return `
+        <div class="barRow">
+          <div class="barLabel">${getShortenedBillName(name)}</div>
+          <div class="barTrack">
+            <div class="barFill barAccent" style="width:${pct}%"></div>
+          </div>
+          <div class="barAmount">৳ ${amt.toLocaleString(undefined, {maximumFractionDigits: 0})}</div>
+        </div>
+      `;
+    }).join('');
+  }
+  
+  const ytdByBillMap = {};
+  billPages.forEach(b => ytdByBillMap[b.name.replace('<br>', ' ')] = 0);
+  paymentsData.forEach(p => {
+    const pDate = new Date(p.payDate);
+    if (pDate.getFullYear() === currentYear && ytdByBillMap[p.billName] !== undefined) {
+      ytdByBillMap[p.billName] += parseFloat(p.amount);
+    }
+  });
+  
+  const ytdSpendSorted = Object.entries(ytdByBillMap).sort((a, b) => b[1] - a[1]);
+  const maxYtdSpend = Math.max(...ytdSpendSorted.map(x => x[1]), 1);
+  
+  const ytdSpendContainer = document.querySelectorAll('.horizontalBars')[1];
+  if (ytdSpendContainer) {
+    ytdSpendContainer.innerHTML = ytdSpendSorted.map(([name, amt]) => {
+      const pct = (amt / maxYtdSpend) * 100;
+      return `
+        <div class="barRow">
+          <div class="barLabel">${getShortenedBillName(name)}</div>
+          <div class="barTrack">
+            <div class="barFill barSuccess" style="width:${pct}%"></div>
+          </div>
+          <div class="barAmount">৳ ${amt.toLocaleString(undefined, {maximumFractionDigits: 0})}</div>
+        </div>
+      `;
+    }).join('');
+  }
+  
+// monthsList initialized at top of renderStatsPage
+  
+  paymentsData.forEach(p => {
+    const pDate = new Date(p.payDate);
+    const label = `${monthNames[pDate.getMonth()]} ${String(pDate.getFullYear()).substr(-2)}`;
+    if (monthSums[label] !== undefined) {
+      monthSums[label] += parseFloat(p.amount);
+    }
+  });
+  
+  const maxMonthSum = Math.max(...Object.values(monthSums), 1);
+  
+  const monthChartContainer = document.querySelector('.monthChart');
+  const chartCanvasContainer = document.getElementById('monthlySpendChartContainer');
+  const yoyCanvasContainer = document.getElementById('yoyCompareChartContainer');
+  
+  if (typeof Chart !== 'undefined') {
+    if (monthChartContainer) monthChartContainer.classList.add('hidden');
+    if (chartCanvasContainer) chartCanvasContainer.classList.remove('hidden');
+    if (yoyCanvasContainer) {
+      const parentCard = yoyCanvasContainer.closest('.chartCard');
+      if (parentCard) parentCard.classList.remove('hidden');
     }
     
-    const shortMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const prevYearMonthly = Array(12).fill(0);
-    const currentYearMonthly = Array(12).fill(0);
-    
-    paymentsData.forEach(rawP => {
-      const p = parsePaymentRecord(rawP);
-      const d = new Date(p.payDate);
-      const mIdx = d.getMonth();
-      const yr = d.getFullYear();
-      if (yr === prevYear) prevYearMonthly[mIdx] += p.total;
-      if (yr === currentYear) currentYearMonthly[mIdx] += p.total;
-    });
-    
-    const prevYearCumulative = [];
-    const currentYearCumulative = [];
-    let runPrev = 0;
-    let runCurr = 0;
-    
-    for (let i = 0; i < 12; i++) {
-      runPrev += prevYearMonthly[i];
-      prevYearCumulative.push(runPrev);
+    // 1. Monthly Spend Area Chart
+    const ctxMonthly = document.getElementById('monthlySpendChart');
+    if (ctxMonthly) {
+      if (monthlySpendChartInstance) {
+        monthlySpendChartInstance.destroy();
+      }
       
-      if (i <= now.getMonth()) {
-        runCurr += currentYearMonthly[i];
-        currentYearCumulative.push(runCurr);
-      } else {
-        currentYearCumulative.push(null);
-      }
-    }
-    
-    const chartCtx = ctxCumulative.getContext('2d');
-    const gradientCurr = chartCtx.createLinearGradient(0, 0, 0, 260);
-    gradientCurr.addColorStop(0, 'rgba(0, 230, 118, 0.35)');
-    gradientCurr.addColorStop(1, 'rgba(0, 230, 118, 0.0)');
-    
-    cumulativeCompareChartInstance = new Chart(ctxCumulative, {
-      type: 'line',
-      data: {
-        labels: shortMonths,
-        datasets: [
-          {
-            label: `${prevYear} Cumulative`,
-            data: prevYearCumulative,
-            borderColor: '#1d3969',
-            borderWidth: 2,
-            fill: false,
-            tension: 0.3,
-            pointRadius: 3
-          },
-          {
-            label: `${currentYear} Cumulative`,
-            data: currentYearCumulative,
-            borderColor: '#00E676',
+      const chartCtx = ctxMonthly.getContext('2d');
+      const gradient = chartCtx.createLinearGradient(0, 0, 0, 300);
+      gradient.addColorStop(0, 'rgba(34, 211, 238, 0.45)');
+      gradient.addColorStop(1, 'rgba(34, 211, 238, 0.0)');
+      
+      monthlySpendChartInstance = new Chart(ctxMonthly, {
+        type: 'line',
+        data: {
+          labels: monthsList,
+          datasets: [{
+            label: 'Monthly Spend',
+            data: monthsList.map(label => monthSums[label] || 0),
+            borderColor: '#00C2FF',
             borderWidth: 3,
-            backgroundColor: gradientCurr,
+            backgroundColor: gradient,
             fill: true,
-            tension: 0.3,
+            tension: 0.4,
+            pointBackgroundColor: '#00C2FF',
+            pointBorderColor: '#0b1730',
+            pointBorderWidth: 2,
             pointRadius: 4,
-            pointBackgroundColor: '#00E676'
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        layout: { padding: { top: 24, right: 24 } },
-        plugins: {
-          legend: {
-            labels: { color: '#f4f7ff', font: { family: 'Inter', size: 12, weight: 'bold' } }
+            pointHoverRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          layout: {
+            padding: {
+              top: 24, // Increased top padding to give text labels plenty of headroom
+              right: 24 // Prevent rightmost label cropping
+            }
           },
-          tooltip: {
-            backgroundColor: '#0b1730',
-            titleColor: '#f4f7ff',
-            bodyColor: '#00E676',
-            borderColor: '#1d3969',
-            borderWidth: 1,
-            callbacks: {
-              label: function(context) {
-                return ' ' + context.dataset.label + ': ৳ ' + Math.round(context.parsed.y).toLocaleString();
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              backgroundColor: '#0b1730',
+              titleColor: '#f4f7ff',
+              bodyColor: '#00C2FF',
+              borderColor: '#1d3969',
+              borderWidth: 1,
+              titleFont: { family: 'Inter', weight: 'bold' },
+              bodyFont: { family: 'JetBrains Mono' },
+              displayColors: false,
+              callbacks: {
+                label: function(context) {
+                  return ' ৳ ' + Math.round(context.parsed.y).toLocaleString(undefined, {maximumFractionDigits: 0});
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: {
+                color: 'rgba(29, 57, 105, 0.25)',
+                drawBorder: false
+              },
+              ticks: {
+                color: '#91a5c6',
+                font: { family: 'Inter', size: 11, weight: '500' }
+              }
+            },
+            y: {
+              grace: '15%', // Added a 15% grace padding to the top of the scale to avoid top label clipping
+              grid: {
+                color: 'rgba(29, 57, 105, 0.25)',
+                drawBorder: false
+              },
+              ticks: {
+                color: '#91a5c6',
+                font: { family: 'JetBrains Mono', size: 11 },
+                callback: function(value) {
+                  return '৳' + value.toLocaleString();
+                }
               }
             }
           }
         },
-        scales: {
-          x: {
-            grid: { color: 'rgba(29, 57, 105, 0.15)', drawBorder: false },
-            ticks: { color: '#91a5c6', font: { family: 'Inter', size: 11 } }
-          },
-          y: {
-            grid: { color: 'rgba(29, 57, 105, 0.15)', drawBorder: false },
-            ticks: {
-              color: '#91a5c6',
-              font: { family: 'JetBrains Mono', size: 11 },
-              callback: function(value) { return '৳' + value.toLocaleString(); }
-            }
+        plugins: [{
+          id: 'permLabels',
+          afterDatasetsDraw(chart) {
+            const { ctx } = chart;
+            ctx.save();
+            ctx.font = 'bold 13px "JetBrains Mono", monospace';
+            ctx.fillStyle = '#00C2FF';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            
+            // Add drop shadow/halo for maximum legibility over grid lines
+            ctx.shadowColor = 'rgba(3, 8, 22, 0.9)';
+            ctx.shadowBlur = 4;
+            
+            chart.data.datasets.forEach((dataset, datasetIndex) => {
+              const meta = chart.getDatasetMeta(datasetIndex);
+              meta.data.forEach((element, index) => {
+                const val = dataset.data[index];
+                if (val > 0) {
+                  const formatted = Math.round(val).toLocaleString();
+                  ctx.fillText(formatted, element.x, element.y - 10);
+                }
+              });
+            });
+            ctx.restore();
           }
-        }
-      }
-    });
-  }
-
-  // Render Spending Dimensions Radar Chart
-  const ctxRadar = document.getElementById('categoryRadarChart');
-  if (ctxRadar && typeof Chart !== 'undefined') {
-    if (categoryRadarChartInstance) {
-      categoryRadarChartInstance.destroy();
-    }
-    
-    categoryRadarChartInstance = new Chart(ctxRadar, {
-      type: 'radar',
-      data: {
-        labels: [
-          ['Electricity', '৳ ' + Math.round(categorySums.Electricity).toLocaleString()],
-          ['Water', '৳ ' + Math.round(categorySums.Water).toLocaleString()],
-          ['Gas', '৳ ' + Math.round(categorySums.Gas).toLocaleString()],
-          ['Internet', '৳ ' + Math.round(categorySums.Internet).toLocaleString()]
-        ],
-        datasets: [{
-          label: 'Total Spend',
-          data: [categorySums.Electricity, categorySums.Water, categorySums.Gas, categorySums.Internet],
-          backgroundColor: 'rgba(0, 194, 255, 0.25)',
-          borderColor: '#00C2FF',
-          borderWidth: 2,
-          pointBackgroundColor: '#00C2FF',
-          pointBorderColor: '#0b1730',
-          pointBorderWidth: 2,
-          pointRadius: 4
         }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          r: {
-            grid: { color: 'rgba(29, 57, 105, 0.3)' },
-            angleLines: { color: 'rgba(29, 57, 105, 0.3)' },
-            pointLabels: { color: '#f4f7ff', font: { family: 'Inter', size: 11, weight: '600' } },
-            ticks: { display: false }
-          }
-        }
-      }
-    });
-  }
-
-  // Render Quarterly Stacked Chart
-  const ctxQuarterly = document.getElementById('quarterlyStackedChart');
-  if (ctxQuarterly && typeof Chart !== 'undefined') {
-    if (quarterlyStackedChartInstance) {
-      quarterlyStackedChartInstance.destroy();
+      });
     }
-    
-    const quarters = ['Q1 (Jan-Mar)', 'Q2 (Apr-Jun)', 'Q3 (Jul-Sep)', 'Q4 (Oct-Dec)'];
-    const qElectricity = [0, 0, 0, 0];
-    const qWater = [0, 0, 0, 0];
-    const qGas = [0, 0, 0, 0];
-    const qInternet = [0, 0, 0, 0];
-    
-    paymentsData.forEach(rawP => {
-      const p = parsePaymentRecord(rawP);
-      const d = new Date(p.payDate);
-      if (d.getFullYear() === currentYear) {
-        const qIdx = Math.floor(d.getMonth() / 3);
-        const nameLower = p.billName.toLowerCase();
-        if (nameLower.includes('desco') || nameLower.includes('palli') || nameLower.includes('bidyut')) {
-          qElectricity[qIdx] += p.total;
-        } else if (nameLower.includes('water') || nameLower.includes('wasa')) {
-          qWater[qIdx] += p.total;
-        } else if (nameLower.includes('gas')) {
-          qGas[qIdx] += p.total;
-        } else if (nameLower.includes('broadband') || nameLower.includes('internet') || nameLower.includes('inspire')) {
-          qInternet[qIdx] += p.total;
+
+    // YoY Cumulative Compare Chart
+    const ctxCumulative = document.getElementById('cumulativeCompareChart');
+    if (ctxCumulative) {
+      if (cumulativeCompareChartInstance) {
+        cumulativeCompareChartInstance.destroy();
+      }
+      
+      const currentYear = new Date().getFullYear();
+      const prevYear = currentYear - 1;
+      const shortMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      
+      const currentYearMonthlySums = Array(12).fill(0);
+      const prevYearMonthlySums = Array(12).fill(0);
+      
+      paymentsData.forEach(p => {
+        const pDate = new Date(p.payDate);
+        const year = pDate.getFullYear();
+        const month = pDate.getMonth();
+        if (year === currentYear) {
+          currentYearMonthlySums[month] += parseFloat(p.amount);
+        } else if (year === prevYear) {
+          prevYearMonthlySums[month] += parseFloat(p.amount);
+        }
+      });
+      
+      const currentYearCumulative = Array(12).fill(null);
+      const prevYearCumulative = Array(12).fill(null);
+      let currentRunningSum = 0;
+      let prevRunningSum = 0;
+      const currentMonthIndex = new Date().getMonth();
+      
+      for (let i = 0; i < 12; i++) {
+        prevRunningSum += prevYearMonthlySums[i];
+        prevYearCumulative[i] = prevRunningSum;
+        
+        if (i <= currentMonthIndex) {
+          currentRunningSum += currentYearMonthlySums[i];
+          currentYearCumulative[i] = currentRunningSum;
         }
       }
-    });
-    
-    quarterlyStackedChartInstance = new Chart(ctxQuarterly, {
-      type: 'bar',
-      data: {
-        labels: quarters,
-        datasets: [
-          { label: 'Electricity', data: qElectricity, backgroundColor: '#00E676', borderRadius: 4 },
-          { label: 'Water', data: qWater, backgroundColor: '#00C2FF', borderRadius: 4 },
-          { label: 'Gas', data: qGas, backgroundColor: '#FF7A00', borderRadius: 4 },
-          { label: 'Internet', data: qInternet, backgroundColor: '#a855f7', borderRadius: 4 }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { labels: { color: '#f4f7ff', font: { family: 'Inter', size: 10, weight: '600' } } },
-          tooltip: {
-            backgroundColor: '#0b1730',
-            callbacks: {
-              label: function(ctx) { return ' ' + ctx.dataset.label + ': ৳ ' + Math.round(ctx.parsed.y).toLocaleString(); }
+      
+      const chartCtxCum = ctxCumulative.getContext('2d');
+      const gradientPrev = chartCtxCum.createLinearGradient(0, 0, 0, 300);
+      gradientPrev.addColorStop(0, 'rgba(29, 57, 105, 0.3)');
+      gradientPrev.addColorStop(1, 'rgba(29, 57, 105, 0.0)');
+      
+      const gradientCurr = chartCtxCum.createLinearGradient(0, 0, 0, 300);
+      gradientCurr.addColorStop(0, 'rgba(99, 255, 104, 0.3)');
+      gradientCurr.addColorStop(1, 'rgba(99, 255, 104, 0.0)');
+      
+      cumulativeCompareChartInstance = new Chart(ctxCumulative, {
+        type: 'line',
+        data: {
+          labels: shortMonths,
+          datasets: [
+            {
+              label: `${prevYear} Cumulative`,
+              data: prevYearCumulative,
+              borderColor: '#1d3969',
+              borderWidth: 2,
+              backgroundColor: gradientPrev,
+              fill: true,
+              tension: 0.3,
+              pointRadius: 3
+            },
+            {
+              label: `${currentYear} Cumulative`,
+              data: currentYearCumulative,
+              borderColor: '#00E676',
+              borderWidth: 3,
+              backgroundColor: gradientCurr,
+              fill: true,
+              tension: 0.3,
+              pointRadius: 4,
+              pointBackgroundColor: '#00E676'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          layout: {
+            padding: {
+              top: 24,
+              right: 24
+            }
+          },
+          plugins: {
+            legend: {
+              labels: {
+                color: '#f4f7ff',
+                font: { family: 'Inter', size: 12, weight: 'bold' }
+              }
+            },
+            tooltip: {
+              backgroundColor: '#0b1730',
+              titleColor: '#f4f7ff',
+              bodyColor: '#00E676',
+              borderColor: '#1d3969',
+              borderWidth: 1,
+              titleFont: { family: 'Inter', weight: 'bold' },
+              bodyFont: { family: 'JetBrains Mono' },
+              callbacks: {
+                label: function(context) {
+                  return ' ' + context.dataset.label + ': ৳ ' + Math.round(context.parsed.y).toLocaleString();
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: 'rgba(29, 57, 105, 0.15)', drawBorder: false },
+              ticks: { color: '#91a5c6', font: { family: 'Inter', size: 11 } }
+            },
+            y: {
+              grace: '10%',
+              grid: { color: 'rgba(29, 57, 105, 0.15)', drawBorder: false },
+              ticks: {
+                color: '#91a5c6',
+                font: { family: 'JetBrains Mono', size: 11 },
+                callback: function(value) {
+                  return '৳' + value.toLocaleString();
+                }
+              }
             }
           }
         },
-        scales: {
-          x: { stacked: true, grid: { display: false }, ticks: { color: '#91a5c6', font: { size: 10 } } },
-          y: {
-            stacked: true,
-            grid: { color: 'rgba(29, 57, 105, 0.2)' },
-            ticks: {
-              color: '#91a5c6',
-              font: { size: 10 },
-              callback: function(v) { return '৳' + v.toLocaleString(); }
+        plugins: [{
+          id: 'permLabelsCum',
+          afterDatasetsDraw(chart) {
+            const { ctx } = chart;
+            ctx.save();
+            ctx.font = 'bold 12px "JetBrains Mono", monospace';
+            ctx.fillStyle = '#00E676';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            
+            ctx.shadowColor = 'rgba(3, 8, 22, 0.9)';
+            ctx.shadowBlur = 4;
+            
+            const dataset = chart.data.datasets[1];
+            const meta = chart.getDatasetMeta(1);
+            meta.data.forEach((element, index) => {
+              const val = dataset.data[index];
+              if (val !== null && val > 0) {
+                const latestIdx = dataset.data.filter(v => v !== null).length - 1;
+                if (index === 0 || index === Math.floor(latestIdx / 2) || index === latestIdx) {
+                  const formatted = Math.round(val).toLocaleString();
+                  ctx.fillText(formatted, element.x, element.y - 8);
+                }
+              }
+            });
+            ctx.restore();
+          }
+        }]
+      });
+    }
+
+    // Spending Dimensions Radar Chart
+    const ctxRadar = document.getElementById('categoryRadarChart');
+    if (ctxRadar) {
+      if (categoryRadarChartInstance) {
+        categoryRadarChartInstance.destroy();
+      }
+      
+      const categorySums = { Electricity: 0, Water: 0, Gas: 0, Internet: 0 };
+      paymentsData.forEach(p => {
+        const nameLower = p.billName.toLowerCase();
+        const amt = parseFloat(p.amount);
+        if (nameLower.includes('desco') || nameLower.includes('palli') || nameLower.includes('bidyut')) {
+          categorySums.Electricity += amt;
+        } else if (nameLower.includes('water') || nameLower.includes('wasa')) {
+          categorySums.Water += amt;
+        } else if (nameLower.includes('gas')) {
+          categorySums.Gas += amt;
+        } else if (nameLower.includes('broadband') || nameLower.includes('internet') || nameLower.includes('inspire')) {
+          categorySums.Internet += amt;
+        }
+      });
+      
+      categoryRadarChartInstance = new Chart(ctxRadar, {
+        type: 'radar',
+        data: {
+          labels: [
+            ['Electricity', '৳' + Math.round(categorySums.Electricity).toLocaleString()],
+            ['Water', '৳' + Math.round(categorySums.Water).toLocaleString()],
+            ['Gas', '৳' + Math.round(categorySums.Gas).toLocaleString()],
+            ['Internet', '৳' + Math.round(categorySums.Internet).toLocaleString()]
+          ],
+          datasets: [{
+            label: 'Total Spend',
+            data: [categorySums.Electricity, categorySums.Water, categorySums.Gas, categorySums.Internet],
+            backgroundColor: 'rgba(168, 85, 247, 0.25)', // purple tint
+            borderColor: '#a855f7',
+            borderWidth: 2,
+            pointBackgroundColor: '#a855f7',
+            pointBorderColor: '#0b1730',
+            pointBorderWidth: 2,
+            pointRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#0b1730',
+              titleColor: '#f4f7ff',
+              bodyColor: '#a855f7',
+              borderColor: '#1d3969',
+              borderWidth: 1,
+              callbacks: {
+                label: function(context) {
+                  // Tooltip label callback format helper
+                  const val = context.dataset.data[context.dataIndex];
+                  return ' ' + context.label[0] + ': ৳ ' + Math.round(val).toLocaleString();
+                }
+              }
+            }
+          },
+          scales: {
+            r: {
+              grid: { color: 'rgba(29, 57, 105, 0.25)' },
+              angleLines: { color: 'rgba(29, 57, 105, 0.25)' },
+              pointLabels: {
+                color: '#91a5c6',
+                font: { family: 'Inter', size: 10, weight: 'bold' },
+                centerPointLabels: true
+              },
+              ticks: {
+                display: false
+              }
             }
           }
         }
-      }
-    });
-  }
-
-  // Render Day-of-the-Month Cash Flow Bubble Chart
-  const ctxBubble = document.getElementById('cashFlowBubbleChart');
-  if (ctxBubble && typeof Chart !== 'undefined') {
-    if (cashFlowBubbleChartInstance) {
-      cashFlowBubbleChartInstance.destroy();
+      });
     }
-    
-    const bubblePoints = [];
-    paymentsData.forEach(rawP => {
-      const p = parsePaymentRecord(rawP);
-      const d = new Date(p.payDate);
-      if (d.getFullYear() === currentYear) {
-        const day = d.getDate();
-        const amt = p.total;
-        let color = '#00E676';
-        const nameLower = p.billName.toLowerCase();
-        if (nameLower.includes('water')) color = '#00C2FF';
-        if (nameLower.includes('gas')) color = '#FF7A00';
-        if (nameLower.includes('broadband') || nameLower.includes('internet')) color = '#a855f7';
-        
-        bubblePoints.push({
+
+    // Quarterly Spend Distribution Chart
+    const ctxQuarterly = document.getElementById('quarterlyStackedChart');
+    if (ctxQuarterly) {
+      if (quarterlyStackedChartInstance) {
+        quarterlyStackedChartInstance.destroy();
+      }
+      
+      const currentYear = new Date().getFullYear();
+      const quarters = ['Q1', 'Q2', 'Q3', 'Q4'];
+      
+      const quarterlySumsByAccount = {};
+      
+      paymentsData.forEach(p => {
+        const pDate = new Date(p.payDate);
+        if (pDate.getFullYear() === currentYear) {
+          const account = p.billName;
+          const month = pDate.getMonth();
+          const quarterIdx = Math.floor(month / 3);
+          const amt = parseFloat(p.amount);
+          
+          if (!quarterlySumsByAccount[account]) {
+            quarterlySumsByAccount[account] = [0, 0, 0, 0];
+          }
+          quarterlySumsByAccount[account][quarterIdx] += amt;
+        }
+      });
+      
+      const colors = ['#38bdf8', '#34d399', '#fbbf24', '#a855f7', '#fb7185', '#6366f1'];
+      const accountNames = Object.keys(quarterlySumsByAccount);
+      const datasets = accountNames.map((acc, idx) => {
+        const color = colors[idx % colors.length];
+        return {
+          label: acc,
+          data: quarterlySumsByAccount[acc],
+          backgroundColor: color,
+          borderColor: color,
+          borderRadius: 4
+        };
+      });
+      
+      quarterlyStackedChartInstance = new Chart(ctxQuarterly, {
+        type: 'bar',
+        data: {
+          labels: quarters,
+          datasets: datasets
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                color: '#f4f7ff',
+                boxWidth: 12,
+                font: { family: 'Inter', size: 10 }
+              }
+            },
+            tooltip: {
+              backgroundColor: '#0b1730',
+              titleColor: '#f4f7ff',
+              bodyColor: '#00C2FF',
+              borderColor: '#1d3969',
+              borderWidth: 1,
+              callbacks: {
+                label: function(context) {
+                  return ' ' + context.dataset.label + ': ৳ ' + Math.round(context.raw).toLocaleString();
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              stacked: true,
+              grid: { display: false },
+              ticks: { color: '#91a5c6', font: { family: 'Inter', size: 11, weight: 'bold' } }
+            },
+            y: {
+              stacked: true,
+              grace: '10%',
+              grid: { color: 'rgba(29, 57, 105, 0.15)', drawBorder: false },
+              ticks: {
+                color: '#91a5c6',
+                font: { family: 'JetBrains Mono', size: 11 },
+                callback: function(value) {
+                  return '৳' + value.toLocaleString();
+                }
+              }
+            }
+          }
+        },
+        plugins: [{
+          id: 'stackedLabels',
+          afterDatasetsDraw(chart) {
+            const { ctx } = chart;
+            ctx.save();
+            ctx.font = 'bold 11px "JetBrains Mono", monospace';
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            ctx.shadowColor = 'rgba(3, 8, 22, 0.9)';
+            ctx.shadowBlur = 3;
+            
+            chart.data.datasets.forEach((dataset, datasetIndex) => {
+              const meta = chart.getDatasetMeta(datasetIndex);
+              if (meta.hidden) return;
+              
+              meta.data.forEach((element, index) => {
+                const val = dataset.data[index];
+                if (val > 0) {
+                  const height = Math.abs(element.y - element.base);
+                  if (height > 14) {
+                    const formatted = Math.round(val).toLocaleString();
+                    const textY = (element.y + element.base) / 2;
+                    ctx.fillText(formatted, element.x, textY);
+                  }
+                }
+              });
+            });
+            ctx.restore();
+          }
+        }]
+      });
+    }
+
+    // Day-of-the-Month Cash Flow Bubble Chart
+    const ctxBubble = document.getElementById('cashFlowBubbleChart');
+    if (ctxBubble) {
+      if (cashFlowBubbleChartInstance) {
+        cashFlowBubbleChartInstance.destroy();
+      }
+      
+      const bubbleData = paymentsData.map(p => {
+        const pDate = new Date(p.payDate);
+        const day = pDate.getDate();
+        const amt = parseFloat(p.amount);
+        return {
           x: day,
           y: amt,
-          r: Math.min(22, Math.max(6, Math.sqrt(amt) * 0.25)),
+          r: Math.max(6, Math.min(22, (amt / 900) + 5)),
           billName: p.billName,
-          payDate: p.payDate,
-          color: color
-        });
+          payDate: pDate.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
+        };
+      });
+      
+      cashFlowBubbleChartInstance = new Chart(ctxBubble, {
+        type: 'bubble',
+        data: {
+          datasets: [{
+            label: 'Payments',
+            data: bubbleData,
+            backgroundColor: 'rgba(34, 211, 238, 0.35)',
+            borderColor: '#00C2FF',
+            borderWidth: 2,
+            hoverBackgroundColor: 'rgba(99, 255, 104, 0.45)',
+            hoverBorderColor: '#00E676'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#0b1730',
+              titleColor: '#f4f7ff',
+              bodyColor: '#00C2FF',
+              borderColor: '#1d3969',
+              borderWidth: 1,
+              callbacks: {
+                title: function(context) {
+                  return context[0].raw.billName;
+                },
+                label: function(context) {
+                  const raw = context.raw;
+                  return ` Date: ${raw.payDate} | Amount: ৳${Math.round(raw.y).toLocaleString()}`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              title: {
+                display: true,
+                text: 'Day of Month',
+                color: '#91a5c6',
+                font: { family: 'Inter', size: 12, weight: 'bold' }
+              },
+              grid: { color: 'rgba(29, 57, 105, 0.15)', drawBorder: false },
+              ticks: {
+                color: '#91a5c6',
+                font: { family: 'JetBrains Mono', size: 10 },
+                stepSize: 1
+              },
+              min: 1,
+              max: 31
+            },
+            y: {
+              title: {
+                display: true,
+                text: 'Payment Amount (৳)',
+                color: '#91a5c6',
+                font: { family: 'Inter', size: 12, weight: 'bold' }
+              },
+              grace: '15%',
+              grid: { color: 'rgba(29, 57, 105, 0.15)', drawBorder: false },
+              ticks: {
+                color: '#91a5c6',
+                font: { family: 'JetBrains Mono', size: 10 },
+                callback: function(value) {
+                  return '৳' + value.toLocaleString();
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Month-over-Month Spend Inflation Chart
+    const ctxInflation = document.getElementById('spendInflationChart');
+    if (ctxInflation) {
+      if (spendInflationChartInstance) {
+        spendInflationChartInstance.destroy();
       }
-    });
-    
-    cashFlowBubbleChartInstance = new Chart(ctxBubble, {
-      type: 'bubble',
-      data: {
-        datasets: [{
-          label: 'Payments',
-          data: bubblePoints,
-          backgroundColor: bubblePoints.map(pt => pt.color + '66'),
-          borderColor: bubblePoints.map(pt => pt.color),
-          borderWidth: 1.5
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: '#0b1730',
-            callbacks: {
-              label: function(ctx) {
-                const pt = ctx.raw;
-                return ` ${pt.billName} (${pt.payDate}): ৳ ${Math.round(pt.y).toLocaleString()}`;
+      
+      const inflationLabels = [];
+      const inflationRates = [];
+      
+      for (let i = 1; i < monthsList.length; i++) {
+        const prev = monthSums[monthsList[i - 1]] || 0;
+        const curr = monthSums[monthsList[i]] || 0;
+        let rate = 0;
+        if (prev > 0) {
+          rate = ((curr - prev) / prev) * 100;
+        }
+        inflationRates.push(rate);
+        inflationLabels.push(monthsList[i]);
+      }
+      
+      const chartCtxInf = ctxInflation.getContext('2d');
+      const gradientInf = chartCtxInf.createLinearGradient(0, 0, 0, 300);
+      gradientInf.addColorStop(0, 'rgba(255, 96, 119, 0.25)');
+      gradientInf.addColorStop(1, 'rgba(255, 96, 119, 0.0)');
+      
+      spendInflationChartInstance = new Chart(ctxInflation, {
+        type: 'line',
+        data: {
+          labels: inflationLabels,
+          datasets: [{
+            label: 'MoM Variance (%)',
+            data: inflationRates,
+            borderColor: '#ff6077',
+            borderWidth: 3,
+            backgroundColor: gradientInf,
+            fill: true,
+            tension: 0.3,
+            pointBackgroundColor: '#ff6077',
+            pointBorderColor: '#0b1730',
+            pointBorderWidth: 2,
+            pointRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          layout: {
+            padding: {
+              top: 24,
+              right: 24
+            }
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#0b1730',
+              titleColor: '#f4f7ff',
+              bodyColor: '#ff6077',
+              borderColor: '#1d3969',
+              borderWidth: 1,
+              titleFont: { family: 'Inter', weight: 'bold' },
+              bodyFont: { family: 'JetBrains Mono' },
+              callbacks: {
+                label: function(context) {
+                  const val = context.raw;
+                  const prefix = val > 0 ? '+' : '';
+                  return ` MoM Change: ${prefix}${val.toFixed(1)}%`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: 'rgba(29, 57, 105, 0.15)', drawBorder: false },
+              ticks: { color: '#91a5c6', font: { family: 'Inter', size: 11 } }
+            },
+            y: {
+              grace: '10%',
+              grid: { color: 'rgba(29, 57, 105, 0.15)', drawBorder: false },
+              ticks: {
+                color: '#91a5c6',
+                font: { family: 'JetBrains Mono', size: 11 },
+                callback: function(value) {
+                  const prefix = value > 0 ? '+' : '';
+                  return prefix + value + '%';
+                }
               }
             }
           }
         },
-        scales: {
-          x: {
-            min: 1,
-            max: 31,
-            grid: { color: 'rgba(29, 57, 105, 0.2)' },
-            ticks: {
-              color: '#91a5c6',
-              stepSize: 2,
-              callback: function(val) { return 'Day ' + val; }
+        plugins: [{
+          id: 'permLabelsInflation',
+          afterDatasetsDraw(chart) {
+            const { ctx } = chart;
+            ctx.save();
+            ctx.font = 'bold 11px "JetBrains Mono", monospace';
+            ctx.fillStyle = '#ff6077';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            
+            ctx.shadowColor = 'rgba(3, 8, 22, 0.9)';
+            ctx.shadowBlur = 4;
+            
+            chart.data.datasets.forEach((dataset, datasetIndex) => {
+              const meta = chart.getDatasetMeta(datasetIndex);
+              meta.data.forEach((element, index) => {
+                const val = dataset.data[index];
+                if (val !== 0) {
+                  const prefix = val > 0 ? '+' : '';
+                  const formatted = prefix + val.toFixed(0) + '%';
+                  ctx.fillText(formatted, element.x, element.y - 8);
+                }
+              });
+            });
+            ctx.restore();
+          }
+        }]
+      });
+    }
+
+    // Summer vs. Winter Spends Chart
+    const ctxSeason = document.getElementById('seasonalityChart');
+    if (ctxSeason) {
+      if (seasonalityChartInstance) {
+        seasonalityChartInstance.destroy();
+      }
+      
+      let summerSum = 0;
+      let winterSum = 0;
+      const summerMonthsSet = new Set();
+      const winterMonthsSet = new Set();
+      
+      paymentsData.forEach(p => {
+        const pDate = new Date(p.payDate);
+        const monthIndex = pDate.getMonth();
+        const year = pDate.getFullYear();
+        const monthYearKey = `${year}-${monthIndex}`;
+        const amt = parseFloat(p.amount);
+        
+        if (monthIndex >= 2 && monthIndex <= 8) {
+          summerSum += amt;
+          summerMonthsSet.add(monthYearKey);
+        } else {
+          winterSum += amt;
+          winterMonthsSet.add(monthYearKey);
+        }
+      });
+      
+      const summerAvg = summerMonthsSet.size > 0 ? summerSum / summerMonthsSet.size : 0;
+      const winterAvg = winterMonthsSet.size > 0 ? winterSum / winterMonthsSet.size : 0;
+      
+      seasonalityChartInstance = new Chart(ctxSeason, {
+        type: 'bar',
+        data: {
+          labels: ['Summer (Mar-Sep)', 'Winter (Oct-Feb)'],
+          datasets: [{
+            label: 'Avg Monthly Spend',
+            data: [summerAvg, winterAvg],
+            backgroundColor: ['#ffb84d', '#00C2FF'],
+            borderColor: ['#ffb84d', '#00C2FF'],
+            borderRadius: 8,
+            borderSkipped: false,
+            barThickness: 50
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#0b1730',
+              titleColor: '#f4f7ff',
+              bodyColor: '#ffb84d',
+              borderColor: '#1d3969',
+              borderWidth: 1,
+              callbacks: {
+                label: function(context) {
+                  return ' Avg Spend: ৳ ' + Math.round(context.raw).toLocaleString();
+                }
+              }
             }
           },
-          y: {
-            grid: { color: 'rgba(29, 57, 105, 0.2)' },
-            ticks: {
-              color: '#91a5c6',
-              callback: function(val) { return '৳' + val.toLocaleString(); }
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { color: '#91a5c6', font: { family: 'Inter', size: 11, weight: 'bold' } }
+            },
+            y: {
+              grace: '15%',
+              grid: { color: 'rgba(29, 57, 105, 0.15)', drawBorder: false },
+              ticks: {
+                color: '#91a5c6',
+                font: { family: 'JetBrains Mono', size: 11 },
+                callback: function(value) {
+                  return '৳' + value.toLocaleString();
+                }
+              }
             }
+          }
+        },
+        plugins: [{
+          id: 'permLabelsSeason',
+          afterDatasetsDraw(chart) {
+            const { ctx } = chart;
+            ctx.save();
+            ctx.font = 'bold 13px "JetBrains Mono", monospace';
+            ctx.fillStyle = '#f4f7ff';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            
+            ctx.shadowColor = 'rgba(3, 8, 22, 0.9)';
+            ctx.shadowBlur = 4;
+            
+            chart.data.datasets.forEach((dataset, datasetIndex) => {
+              const meta = chart.getDatasetMeta(datasetIndex);
+              meta.data.forEach((element, index) => {
+                const val = dataset.data[index];
+                if (val > 0) {
+                  const formatted = Math.round(val).toLocaleString();
+                  ctx.fillText(formatted, element.x, element.y - 8);
+                }
+              });
+            });
+            ctx.restore();
+          }
+        }]
+      });
+    }
+
+    // Average Spend per Payment by Account Chart
+    const ctxAvgBill = document.getElementById('averageBillChart');
+    if (ctxAvgBill) {
+      if (averageBillChartInstance) {
+        averageBillChartInstance.destroy();
+      }
+      
+      const accountSums = {};
+      const accountCounts = {};
+      
+      paymentsData.forEach(p => {
+        const account = p.billName;
+        const amt = parseFloat(p.amount);
+        accountSums[account] = (accountSums[account] || 0) + amt;
+        accountCounts[account] = (accountCounts[account] || 0) + 1;
+      });
+      
+      const accountLabels = Object.keys(accountSums);
+      const accountAverages = accountLabels.map(acc => accountSums[acc] / accountCounts[acc]);
+      
+      const combinedAccounts = accountLabels.map((label, idx) => ({
+        label,
+        avg: accountAverages[idx]
+      })).sort((a, b) => b.avg - a.avg);
+      
+      const sortedLabels = combinedAccounts.map(x => x.label);
+      const sortedAverages = combinedAccounts.map(x => x.avg);
+      
+      averageBillChartInstance = new Chart(ctxAvgBill, {
+        type: 'bar',
+        data: {
+          labels: sortedLabels,
+          datasets: [{
+            label: 'Avg Spend',
+            data: sortedAverages,
+            backgroundColor: '#a855f7',
+            borderColor: '#a855f7',
+            borderRadius: 6,
+            borderSkipped: false
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#0b1730',
+              titleColor: '#f4f7ff',
+              bodyColor: '#a855f7',
+              borderColor: '#1d3969',
+              borderWidth: 1,
+              callbacks: {
+                label: function(context) {
+                  return ' Avg Spend: ৳ ' + Math.round(context.raw).toLocaleString();
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grace: '15%',
+              grid: { color: 'rgba(29, 57, 105, 0.15)', drawBorder: false },
+              ticks: {
+                color: '#91a5c6',
+                font: { family: 'JetBrains Mono', size: 10 },
+                callback: function(value) {
+                  return '৳' + value.toLocaleString();
+                }
+              }
+            },
+            y: {
+              grid: { display: false },
+              ticks: { color: '#91a5c6', font: { family: 'Inter', size: 11, weight: 'bold' } }
+            }
+          }
+        },
+        plugins: [{
+          id: 'permLabelsAvgBill',
+          afterDatasetsDraw(chart) {
+            const { ctx } = chart;
+            ctx.save();
+            ctx.font = 'bold 12px "JetBrains Mono", monospace';
+            ctx.fillStyle = '#f4f7ff';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            
+            ctx.shadowColor = 'rgba(3, 8, 22, 0.9)';
+            ctx.shadowBlur = 4;
+            
+            chart.data.datasets.forEach((dataset, datasetIndex) => {
+              const meta = chart.getDatasetMeta(datasetIndex);
+              meta.data.forEach((element, index) => {
+                const val = dataset.data[index];
+                if (val > 0) {
+                  const formatted = Math.round(val).toLocaleString();
+                  ctx.fillText(formatted, element.x + 8, element.y);
+                }
+              });
+            });
+            ctx.restore();
+          }
+        }]
+      });
+    }
+
+    // 2. YoY Grouped Bar Chart
+    const ctxYoY = document.getElementById('yoyCompareChart');
+    if (ctxYoY) {
+      if (yoyCompareChartInstance) {
+        yoyCompareChartInstance.destroy();
+      }
+      
+      const currentYear = new Date().getFullYear();
+      const prevYear = currentYear - 1;
+      const shortMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      
+      const currentYearData = Array(12).fill(0);
+      const prevYearData = Array(12).fill(0);
+      
+      paymentsData.forEach(p => {
+        const pDate = new Date(p.payDate);
+        const year = pDate.getFullYear();
+        const month = pDate.getMonth();
+        if (year === currentYear) {
+          currentYearData[month] += parseFloat(p.amount);
+        } else if (year === prevYear) {
+          prevYearData[month] += parseFloat(p.amount);
+        }
+      });
+      
+      yoyCompareChartInstance = new Chart(ctxYoY, {
+        type: 'bar',
+        data: {
+          labels: shortMonths,
+          datasets: [
+            {
+              label: `${prevYear} Spend`,
+              data: prevYearData,
+              backgroundColor: '#1d3969',
+              borderColor: '#1d3969',
+              borderRadius: 6,
+              borderSkipped: false
+            },
+            {
+              label: `${currentYear} Spend`,
+              data: currentYearData,
+              backgroundColor: '#00E676',
+              borderColor: '#00E676',
+              borderRadius: 6,
+              borderSkipped: false
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: {
+                color: '#f4f7ff',
+                font: { family: 'Inter', size: 12, weight: 'bold' }
+              }
+            },
+            tooltip: {
+              backgroundColor: '#0b1730',
+              titleColor: '#f4f7ff',
+              bodyColor: '#00E676',
+              borderColor: '#1d3969',
+              borderWidth: 1,
+              titleFont: { family: 'Inter', weight: 'bold' },
+              bodyFont: { family: 'JetBrains Mono' },
+              callbacks: {
+                label: function(context) {
+                  return ' ' + context.dataset.label + ': ৳ ' + Math.round(context.parsed.y).toLocaleString(undefined, {maximumFractionDigits: 0});
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: {
+                color: 'rgba(29, 57, 105, 0.1)',
+                drawBorder: false
+              },
+              ticks: {
+                color: '#91a5c6',
+                font: { family: 'Inter', size: 11, weight: '500' }
+              }
+            },
+            y: {
+              grid: {
+                color: 'rgba(29, 57, 105, 0.25)',
+                drawBorder: false
+              },
+              ticks: {
+                color: '#91a5c6',
+                font: { family: 'JetBrains Mono', size: 11 },
+                callback: function(value) {
+                  return '৳' + value.toLocaleString();
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+  } else {
+    if (monthChartContainer) monthChartContainer.classList.remove('hidden');
+    if (chartCanvasContainer) chartCanvasContainer.classList.add('hidden');
+    if (yoyCanvasContainer) {
+      const parentCard = yoyCanvasContainer.closest('.chartCard');
+      if (parentCard) parentCard.classList.add('hidden');
+    }
+    const cumContainer = document.getElementById('cumulativeCompareChart');
+    if (cumContainer) {
+      const parentCard = cumContainer.closest('.chartCard');
+      if (parentCard) parentCard.classList.add('hidden');
+    }
+    const radarContainer = document.getElementById('categoryRadarChart');
+    if (radarContainer) {
+      const parentCard = radarContainer.closest('.chartCard');
+      if (parentCard) parentCard.classList.add('hidden');
+    }
+    const quarterlyContainer = document.getElementById('quarterlyStackedChart');
+    if (quarterlyContainer) {
+      const parentCard = quarterlyContainer.closest('.chartCard');
+      if (parentCard) parentCard.classList.add('hidden');
+    }
+    const bubbleContainer = document.getElementById('cashFlowBubbleChart');
+    if (bubbleContainer) {
+      const parentCard = bubbleContainer.closest('.chartCard');
+      if (parentCard) parentCard.classList.add('hidden');
+    }
+    const inflationContainer = document.getElementById('spendInflationChart');
+    if (inflationContainer) {
+      const parentCard = inflationContainer.closest('.chartCard');
+      if (parentCard) parentCard.classList.add('hidden');
+    }
+    const seasonContainer = document.getElementById('seasonalityChart');
+    if (seasonContainer) {
+      const parentCard = seasonContainer.closest('.chartCard');
+      if (parentCard) parentCard.classList.add('hidden');
+    }
+    const avgBillContainer = document.getElementById('averageBillChart');
+    if (avgBillContainer) {
+      const parentCard = avgBillContainer.closest('.chartCard');
+      if (parentCard) parentCard.classList.add('hidden');
+    }
+    
+    if (monthChartContainer) {
+      monthChartContainer.innerHTML = monthsList.map(label => {
+        const amt = monthSums[label];
+        const height = (amt / maxMonthSum) * 200;
+        const formattedAmt = amt >= 1000 ? `${(amt / 1000).toFixed(1)}k` : `${amt}`;
+        return `
+          <div class="monthBarWrap">
+            <div class="monthValue">${formattedAmt === '0' ? '-' : formattedAmt}</div>
+            <div class="monthBar" style="height:${Math.max(height, 5)}px"></div>
+            <div class="monthLabel">${label}</div>
+          </div>
+        `;
+      }).join('');
+    }
+  }
+  
+  const gapRowsContainer = document.querySelector('.gapTable');
+  if (gapRowsContainer) {
+    const gaps = [];
+    billPages.forEach(bill => {
+      const billPayments = paymentsData.filter(p => p.billId === bill.id);
+      const lastPayment = billPayments[0];
+      
+      let gapDays = 0;
+      let dateText = 'Never';
+      
+      if (lastPayment) {
+        gapDays = Math.floor((now - new Date(lastPayment.payDate)) / (1000 * 60 * 60 * 24));
+        dateText = formatDateFriendly(lastPayment.payDate);
+      }
+      
+      gaps.push({
+        name: bill.name.replace('<br>', ' '),
+        date: dateText,
+        days: gapDays
+      });
+    });
+    
+    gaps.sort((a, b) => b.days - a.days);
+    
+    const headerHtml = `
+      <div class="gapHeader">
+        <div>Bill</div>
+        <div>Last Payment</div>
+        <div>Gap (Days)</div>
+      </div>
+    `;
+    
+    const rowsHtml = gaps.map(g => {
+      const gapClass = g.days >= 30 ? 'gapDanger' : 'gapSuccess';
+      return `
+        <div class="gapRow">
+          <div>${g.name}</div>
+          <div>${g.date}</div>
+          <div class="${gapClass}">${g.days === 0 && g.date === 'Never' ? '-' : g.days}</div>
+        </div>
+      `;
+    }).join('');
+    
+    gapRowsContainer.innerHTML = headerHtml + rowsHtml;
+  }
+}
+
+
+// Auto-split stray amount into Main Amount + Fee for specific prepaid bills
+function handleAmountAutoSplit(billId, inputEl) {
+  const autoSplitBills = ['rupnagarDesco', 'uttaraDesco', 'rupnagarGas'];
+  if (!autoSplitBills.includes(billId)) return;
+  
+  const section = document.getElementById(billId);
+  if (!section) return;
+  
+  const feeInput = section.querySelector('.inputFeeVal');
+  if (!feeInput) return;
+  
+  const rawVal = parseFloat(inputEl.value);
+  if (!rawVal || isNaN(rawVal) || rawVal <= 0) {
+    return;
+  }
+  
+  // Stray remainder logic (e.g. 1515 -> base 1500, fee 15; 2030 -> base 2000, fee 30; 1010 -> base 1000, fee 10)
+  const remainder = rawVal % 100;
+  if (remainder > 0 && rawVal > 100) {
+    const baseAmount = rawVal - remainder;
+    inputEl.value = baseAmount;
+    feeInput.value = remainder;
+    showToast(`Auto-split: ৳ ${baseAmount.toLocaleString()} main + ৳ ${remainder} fee`, 3500);
+  } else if (rawVal % 100 === 0) {
+    feeInput.value = ''; // Round amount -> fee empty
+  }
+}
+
+function handleAmountAutoSplitQuick(billId, inputEl) {
+  const autoSplitBills = ['rupnagarDesco', 'uttaraDesco', 'rupnagarGas'];
+  if (!autoSplitBills.includes(billId)) return;
+  
+  // When 4+ digits are typed, check for common stray fees e.g. 1515, 2030, 1010, 2020
+  const rawStr = inputEl.value.trim();
+  if (rawStr.length >= 4) {
+    const rawVal = parseFloat(rawStr);
+    const remainder = rawVal % 100;
+    if (remainder > 0 && rawVal > 100 && (remainder <= 50)) {
+      // Trigger auto-split seamlessly
+      const section = document.getElementById(billId);
+      if (section) {
+        const feeInput = section.querySelector('.inputFeeVal');
+        if (feeInput && !feeInput.value) {
+          const baseAmount = rawVal - remainder;
+          inputEl.value = baseAmount;
+          feeInput.value = remainder;
+          showToast(`Auto-split: ৳ ${baseAmount.toLocaleString()} main + ৳ ${remainder} fee`, 3500);
+        }
+      }
+    }
+  }
+}
+
+function submitPaymentForm(billId) {
+  const section = document.getElementById(billId);
+  if (!section) return;
+  
+  const amountVal = section.querySelector('.inputAmountVal').value.trim();
+  const feeVal = section.querySelector('.inputFeeVal') ? section.querySelector('.inputFeeVal').value.trim() : '';
+  const dateVal = section.querySelector('.inputDateVal').value.trim();
+  
+  const monthSelect = section.querySelector('.inputMonthSelect');
+  const monthVal = monthSelect ? monthSelect.value : '';
+  
+  if (!amountVal || parseFloat(amountVal) <= 0) {
+    alert('Please enter a valid amount.');
+    return;
+  }
+  if (!dateVal) {
+    alert('Please select a valid payment date.');
+    return;
+  }
+  
+  const saveBtn = section.querySelector('.saveBtn');
+  saveBtn.innerText = 'Saving...';
+  saveBtn.disabled = true;
+  
+  savePaymentRecord(billId, amountVal, dateVal, monthVal, feeVal)
+    .then(() => {
+      showToast('Payment recorded successfully!');
+      // Reset inputs
+      section.querySelector('.inputAmountVal').value = '';
+      if (section.querySelector('.inputFeeVal')) section.querySelector('.inputFeeVal').value = '';
+      goHome();
+    })
+    .catch(err => {
+      alert('Failed to save payment: ' + err.message);
+    })
+    .finally(() => {
+      saveBtn.innerText = 'Save Payment';
+      saveBtn.disabled = false;
+    });
+}
+
+function setupDatabaseFilters() {
+  const searchBox = document.querySelector('.searchBox');
+  if (searchBox) {
+    searchBox.oninput = renderDatabasePage;
+  }
+  
+  const filterSelects = document.querySelectorAll('.filterSelect');
+  filterSelects.forEach(select => {
+    select.onchange = renderDatabasePage;
+  });
+  
+  const filterMonth = document.querySelector('.filterMonth');
+  if (filterMonth) {
+    filterMonth.onchange = renderDatabasePage;
+  }
+  
+  const clearMonthBtn = document.querySelector('.clearMonthBtn');
+  if (clearMonthBtn) {
+    clearMonthBtn.onclick = () => {
+      if (filterMonth) {
+        filterMonth.value = '';
+        renderDatabasePage();
+      }
+    };
+  }
+  
+  const refreshBtn = document.querySelectorAll('.toolbarBtn')[0];
+  if (refreshBtn) {
+    refreshBtn.onclick = fetchPayments;
+  }
+  
+  const exportBtn = document.querySelectorAll('.toolbarBtn')[1];
+  if (exportBtn) {
+    exportBtn.onclick = exportToCSV;
+  }
+}
+
+// Robust, Structured CSV Export (Compatible with Excel, Numbers, Sheets & iOS Files)
+function exportToCSV() {
+  exportCsv();
+}
+
+function exportCsv() {
+  if (!paymentsData || paymentsData.length === 0) {
+    showToast("No payment data to export.");
+    return;
+  }
+  
+  const sorted = [...paymentsData].sort((a, b) => {
+    return (b.payDate || '').localeCompare(a.payDate || '');
+  });
+  
+  const meterMap = {
+    rupnagarDesco: '140-10-368',
+    rupnagarGas: '9840-02-14',
+    uttaraDesco: '3801-9924-11',
+    uttaraWater: 'WASA-UT-884',
+    matuailGas: 'MG-774-12',
+    noakhaliPalli: 'NP-5541-09',
+    inspireBroadband: 'ISP-8821'
+  };
+  
+  const categoryMap = {
+    rupnagarDesco: 'Electricity',
+    uttaraDesco: 'Electricity',
+    noakhaliPalli: 'Electricity',
+    uttaraWater: 'Water Supply',
+    rupnagarGas: 'Gas & Thermal',
+    matuailGas: 'Gas & Thermal',
+    inspireBroadband: 'Internet / ISP'
+  };
+
+  let csv = '\uFEFF';
+  csv += 'Transaction ID,Date Paid,Utility Name,Category,Account / Meter No,Billing Type,Billing Month,Main Amount (BDT),Fee (BDT),Total Paid (BDT),Created At (UTC)\n';
+  
+  let totalAmount = 0;
+  let totalFees = 0;
+  sorted.forEach(p => {
+    const amt = parseFloat(p.amount) || 0;
+    const fee = parseFloat(p.fee) || 0;
+    const total = amt + fee;
+    totalAmount += amt;
+    totalFees += fee;
+    
+    const cat = p.utilityCategory ? (p.utilityCategory.charAt(0).toUpperCase() + p.utilityCategory.slice(1)) : (categoryMap[p.billId] || 'Utility');
+    const meter = meterMap[p.billId] || '-';
+    const bMonth = p.billMonth || '-';
+    const bType = p.billType ? (p.billType.charAt(0).toUpperCase() + p.billType.slice(1)) : 'Prepaid';
+    const createdAt = p.savedAt || (p.timestamp ? new Date(p.timestamp).toISOString() : '-');
+    
+    const cleanUid = (p.uid || '').replace(/"/g, '""');
+    const cleanName = (p.billName || '').replace(/<br>/g, ' ').replace(/"/g, '""');
+    
+    csv += `"${cleanUid}","${p.payDate}","${cleanName}","${cat}","${meter}","${bType}","${bMonth}",${Math.round(amt)},${Math.round(fee)},${Math.round(total)},"${createdAt}"\n`;
+  });
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const filename = `billzy_payments_${todayStr}.csv`;
+  
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  
+  if (navigator.msSaveBlob) {
+    navigator.msSaveBlob(blob, filename);
+  } else {
+    const link = document.createElement('a');
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', filename);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } else {
+      window.open('data:text/csv;charset=utf-8,' + encodeURIComponent(csv));
+    }
+  }
+  
+  const feeSummary = totalFees > 0 ? ` (incl. ৳ ${totalFees.toLocaleString()} fees)` : '';
+  showToast(` Exported ${sorted.length} records (Total: ৳ ${(totalAmount + totalFees).toLocaleString()}${feeSummary}) to CSV!`, 4500);
+}
+
+
+// Universal Payment Parser: Intelligently decomposes legacy lump sums & explicit fees
+function parsePaymentRecord(p) {
+  const autoSplitBills = ['rupnagarDesco', 'uttaraDesco', 'rupnagarGas'];
+  const rawAmt = parseFloat(p.amount) || 0;
+  
+  let fee = 0;
+  let baseAmount = rawAmt;
+  
+  if (p.fee !== undefined && p.fee !== '' && p.fee !== null) {
+    fee = parseFloat(p.fee) || 0;
+    baseAmount = p.amountNum ? parseFloat(p.amountNum) : (rawAmt > fee ? rawAmt : rawAmt);
+  } else if (autoSplitBills.includes(p.billId)) {
+    // Intelligent legacy fallback for historical lump sum records
+    const remainder = rawAmt % 100;
+    if (remainder > 0 && rawAmt > 100 && remainder <= 60) {
+      fee = remainder;
+      baseAmount = rawAmt - remainder;
+    }
+  }
+  
+  const total = baseAmount + fee;
+  
+  return {
+    ...p,
+    baseAmount: Math.round(baseAmount),
+    fee: Math.round(fee),
+    total: Math.round(total),
+    hasFee: fee > 0
+  };
+}
+
+function sortPaymentsData() {
+  paymentsData.sort((a, b) => {
+    const aDate = a.payDate || '';
+    const bDate = b.payDate || '';
+    const dateComp = bDate.localeCompare(aDate);
+    if (dateComp !== 0) return dateComp;
+    const bTime = b.savedAt ? new Date(b.savedAt).getTime() : 0;
+    const aTime = a.savedAt ? new Date(a.savedAt).getTime() : 0;
+    return bTime - aTime;
+  });
+}
+
+let uniqueChartInstances = {};
+
+// Helper: build prepaid recharges duration and rate math
+function buildPrepaidCycles(payments) {
+  const sorted = [...payments].sort((a, b) => new Date(a.payDate) - new Date(b.payDate));
+  return sorted.map((p, i) => {
+    const next = sorted[i + 1];
+    const amount = parseFloat(p.amount);
+    const daysUntilNext = next
+      ? (new Date(next.payDate) - new Date(p.payDate)) / 86400000
+      : null;
+    return {
+      payDate: p.payDate,
+      amount,
+      daysUntilNext,
+      daysPer1000: daysUntilNext !== null ? Math.round((daysUntilNext / (amount / 1000)) * 10) / 10 : null
+    };
+  });
+}
+
+function get12RollingMonths() {
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const fullMonthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const now = new Date();
+  const list = [];
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const mIdx = d.getMonth();
+    const y = d.getFullYear();
+    const yStrShort = String(y).substr(-2);
+    list.push({
+      shortLabel: `${monthNames[mIdx]} '${yStrShort}`,
+      fullLabel: `${fullMonthNames[mIdx]} ${y}`,
+      shortMonthName: monthNames[mIdx],
+      fullMonthName: fullMonthNames[mIdx],
+      year: y,
+      yearShort: yStrShort,
+      monthIndex: mIdx
+    });
+  }
+  return list;
+}
+
+// Chart 1: Next Recharge Forecast Gauge
+function renderForecastGauge(payments) {
+  const cycles = buildPrepaidCycles(payments);
+  const validCycles = cycles.filter(c => c.daysPer1000 !== null);
+  if (validCycles.length === 0) return;
+  const avgRate = validCycles.reduce((sum, c) => sum + c.daysPer1000, 0) / validCycles.length;
+  
+  const lastPayment = [...payments].sort((a, b) => new Date(a.payDate) - new Date(b.payDate)).pop();
+  const lastPayDate = new Date(lastPayment.payDate);
+  const lastAmount = parseFloat(lastPayment.amount);
+  const estCycleDays = Math.round(avgRate * (lastAmount / 1000));
+  
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  lastPayDate.setHours(0, 0, 0, 0);
+  const elapsedDays = Math.floor((today - lastPayDate) / 86400000);
+  const daysLeft = estCycleDays - elapsedDays;
+  const pctElapsed = Math.min(Math.max(elapsedDays / estCycleDays, 0), 1);
+  
+  const color = daysLeft < 0 ? '#fb7185' : '#fbbf24';
+  const ctx = document.getElementById('forecastGaugeCanvas');
+  if (!ctx) return;
+  
+  if (uniqueChartInstances['forecastGauge']) {
+    uniqueChartInstances['forecastGauge'].destroy();
+  }
+  
+  uniqueChartInstances['forecastGauge'] = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      datasets: [{
+        data: [pctElapsed * 100, (1 - pctElapsed) * 100],
+        backgroundColor: [color, 'rgba(255,255,255,0.06)'],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      cutout: '78%',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { enabled: false }
+      }
+    },
+    plugins: [{
+      id: 'gaugeText',
+      afterDraw: function(chart) {
+        const { ctx, chartArea: { top, bottom, left, right, width, height } } = chart;
+        ctx.save();
+        
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        ctx.font = 'bold 18px "JetBrains Mono", sans-serif';
+        ctx.fillStyle = color;
+        const line1 = daysLeft < 0 ? `Overdue by ${Math.abs(daysLeft)}d` : `~${daysLeft} days left`;
+        ctx.fillText(line1, left + width / 2, top + height / 2 - 10);
+        
+        ctx.font = 'bold 13px "JetBrains Mono", sans-serif';
+        ctx.fillStyle = '#94a3b8';
+        const estDateObj = new Date(lastPayDate.getTime() + estCycleDays * 86400000);
+        const line2 = `Est. ${estDateObj.toLocaleDateString('default', { month: 'short', day: 'numeric' })}`;
+        ctx.fillText(line2, left + width / 2, top + height / 2 + 14);
+        
+        ctx.restore();
+      }
+    }]
+  });
+}
+
+// Chart 2: Usage Rate Trend Line (12 Months Timeline)
+function renderRateTrendChart(payments) {
+  const rolling12 = get12RollingMonths();
+  const cycles = buildPrepaidCycles(payments);
+  const validCycles = cycles.filter(c => c.daysPer1000 !== null);
+  
+  const labels = rolling12.map(m => m.shortLabel);
+  const values = [];
+  const hasData = [];
+  
+  rolling12.forEach(m => {
+    const matching = validCycles.filter(c => {
+      const pDate = new Date(c.payDate);
+      return pDate.getFullYear() === m.year && pDate.getMonth() === m.monthIndex;
+    });
+    if (matching.length > 0) {
+      const avgRate = matching.reduce((sum, c) => sum + c.daysPer1000, 0) / matching.length;
+      values.push(Math.round(avgRate * 10) / 10);
+      hasData.push(true);
+    } else {
+      values.push(null);
+      hasData.push(false);
+    }
+  });
+  
+  const n = validCycles.length;
+  let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+  validCycles.forEach((pt, i) => {
+    sumX += i;
+    sumY += pt.daysPer1000;
+    sumXY += i * pt.daysPer1000;
+    sumXX += i * i;
+  });
+  const slope = n > 1 ? (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX) : 0;
+  
+  const titleEl = document.querySelector('#card-rateTrend .stat-card-title');
+  if (titleEl) {
+    const existingBadge = titleEl.querySelector('.slope-badge');
+    if (existingBadge) existingBadge.remove();
+    
+    const badgeColor = slope > 0 ? '#2dd4bf' : '#fb7185';
+    const badgeBg = slope > 0 ? 'rgba(45, 212, 191, 0.1)' : 'rgba(251, 113, 133, 0.1)';
+    const badgeText = slope > 0 ? '↑ improving' : '↓ declining';
+    titleEl.innerHTML += `
+      <span class="slope-badge" style="float: right; font-size: 11px; padding: 2px 8px; border-radius: 12px; background: ${badgeBg}; color: ${badgeColor}; font-weight: 700; text-transform: uppercase;">
+        ${badgeText}
+      </span>
+    `;
+  }
+  
+  const ctx = document.getElementById('rateTrendCanvas');
+  if (!ctx) return;
+  
+  if (uniqueChartInstances['rateTrend']) {
+    uniqueChartInstances['rateTrend'].destroy();
+  }
+  
+  uniqueChartInstances['rateTrend'] = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Days Per 1,000',
+        data: values,
+        borderColor: '#a78bfa',
+        backgroundColor: 'rgba(167, 139, 250, 0.08)',
+        fill: true,
+        tension: 0.3,
+        borderWidth: 2,
+        spanGaps: true,
+        pointBackgroundColor: '#a78bfa',
+        pointRadius: 4
+      }]
+    },
+    plugins: [{
+      id: 'rateTrendLabels',
+      afterDatasetsDraw(chart) {
+        const { ctx } = chart;
+        ctx.save();
+        ctx.font = 'bold 11px "JetBrains Mono", monospace';
+        ctx.fillStyle = '#a78bfa';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        const meta = chart.getDatasetMeta(0);
+        meta.data.forEach((element, index) => {
+          const val = values[index];
+          if (val !== undefined && val !== null) {
+            ctx.fillText(`${val}d`, element.x, element.y - 4);
+          }
+        });
+        ctx.restore();
+      }
+    }],
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      layout: { padding: { top: 16 } },
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#94a3b8', font: { size: 11 } } },
+        y: { grace: '18%', grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', font: { size: 11 } } }
+      }
+    }
+  });
+}
+
+// Chart 3: Bill Month vs. Pay Date Bar Lag (12 Months Timeline)
+function renderBillLagChart(payments) {
+  const rolling12 = get12RollingMonths();
+  const labels = rolling12.map(m => m.shortLabel);
+  const lags = [];
+  const backgroundColors = [];
+  const hasData = [];
+  
+  rolling12.forEach(m => {
+    const matchingPayment = payments.find(p => {
+      if (p.billMonth) {
+        const bm = p.billMonth.toLowerCase();
+        const mShort = m.shortMonthName.toLowerCase();
+        const mFull = m.fullMonthName.toLowerCase();
+        const matchMonth = bm.includes(mShort) || bm.includes(mFull);
+        const matchYear = bm.includes(String(m.year)) || bm.includes(m.yearShort);
+        if (matchMonth && matchYear) return true;
+      }
+      const pDate = new Date(p.payDate);
+      return pDate.getFullYear() === m.year && pDate.getMonth() === m.monthIndex;
+    });
+    
+    if (matchingPayment) {
+      const lastDayOfBillMonth = new Date(m.year, m.monthIndex + 1, 0);
+      const payDate = new Date(matchingPayment.payDate);
+      const lag = Math.round((payDate - lastDayOfBillMonth) / 86400000);
+      lags.push(lag);
+      backgroundColors.push(lag > 0 ? '#fb7185' : '#2dd4bf');
+      hasData.push(true);
+    } else {
+      lags.push(0);
+      backgroundColors.push('transparent');
+      hasData.push(false);
+    }
+  });
+  
+  const card = document.getElementById('card-billLag');
+  if (card) {
+    const existingFootnote = card.querySelector('.footnote');
+    if (existingFootnote) existingFootnote.remove();
+    
+    const footnote = document.createElement('div');
+    footnote.className = 'footnote';
+    footnote.style.cssText = "font-size: 11px; color: #64748b; margin-top: 10px; text-align: left; font-style: italic;";
+    footnote.innerText = "* Lag estimated from bill month, not an actual due date.";
+    card.appendChild(footnote);
+  }
+  
+  const ctx = document.getElementById('billLagCanvas');
+  if (!ctx) return;
+  
+  if (uniqueChartInstances['billLag']) {
+    uniqueChartInstances['billLag'].destroy();
+  }
+  
+  uniqueChartInstances['billLag'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Payment Lag (Days)',
+        data: lags,
+        backgroundColor: backgroundColors,
+        borderRadius: 4
+      }]
+    },
+    plugins: [{
+      id: 'billLagLabels',
+      afterDatasetsDraw(chart) {
+        const { ctx } = chart;
+        ctx.save();
+        ctx.font = 'bold 11px "JetBrains Mono", monospace';
+        ctx.textAlign = 'center';
+        const meta = chart.getDatasetMeta(0);
+        meta.data.forEach((element, index) => {
+          if (hasData[index]) {
+            const val = lags[index];
+            ctx.fillStyle = val > 0 ? '#fb7185' : '#2dd4bf';
+            const text = val > 0 ? `+${val}d` : `${val}d`;
+            const yPos = val >= 0 ? element.y - 4 : element.y + 14;
+            ctx.fillText(text, element.x, yPos);
+          }
+        });
+        ctx.restore();
+      }
+    }],
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      layout: { padding: { top: 16 } },
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 11 } } },
+        y: { grace: '18%', grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', font: { size: 11 } } }
+      }
+    }
+  });
+}
+
+// Chart 4: Monthly Total Line (12 Months Timeline)
+function renderMonthlyTotalChart(payments) {
+  const rolling12 = get12RollingMonths();
+  const labels = rolling12.map(m => m.shortLabel);
+  const values = [];
+  const hasData = [];
+  
+  rolling12.forEach(m => {
+    const matching = payments.filter(p => {
+      const pDate = new Date(p.payDate);
+      return pDate.getFullYear() === m.year && pDate.getMonth() === m.monthIndex;
+    });
+    if (matching.length > 0) {
+      const sum = matching.reduce((acc, p) => acc + parseFloat(p.amount), 0);
+      values.push(sum);
+      hasData.push(true);
+    } else {
+      values.push(0);
+      hasData.push(false);
+    }
+  });
+  
+  const ctx = document.getElementById('monthlyTotalCanvas');
+  if (!ctx) return;
+  
+  if (uniqueChartInstances['monthlyTotal']) {
+    uniqueChartInstances['monthlyTotal'].destroy();
+  }
+  
+  uniqueChartInstances['monthlyTotal'] = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Monthly Total',
+        data: values,
+        borderColor: '#2dd4bf',
+        backgroundColor: 'rgba(45, 212, 191, 0.08)',
+        fill: true,
+        tension: 0.3,
+        borderWidth: 2,
+        pointBackgroundColor: '#2dd4bf',
+        pointRadius: 4
+      }]
+    },
+    plugins: [{
+      id: 'monthlyTotalLabels',
+      afterDatasetsDraw(chart) {
+        const { ctx } = chart;
+        ctx.save();
+        ctx.font = 'bold 11px "JetBrains Mono", monospace';
+        ctx.fillStyle = '#2dd4bf';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        const meta = chart.getDatasetMeta(0);
+        meta.data.forEach((element, index) => {
+          if (hasData[index]) {
+            const val = values[index];
+            ctx.fillText(Math.round(val).toLocaleString(), element.x, element.y - 4);
+          }
+        });
+        ctx.restore();
+      }
+    }],
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      layout: { padding: { top: 16 } },
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 11 } } },
+        y: { grace: '18%', grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', font: { size: 11 } } }
+      }
+    }
+  });
+}
+
+// Chart 5: Amount vs Duration Combo Chart (12 Months Timeline)
+function renderAmountVsDurationChart(payments) {
+  const rolling12 = get12RollingMonths();
+  const labels = rolling12.map(m => m.shortLabel);
+  const cycles = buildPrepaidCycles(payments);
+  
+  const amounts = [];
+  const durations = [];
+  const hasData = [];
+  
+  rolling12.forEach(m => {
+    const matchingPayments = payments.filter(p => {
+      const pDate = new Date(p.payDate);
+      return pDate.getFullYear() === m.year && pDate.getMonth() === m.monthIndex;
+    });
+    
+    const matchingCycles = cycles.filter(c => {
+      const pDate = new Date(c.payDate);
+      return pDate.getFullYear() === m.year && pDate.getMonth() === m.monthIndex && c.daysUntilNext !== null;
+    });
+    
+    if (matchingPayments.length > 0) {
+      const sumAmt = matchingPayments.reduce((acc, p) => acc + parseFloat(p.amount), 0);
+      const sumDur = matchingCycles.reduce((acc, c) => acc + c.daysUntilNext, 0);
+      amounts.push(sumAmt);
+      durations.push(sumDur > 0 ? sumDur : null);
+      hasData.push(true);
+    } else {
+      amounts.push(0);
+      durations.push(null);
+      hasData.push(false);
+    }
+  });
+  
+  const ctx = document.getElementById('amountVsDurationCanvas');
+  if (!ctx) return;
+  
+  if (uniqueChartInstances['amountVsDuration']) {
+    uniqueChartInstances['amountVsDuration'].destroy();
+  }
+  
+  uniqueChartInstances['amountVsDuration'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          type: 'bar',
+          label: 'Amount Paid',
+          data: amounts,
+          backgroundColor: '#818cf8',
+          yAxisID: 'yAmount',
+          borderRadius: 4
+        },
+        {
+          type: 'line',
+          label: 'Duration (Days)',
+          data: durations,
+          borderColor: '#00E676',
+          borderWidth: 2,
+          fill: false,
+          tension: 0.2,
+          spanGaps: true,
+          pointBackgroundColor: '#00E676',
+          pointRadius: 4,
+          yAxisID: 'yDuration'
+        }
+      ]
+    },
+    plugins: [{
+      id: 'amountVsDurationLabels',
+      afterDatasetsDraw(chart) {
+        const { ctx } = chart;
+        ctx.save();
+        ctx.font = 'bold 11px "JetBrains Mono", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        
+        // Amounts on bars
+        const metaBar = chart.getDatasetMeta(0);
+        metaBar.data.forEach((element, index) => {
+          if (hasData[index]) {
+            const val = amounts[index];
+            if (val > 0) {
+              ctx.fillStyle = '#818cf8';
+              ctx.fillText(Math.round(val).toLocaleString(), element.x, element.y - 4);
+            }
+          }
+        });
+        
+        // Durations on points
+        const metaLine = chart.getDatasetMeta(1);
+        metaLine.data.forEach((element, index) => {
+          const val = durations[index];
+          if (val !== undefined && val !== null && val > 0) {
+            ctx.fillStyle = '#00E676';
+            ctx.fillText(`${Math.round(val)}d`, element.x, element.y - 6);
+          }
+        });
+        ctx.restore();
+      }
+    }],
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      layout: { padding: { top: 16 } },
+      interaction: {
+        mode: 'index',
+        intersect: false
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 11 } } },
+        yAmount: {
+          type: 'linear',
+          position: 'left',
+          grace: '18%',
+          grid: { color: 'rgba(255,255,255,0.05)' },
+          ticks: { color: '#818cf8', font: { size: 11 } }
+        },
+        yDuration: {
+          type: 'linear',
+          position: 'right',
+          grace: '18%',
+          grid: { display: false },
+          ticks: { color: '#00E676', font: { size: 11 } }
+        }
+      }
+    }
+  });
+}
+
+// Chart Registry defining limits, visibility targets, and colors
+const CHART_REGISTRY = [
+  {
+    id: 'forecastGauge',
+    title: 'Next Recharge Forecast',
+    appliesTo: ['Prepaid'],
+    minPayments: 2,
+    accent: '#fbbf24',
+    render: renderForecastGauge
+  },
+  {
+    id: 'rateTrend',
+    title: 'Usage Rate Trend',
+    appliesTo: ['Prepaid'],
+    minPayments: 3,
+    accent: '#a78bfa',
+    render: renderRateTrendChart
+  },
+  {
+    id: 'billLag',
+    title: 'Bill Month vs. Pay Date',
+    appliesTo: ['Postpaid'],
+    minPayments: 1,
+    accent: '#fb7185',
+    render: renderBillLagChart
+  },
+  {
+    id: 'monthlyTotal',
+    title: 'Monthly Total',
+    appliesTo: ['Prepaid', 'Postpaid'],
+    minPayments: 1,
+    accent: '#2dd4bf',
+    render: renderMonthlyTotalChart
+  },
+  {
+    id: 'amountVsDuration',
+    title: 'Amount vs. Duration',
+    appliesTo: ['Prepaid'],
+    minPayments: 2,
+    accent: '#818cf8',
+    render: renderAmountVsDurationChart
+  }
+];
+
+// Injects appropriate cards dynamically and executes drawing functions
+function renderUniqueStatsPage(billId) {
+  const bill = billPages.find(b => b.id === billId);
+  if (!bill) return;
+
+  const billPayments = paymentsData.filter(p => p.billId === billId);
+  const billType = bill.type; // 'Prepaid' | 'Postpaid'
+
+  const applicable = CHART_REGISTRY.filter(chart =>
+    chart.appliesTo.includes(billType) &&
+    billPayments.length >= chart.minPayments
+  );
+
+  const container = document.getElementById('uniqueStatsContent');
+  
+  if (applicable.length === 0) {
+    container.innerHTML = `
+      <div style="text-align: center; padding: 100px 0; color: #64748b; font-size: 1.2rem;">
+        Not enough payment history yet — add another payment to see stats.
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = applicable.map(chart => {
+    const height = chart.id === 'forecastGauge' ? '250px' : '320px';
+    return `
+      <div class="stat-card" id="card-${chart.id}" style="--accent: ${chart.accent || '#38bdf8'};">
+        <div class="stat-card-title">${chart.title}</div>
+        <div style="position: relative; height: ${height}; width: 100%;">
+          <canvas id="${chart.id}Canvas"></canvas>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  applicable.forEach(chart => {
+    try {
+      chart.render(billPayments);
+    } catch (e) {
+      console.error(`Failed to render chart ${chart.id}:`, e);
+    }
+  });
+}
+
+// Target hash routing handler for unique stats view
+async function openUniqueStatsPage(billId, fromRouting = false) {
+  if (!fromRouting) {
+    window.location.hash = `#unique-stats/${billId}`;
+    return;
+  }
+  
+  document.getElementById('uniqueStatsBackBtn').onclick = () => openPage(billId);
+  
+  const bill = billPages.find(b => b.id === billId);
+  if (bill) {
+    document.getElementById('uniqueStatsTitle').innerHTML = `
+      <span style="font-size:1.8rem; font-weight:800; color:var(--accent2);">${bill.name} Statistics</span>
+    `;
+  }
+  
+  renderUniqueStatsPage(billId);
+}
+
+let descoChartInstances = {};
+
+async function fetchDESCOData(accountNo) {
+  const cleanAccountNo = accountNo.replace(/-/g, '');
+  const baseUrls = [
+    'https://prepaid.desco.org.bd/api/unified/customer',
+    'https://prepaid.desco.org.bd/api/tkdes/customer'
+  ];
+  
+  for (const baseUrl of baseUrls) {
+    try {
+      const res = await fetch(`${baseUrl}/getBalance?accountNo=${cleanAccountNo}`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.code === 200 && json.data) {
+          const balanceData = json.data;
+          
+          // Fetch Monthly Consumption (last 12 months)
+          const today = new Date();
+          const monthTo = today.toISOString().slice(0, 7); // YYYY-MM
+          const oneYearAgo = new Date(today.getFullYear(), today.getMonth() - 11, 1);
+          const monthFrom = oneYearAgo.toISOString().slice(0, 7);
+          
+          let monthlyData = [];
+          try {
+            const mRes = await fetch(`${baseUrl}/getCustomerMonthlyConsumption?accountNo=${cleanAccountNo}&monthFrom=${monthFrom}&monthTo=${monthTo}`);
+            if (mRes.ok) {
+              const mJson = await mRes.json();
+              if (mJson.code === 200 && mJson.data) {
+                monthlyData = mJson.data;
+              }
+            }
+          } catch(e) { console.error('Failed to fetch monthly consumption', e); }
+          
+          // Fetch Recharge History (last 30 days)
+          const dateTo = today.toISOString().slice(0, 10); // YYYY-MM-DD
+          const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+          const dateFrom = thirtyDaysAgo.toISOString().slice(0, 10);
+          
+          let rechargeData = [];
+          try {
+            const rRes = await fetch(`${baseUrl}/getRechargeHistory?accountNo=${cleanAccountNo}&dateFrom=${dateFrom}&dateTo=${dateTo}`);
+            if (rRes.ok) {
+              const rJson = await rRes.json();
+              if (rJson.code === 200 && rJson.data) {
+                rechargeData = rJson.data;
+              }
+            }
+          } catch(e) { console.error('Failed to fetch recharge history', e); }
+          
+          return {
+            balance: balanceData,
+            monthly: monthlyData,
+            recharge: rechargeData
+          };
+        }
+      }
+    } catch(err) {
+      console.warn(`Fetch failed for ${baseUrl}`, err);
+    }
+  }
+  throw new Error('Failed to retrieve DESCO account details from both endpoints.');
+}
+
+async function loadLiveDESCOData(billId, accountNo) {
+  const container = document.getElementById(`descoLive_${billId}`);
+  if (!container) return;
+  
+  try {
+    const apiResult = await fetchDESCOData(accountNo);
+    const balance = apiResult.balance;
+    const monthly = apiResult.monthly || [];
+    const recharge = apiResult.recharge || [];
+    
+    // Sort monthly data chronologically
+    monthly.sort((a, b) => a.month.localeCompare(b.month));
+    
+    const isLow = balance.balance < 300;
+    const balanceClass = isLow ? 'balanceLow' : 'balanceGlow';
+    
+    const formattedBalance = parseFloat(balance.balance).toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0});
+    const formattedConsumption = parseFloat(balance.currentMonthConsumption || 0).toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 2});
+    
+    const readingDateStr = balance.readingTime ? balance.readingTime.split(' ')[0] : 'N/A';
+    
+    let meterInfoHtml = '';
+    if (monthly.length > 0) {
+      const info = monthly[monthly.length - 1];
+      meterInfoHtml = `
+        <div style="font-size:0.82rem; color:var(--muted); margin-top: 12px; display:flex; flex-wrap:wrap; gap:16px; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 12px;">
+          <div><strong>Customer:</strong> ${info.customerName || 'N/A'}</div>
+          <div><strong>Meter:</strong> ${info.meterNo || 'N/A'}</div>
+          <div><strong>Tariff:</strong> ${info.tariffSolution || 'N/A'}</div>
+          <div><strong>Load:</strong> ${info.sanctionLoad || 'N/A'} kW</div>
+        </div>
+      `;
+    }
+    
+    let rechargeRows = '';
+    if (recharge.length === 0) {
+      rechargeRows = `
+        <div style="font-size:0.85rem; color:var(--muted); text-align:center; padding: 14px 0;">
+          No recharge records found in the last 30 days.
+        </div>
+      `;
+    } else {
+      rechargeRows = `
+        <div class="descoHistoryTable">
+          <div class="descoTableHeader">
+            <div>Date</div>
+            <div>Paid</div>
+            <div>Energy</div>
+            <div style="text-align: right;">Token</div>
+          </div>
+          ${recharge.slice(0, 5).map(r => {
+            const rDate = r.rechargeDate ? r.rechargeDate.split(' ')[0] : '-';
+            const rToken = r.tokenNo ? r.tokenNo.trim() : '';
+            const shortToken = rToken.length > 9 ? `${rToken.slice(0, 4)}…${rToken.slice(-4)}` : rToken;
+            const tokenHtml = rToken ? `
+              <div class="tokenBox" title="${rToken}">
+                <span class="tokenText" style="user-select: all;">${shortToken}</span>
+                <button class="copyBtn" onclick="navigator.clipboard.writeText('${rToken}'); alert('Token copied: ${rToken}');" title="Copy Full Token">Copy</button>
+              </div>
+            ` : '-';
+            return `
+              <div class="descoTableRow">
+                <div style="white-space: nowrap;">${rDate}</div>
+                <div style="font-weight: 700; color: #63ff68; white-space: nowrap;">৳ ${Math.round(r.totalAmount || 0).toLocaleString()}</div>
+                <div style="color: var(--muted); white-space: nowrap;">৳ ${Math.round(r.energyAmount || 0).toLocaleString()}</div>
+                <div style="display: flex; justify-content: flex-end;">${tokenHtml}</div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+    
+    container.innerHTML = `
+      <div class="descoLiveTitle">
+        <span></span> DESCO Live Meter Analytics
+      </div>
+      
+      <div class="descoKpiGrid">
+        <div class="descoCard">
+          <div class="descoLabel">Current Balance</div>
+          <div class="descoValue ${balanceClass}">৳ ${formattedBalance}</div>
+          <div style="font-size:0.75rem; color:var(--muted); margin-top:6px;">Meter No: ${balance.meterNo || 'N/A'}</div>
+        </div>
+        
+        <div class="descoCard">
+          <div class="descoLabel">This Month's Consumption</div>
+          <div class="descoValue" style="color:var(--accent2);">${formattedConsumption} <span style="font-size:1rem; font-weight:500;">kWh</span></div>
+          <div style="font-size:0.75rem; color:var(--muted); margin-top:6px;">Last Reading: ${readingDateStr}</div>
+        </div>
+      </div>
+      
+      ${meterInfoHtml}
+      
+      ${monthly.length > 0 ? `
+        <div class="descoChartSection">
+          <div class="descoSectionTitle">Monthly Energy Consumption (kWh)</div>
+          <div style="position: relative; height: 180px; width: 100%;">
+            <canvas id="descoChart_${billId}"></canvas>
+          </div>
+        </div>
+      ` : ''}
+      
+      <div class="descoRechargeSection" style="margin-top:20px;">
+        <div class="descoSectionTitle">Recent Recharge Tokens (30 Days)</div>
+        ${rechargeRows}
+      </div>
+    `;
+    
+    if (monthly.length > 0) {
+      const ctx = document.getElementById(`descoChart_${billId}`);
+      if (ctx) {
+        if (descoChartInstances[billId]) {
+          descoChartInstances[billId].destroy();
+        }
+        
+        const months = monthly.map(m => {
+          const parts = m.month.split('-');
+          const mNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+          return `${mNames[parseInt(parts[1]) - 1]} ${parts[0].substr(-2)}`;
+        });
+        const units = monthly.map(m => m.consumedUnit);
+        
+        descoChartInstances[billId] = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: months,
+            datasets: [{
+              label: 'Energy Consumed (kWh)',
+              data: units,
+              backgroundColor: '#00C2FF',
+              borderColor: '#00C2FF',
+              borderRadius: 6,
+              borderSkipped: false
+            }]
+          },
+          plugins: [{
+            id: 'livePreviewLabels',
+            afterDatasetsDraw(chart) {
+              const { ctx } = chart;
+              ctx.save();
+              ctx.font = 'bold 11px "JetBrains Mono", monospace';
+              ctx.fillStyle = '#00C2FF';
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'bottom';
+              ctx.shadowColor = 'rgba(3, 8, 22, 0.9)';
+              ctx.shadowBlur = 4;
+              
+              const meta = chart.getDatasetMeta(0);
+              meta.data.forEach((element, index) => {
+                const val = units[index];
+                if (val > 0) {
+                  ctx.fillText(Math.round(val).toString(), element.x, element.y - 4);
+                }
+              });
+              ctx.restore();
+            }
+          }],
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            layout: { padding: { top: 14 } },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                backgroundColor: '#0b1730',
+                titleColor: '#f4f7ff',
+                bodyColor: '#00C2FF',
+                borderColor: '#1d3969',
+                borderWidth: 1,
+                callbacks: {
+                  label: function(context) {
+                    return ' ' + context.parsed.y.toFixed(1) + ' kWh';
+                  }
+                }
+              }
+            },
+            scales: {
+              x: {
+                grid: { color: 'rgba(29, 57, 105, 0.1)', drawBorder: false },
+                ticks: { color: '#91a5c6', font: { size: 10 } }
+              },
+              y: {
+                grace: '18%',
+                grid: { color: 'rgba(29, 57, 105, 0.15)', drawBorder: false },
+                ticks: { color: '#91a5c6', font: { size: 10 } }
+              }
+            }
+          }
+        });
+      }
+    }
+    
+  } catch(err) {
+    console.error('Failed to load DESCO Live API Data:', err);
+    container.innerHTML = `
+      <div class="descoLiveTitle">
+        <span></span> DESCO Live Meter Analytics
+      </div>
+      
+      <div class="corsWarningCard">
+        <div class="corsWarningTitle">
+          <span>️</span> Live DESCO Data Blocked by CORS
+        </div>
+        <div class="corsWarningDesc">
+          Your browser blocked the request to the DESCO prepaid server because of cross-origin security restrictions. 
+          <br><br>
+          <strong>How to enable live analytics:</strong>
+          <ul style="margin-top: 8px; margin-left: 20px; display: flex; flex-direction: column; gap: 6px;">
+            <li>Install a browser extension such as <code>Allow CORS: Access-Control-Allow-Origin</code>.</li>
+            <li>Enable the extension in your browser, close and reopen this bill page to load real-time balance, consumption trends, and copyable recharge tokens.</li>
+          </ul>
+        </div>
+      </div>
+    `;
+  }
+}
+
+function calculateDESCOBill(units, load) {
+  let energyCharge = 0;
+  const demandCharge = load * 42;
+  const meterRent = 40;
+  
+  if (units <= 50) {
+    energyCharge = units * 5.32;
+  } else {
+    let remaining = units;
+    // Step 1: 0-75 units
+    const step1 = Math.min(remaining, 75);
+    energyCharge += step1 * 6.18;
+    remaining -= step1;
+    
+    // Step 2: 76-200 units
+    if (remaining > 0) {
+      const step2 = Math.min(remaining, 125);
+      energyCharge += step2 * 8.50;
+      remaining -= step2;
+    }
+    // Step 3: 201-300 units
+    if (remaining > 0) {
+      const step3 = Math.min(remaining, 100);
+      energyCharge += step3 * 9.10;
+      remaining -= step3;
+    }
+    // Step 4: 301-400 units
+    if (remaining > 0) {
+      const step4 = Math.min(remaining, 100);
+      energyCharge += step4 * 9.62;
+      remaining -= step4;
+    }
+    // Step 5: 401-600 units
+    if (remaining > 0) {
+      const step5 = Math.min(remaining, 200);
+      energyCharge += step5 * 15.01;
+      remaining -= step5;
+    }
+    // Step 6: Above 600 units
+    if (remaining > 0) {
+      energyCharge += remaining * 17.35;
+    }
+  }
+  
+  const vat = (energyCharge + demandCharge + meterRent) * 0.05;
+  const total = energyCharge + demandCharge + meterRent + vat;
+  
+  return {
+    energyCharge: Math.round(energyCharge),
+    demandCharge: Math.round(demandCharge),
+    meterRent: meterRent,
+    vat: Math.round(vat),
+    total: Math.round(total)
+  };
+}
+
+function updateLiveCalculator() {
+  const unitsVal = parseFloat(document.getElementById('calcUnitsInput').value) || 0;
+  const loadVal = parseFloat(document.getElementById('calcLoadInput').value) || 2;
+  
+  const result = calculateDESCOBill(unitsVal, loadVal);
+  
+  document.getElementById('calcEnergyCharge').innerText = `৳ ${result.energyCharge.toLocaleString()}`;
+  document.getElementById('calcDemandCharge').innerText = `৳ ${result.demandCharge.toLocaleString()}`;
+  document.getElementById('calcMeterRent').innerText = `৳ ${result.meterRent.toLocaleString()}`;
+  document.getElementById('calcVat').innerText = `৳ ${result.vat.toLocaleString()}`;
+  document.getElementById('calcTotal').innerText = `৳ ${result.total.toLocaleString()}`;
+}
+
+async function openDescoStatsPage(billId, fromRouting = false) {
+  // If this was called from clicking a button, update the URL hash.
+  // The hash change listener will then automatically route and call this function with fromRouting = true.
+  if (!fromRouting) {
+    window.location.hash = `#desco-analytics/${billId}`;
+    return;
+  }
+  
+  document.getElementById('descoStatsBackBtn').onclick = () => openPage(billId);
+  
+  const container = document.getElementById('descoStatsContent');
+  container.innerHTML = `
+    <div style="text-align: center; padding: 100px 0; color: var(--accent2); font-size: 1.2rem;">
+      <style>
+        @keyframes descoSpinner {
+          to { transform: rotate(360deg); }
+        }
+      </style>
+      <div style="width: 48px; height: 48px; border: 4px solid rgba(34, 211, 238, 0.1); border-top-color: var(--accent2); border-radius: 50%; display: inline-block; animation: descoSpinner 0.8s linear infinite; margin-bottom: 20px;"></div>
+      <div style="font-weight: 800;">Connecting to DESCO Servers...</div>
+      <div style="font-size:0.9rem; color:var(--muted); margin-top:10px;">Retrieving real-time daily, monthly & recharge statistics...</div>
+    </div>
+  `;
+  
+  const bill = billPages.find(b => b.id === billId);
+  if (!bill) return;
+  const cleanAccountNo = bill.account.replace(/-/g, '');
+  const locationName = bill.id === 'rupnagarDesco' ? 'Mirpur' : 'Uttara';
+  
+  const baseUrls = [
+    'https://prepaid.desco.org.bd/api/unified/customer',
+    'https://prepaid.desco.org.bd/api/tkdes/customer'
+  ];
+  
+  let successData = null;
+  
+  for (const baseUrl of baseUrls) {
+    try {
+      const balanceRes = await fetch(`${baseUrl}/getBalance?accountNo=${cleanAccountNo}`);
+      if (balanceRes.ok) {
+        const balanceJson = await balanceRes.json();
+        if (balanceJson.code === 200 && balanceJson.data) {
+          const today = new Date();
+          
+          // 1. Monthly consumption calls (last 24 months)
+          const monthTo1 = today.toISOString().slice(0, 7);
+          const oneYearAgo = new Date(today.getFullYear(), today.getMonth() - 11, 1);
+          const monthFrom1 = oneYearAgo.toISOString().slice(0, 7);
+          
+          const monthTo2 = new Date(today.getFullYear(), today.getMonth() - 12, 1).toISOString().slice(0, 7);
+          const twoYearsAgo = new Date(today.getFullYear(), today.getMonth() - 23, 1);
+          const monthFrom2 = twoYearsAgo.toISOString().slice(0, 7);
+          
+          // 2. Daily consumption call (last 16 days to diff 15 days)
+          const dateTo = today.toISOString().slice(0, 10);
+          const sixteenDaysAgo = new Date(today.getTime() - 16 * 24 * 60 * 60 * 1000);
+          const dateFrom = sixteenDaysAgo.toISOString().slice(0, 10);
+          
+          // 3. Recharge history call (last 180 days)
+          const rechargeDateFrom = new Date(today.getTime() - 180 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+          
+          const [mRes1, mRes2, dRes, rRes] = await Promise.all([
+            fetch(`${baseUrl}/getCustomerMonthlyConsumption?accountNo=${cleanAccountNo}&monthFrom=${monthFrom1}&monthTo=${monthTo1}`).then(r => r.json()).catch(e => null),
+            fetch(`${baseUrl}/getCustomerMonthlyConsumption?accountNo=${cleanAccountNo}&monthFrom=${monthFrom2}&monthTo=${monthTo2}`).then(r => r.json()).catch(e => null),
+            fetch(`${baseUrl}/getCustomerDailyConsumption?accountNo=${cleanAccountNo}&dateFrom=${dateFrom}&dateTo=${dateTo}`).then(r => r.json()).catch(e => null),
+            fetch(`${baseUrl}/getRechargeHistory?accountNo=${cleanAccountNo}&dateFrom=${rechargeDateFrom}&dateTo=${dateTo}`).then(r => r.json()).catch(e => null)
+          ]);
+          
+          successData = {
+            balance: balanceJson.data,
+            monthly1: mRes1 && mRes1.code === 200 ? mRes1.data : [],
+            monthly2: mRes2 && mRes2.code === 200 ? mRes2.data : [],
+            daily: dRes && dRes.code === 200 ? dRes.data : [],
+            recharge: rRes && rRes.code === 200 ? rRes.data : []
+          };
+          break;
+        }
+      }
+    } catch(err) {
+      console.warn(`Fetch failed for ${baseUrl} during dashboard loading`, err);
+    }
+  }
+  
+  if (!successData) {
+    container.innerHTML = `
+      <div class="descoHeaderCard">
+        <h2>${bill.name.replace('<br>', ' ')} Live Dashboard</h2>
+        <div style="font-size:0.95rem; color:#dce7ff;"><strong>Account:</strong> ${bill.account} | <strong>Location:</strong> ${locationName}</div>
+      </div>
+      
+      <div class="corsWarningCard">
+        <div class="corsWarningTitle">
+          <span>️</span> Live DESCO Dashboard Blocked by CORS
+        </div>
+        <div class="corsWarningDesc">
+          Your browser blocked the request to the DESCO prepaid server because of cross-origin security restrictions.
+          <br><br>
+          <strong>To view this dashboard, please follow these steps:</strong>
+          <ul style="margin-top: 10px; margin-left: 20px; display: flex; flex-direction: column; gap: 8px;">
+            <li>Install a browser extension such as <code>Allow CORS: Access-Control-Allow-Origin</code>.</li>
+            <li>Enable the extension in your browser tools.</li>
+            <li>Click the "Back" button above and click <strong>Live Analytics </strong> again to load the real-time daily, monthly, and recharge statistics dashboard!</li>
+          </ul>
+        </div>
+      </div>
+    `;
+    return;
+  }
+  
+  renderDescoStatsDashboard(billId, bill, locationName, successData);
+}
+
+function renderDescoStatsDashboard(billId, bill, locationName, apiData) {
+  const container = document.getElementById('descoStatsContent');
+  
+  const balance = apiData.balance;
+  const monthly1 = apiData.monthly1 || [];
+  const monthly2 = apiData.monthly2 || [];
+  const daily = apiData.daily || [];
+  const recharge = apiData.recharge || [];
+  
+  const allMonthly = [...monthly1, ...monthly2];
+  const monthlyMap = {};
+  allMonthly.forEach(m => {
+    monthlyMap[m.month] = m;
+  });
+  const sortedMonthly = Object.values(monthlyMap).sort((a, b) => a.month.localeCompare(b.month));
+  
+  const latestMonthInfo = sortedMonthly.length > 0 ? sortedMonthly[sortedMonthly.length - 1] : {};
+  const ownerName = latestMonthInfo.customerName || 'N/A';
+  const meterNo = balance.meterNo || latestMonthInfo.meterNo || 'N/A';
+  const sanctionLoad = latestMonthInfo.sanctionLoad || 2;
+  
+  const avgUnitCost = (latestMonthInfo.consumedUnit > 0) ? (latestMonthInfo.consumedTaka / latestMonthInfo.consumedUnit) : 7.5;
+  
+  daily.sort((a, b) => a.date.localeCompare(b.date));
+  
+  let dailyUsageData = [];
+  let totalDailyDiffUnits = 0;
+  let validDiffCount = 0;
+  
+  for (let i = 1; i < daily.length; i++) {
+    const diff = daily[i].consumedUnit - daily[i-1].consumedUnit;
+    if (diff >= 0 && diff < 100) {
+      const dateParts = daily[i].date.split('-');
+      const label = `${dateParts[1]}-${dateParts[2]}`;
+      dailyUsageData.push({
+        date: label,
+        units: diff
+      });
+      totalDailyDiffUnits += diff;
+      validDiffCount++;
+    }
+  }
+  
+  if (dailyUsageData.length > 15) {
+    dailyUsageData = dailyUsageData.slice(-15);
+  }
+  
+  const avgDailyUnits = validDiffCount > 0 ? (totalDailyDiffUnits / validDiffCount) : 10;
+  const avgDailyCost = avgDailyUnits * avgUnitCost;
+  const daysRemaining = avgDailyCost > 0 ? (balance.balance / avgDailyCost) : 30;
+  
+  const exhaustionDate = new Date();
+  exhaustionDate.setTime(Date.now() + daysRemaining * 24 * 60 * 60 * 1000);
+  const exhaustionDateStr = formatDateFriendly(formatLocalDate(exhaustionDate));
+  
+  const fillPercent = Math.min(100, Math.max(0, (daysRemaining / 15) * 100));
+  
+  let alertText = '';
+  let alertColor = '';
+  if (daysRemaining <= 3) {
+    alertText = `Critical: Recharge balance immediately!`;
+    alertColor = '#ff6368';
+  } else if (daysRemaining <= 7) {
+    alertText = `Warning: Recharge recommended soon.`;
+    alertColor = '#ffe663';
+  } else {
+    alertText = `Healthy: Sufficient balance.`;
+    alertColor = '#00E676';
+  }
+  
+  const formattedBalance = parseFloat(balance.balance).toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0});
+  const formattedDailyUnits = avgDailyUnits.toFixed(2);
+  const formattedDailyCost = Math.round(avgDailyCost);
+  
+  const last10Recharges = recharge.slice(0, 10);
+  let rechargeRows = '';
+  if (last10Recharges.length === 0) {
+    rechargeRows = `
+      <div style="font-size:0.9rem; color:var(--muted); text-align:center; padding: 20px 0;">
+        No recharge history found in the last 180 days.
+      </div>
+    `;
+  } else {
+    rechargeRows = `
+      <div class="descoTableWrapper">
+        <div class="descoHistoryTable">
+          <div class="descoTableHeader">
+            <div>Date</div>
+            <div>Paid</div>
+            <div>Energy</div>
+            <div>VAT</div>
+            <div style="text-align: right;">Token</div>
+          </div>
+          ${last10Recharges.map(r => {
+            const rDate = r.rechargeDate ? r.rechargeDate.split(' ')[0] : '-';
+            const rToken = r.tokenNo ? r.tokenNo.trim() : '';
+            const shortToken = rToken.length > 9 ? `${rToken.slice(0, 4)}…${rToken.slice(-4)}` : rToken;
+            const tokenHtml = rToken ? `
+              <div class="tokenBox" title="${rToken}">
+                <span class="tokenText" style="user-select:all;">${shortToken}</span>
+                <button class="copyBtn" onclick="navigator.clipboard.writeText('${rToken}'); alert('Token copied: ${rToken}');" title="Copy Full Token">Copy</button>
+              </div>
+            ` : '-';
+            return `
+              <div class="descoTableRow">
+                <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${rDate}</div>
+                <div style="font-weight: 800; color: #63ff68; white-space: nowrap;">৳ ${Math.round(r.totalAmount || 0).toLocaleString()}</div>
+                <div style="color: var(--text); white-space: nowrap;">৳ ${Math.round(r.energyAmount || 0).toLocaleString()}</div>
+                <div style="color: var(--muted); white-space: nowrap;">৳ ${Math.round(r.VAT || 0).toLocaleString()}</div>
+                <div style="display: flex; justify-content: flex-end;">${tokenHtml}</div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }
+  
+  const last12Months = sortedMonthly.slice(-12);
+  const compLabels = [];
+  const currTaka = [];
+  const prevTaka = [];
+  const currUnit = [];
+  const prevUnit = [];
+  const maxDemandData = [];
+  
+  const mNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  
+  last12Months.forEach(currItem => {
+    const parts = currItem.month.split('-');
+    const year = parseInt(parts[0]);
+    const monthIdx = parseInt(parts[1]) - 1;
+    const label = `${mNames[monthIdx]} ${String(year).substr(-2)}`;
+    
+    compLabels.push(label);
+    currTaka.push(Math.round(currItem.consumedTaka));
+    currUnit.push(Math.round(currItem.consumedUnit));
+    maxDemandData.push(currItem.maximumDemand || 0);
+    
+    const prevMonthStr = `${year - 1}-${parts[1]}`;
+    const prevItem = sortedMonthly.find(m => m.month === prevMonthStr);
+    if (prevItem) {
+      prevTaka.push(Math.round(prevItem.consumedTaka));
+      prevUnit.push(Math.round(prevItem.consumedUnit));
+    } else {
+      prevTaka.push(0);
+      prevUnit.push(0);
+    }
+  });
+  
+  container.innerHTML = `
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px;">
+      <div class="descoInfoBadge">
+        <div class="descoInfoLabel">Owner Name</div>
+        <div class="descoInfoValue" style="color: var(--accent2);">${ownerName}</div>
+      </div>
+      <div class="descoInfoBadge">
+        <div class="descoInfoLabel">Account No</div>
+        <div class="descoInfoValue">${bill.account}</div>
+      </div>
+      <div class="descoInfoBadge">
+        <div class="descoInfoLabel">Meter No</div>
+        <div class="descoInfoValue">${meterNo}</div>
+      </div>
+      <div class="descoInfoBadge">
+        <div class="descoInfoLabel">Location</div>
+        <div class="descoInfoValue" style="color: var(--accent2);">${locationName}</div>
+      </div>
+      <div class="descoInfoBadge">
+        <div class="descoInfoLabel">Load Limit</div>
+        <div class="descoInfoValue">${sanctionLoad} kW</div>
+      </div>
+    </div>
+    
+    <div class="descoHeroCard">
+      <div class="descoHeroContent">
+        <div class="descoHeroMain">
+          <div class="descoHeroBalanceLabel">Prepaid Balance Left</div>
+          <div class="descoHeroBalanceVal" style="color:${alertColor}; text-shadow:0 0 15px ${alertColor}33;">৳ ${formattedBalance}</div>
+          
+          <!-- Balance Health Progress Indicator -->
+          <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.05); border-radius: 4px; margin-top: 14px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05);">
+            <div style="width: ${fillPercent}%; height: 100%; background: ${alertColor}; box-shadow: 0 0 10px ${alertColor}; border-radius: 4px; transition: width 0.5s ease;"></div>
+          </div>
+          
+          <!-- Punchy Status Indicator Dot & Text -->
+          <div style="display:flex; align-items:center; gap:8px; margin-top:14px; font-size:0.95rem; font-weight:700; color:${alertColor};">
+            <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:${alertColor}; box-shadow:0 0 8px ${alertColor};"></span>
+            ${alertText}
+          </div>
+        </div>
+        
+        <!-- Pretty stat cards side-by-side -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; flex: 1.2; min-width: 280px;">
+          <div class="descoCard" style="padding: 14px 16px;">
+            <div class="descoLabel" style="font-size:0.8rem; margin-bottom: 4px;">Avg Daily Usage</div>
+            <div style="font-size: 1.3rem; font-weight: 800; color: var(--accent2);">${formattedDailyUnits} <span style="font-size:0.8rem; font-weight:500; color:var(--muted);">kWh</span></div>
+          </div>
+          <div class="descoCard" style="padding: 14px 16px;">
+            <div class="descoLabel" style="font-size:0.8rem; margin-bottom: 4px;">Avg Daily Cost</div>
+            <div style="font-size: 1.3rem; font-weight: 800; color: #fff;">৳ ${formattedDailyCost} <span style="font-size:0.8rem; font-weight:500; color:var(--muted);">/ day</span></div>
+          </div>
+          <div class="descoCard" style="padding: 14px 16px;">
+            <div class="descoLabel" style="font-size:0.8rem; margin-bottom: 4px;">Est. Disconnect Date</div>
+            <div style="font-size: 1.3rem; font-weight: 800; color: ${alertColor};">${exhaustionDateStr}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="descoDashboardGrid">
+      <div class="descoStatsCard">
+        <div class="descoCardTitle">Last 15 Days Daily Consumption (kWh)</div>
+        <div style="position:relative; height:240px; width:100%;">
+          <canvas id="descoChart_daily_${billId}"></canvas>
+        </div>
+      </div>
+      
+      <div class="descoStatsCard">
+        <div class="descoCardTitle">Maximum Demand History (kW)</div>
+        <div style="position:relative; height:240px; width:100%;">
+          <canvas id="descoChart_maxDemand_${billId}"></canvas>
+        </div>
+      </div>
+      
+      <div class="descoStatsCard">
+        <div class="descoCardTitle">Cost (Taka) Year-over-Year Comparison</div>
+        <div style="position:relative; height:240px; width:100%;">
+          <canvas id="descoChart_yoyTaka_${billId}"></canvas>
+        </div>
+      </div>
+      
+      <div class="descoStatsCard">
+        <div class="descoCardTitle">Units (kWh) Year-over-Year Comparison</div>
+        <div style="position:relative; height:240px; width:100%;">
+          <canvas id="descoChart_yoyUnit_${billId}"></canvas>
+        </div>
+      </div>
+      
+      <div class="descoStatsCard fullWidth">
+        <div class="descoCardTitle">12-Month Consumption Trends</div>
+        <div style="position:relative; height:260px; width:100%;">
+          <canvas id="descoChart_monthly_${billId}"></canvas>
+        </div>
+      </div>
+      
+      <div class="descoStatsCard">
+        <div class="descoCardTitle">Recharge Token History (Last 10 Logs)</div>
+        ${rechargeRows}
+      </div>
+      
+      <div class="descoStatsCard">
+        <div class="descoCardTitle">Interactive LT-A Residential Bill Calculator</div>
+        <div class="descoCalculator">
+          <details style="font-size: 0.82rem; color: var(--muted); margin-bottom: 8px; cursor: pointer; background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px;">
+            <summary style="color: var(--accent2); font-weight: 700; outline: none;">View LT-A Tariff Steps & Rate Details</summary>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding-top: 10px; color: var(--text); line-height: 1.4;">
+              <div>Lifeline (0-50 units): <strong>৳ 5.32</strong></div>
+              <div>Step 1 (0-75 units): <strong>৳ 6.18</strong></div>
+              <div>Step 2 (76-200 units): <strong>৳ 8.50</strong></div>
+              <div>Step 3 (201-300 units): <strong>৳ 9.10</strong></div>
+              <div>Step 4 (301-400 units): <strong>৳ 9.62</strong></div>
+              <div>Step 5 (401-600 units): <strong>৳ 15.01</strong></div>
+              <div style="grid-column: span 2;">Step 6 (Above 600 units): <strong>৳ 17.35</strong></div>
+              <div style="grid-column: span 2; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 6px; margin-top: 2px; font-size: 0.78rem; color: var(--muted);">Demand Charge: ৳ 42/kW | Meter Rent: ৳ 40 | VAT: 5%</div>
+            </div>
+          </details>
+          
+          <div class="calcInputGroup" style="margin-top:10px;">
+            <div style="min-width:0;">
+              <div class="descoLabel">Enter Monthly Units (kWh)</div>
+              <input type="number" id="calcUnitsInput" value="${Math.round(latestMonthInfo.consumedUnit || 150)}" class="calcInput" oninput="updateLiveCalculator()">
+            </div>
+            <div style="min-width:0;">
+              <div class="descoLabel">Load (kW)</div>
+              <input type="number" id="calcLoadInput" value="${sanctionLoad}" class="calcInput" oninput="updateLiveCalculator()">
+            </div>
+          </div>
+          
+          <div class="calcBreakdown">
+            <div class="calcRow">
+              <span>Energy Charges</span>
+              <span id="calcEnergyCharge">-</span>
+            </div>
+            <div class="calcRow">
+              <span>Demand Charges (Load × ৳42)</span>
+              <span id="calcDemandCharge">-</span>
+            </div>
+            <div class="calcRow">
+              <span>Meter Rent</span>
+              <span id="calcMeterRent">-</span>
+            </div>
+            <div class="calcRow">
+              <span>VAT (5%)</span>
+              <span id="calcVat">-</span>
+            </div>
+            <div class="calcRow total">
+              <span>Estimated Monthly Total</span>
+              <span id="calcTotal">-</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  updateLiveCalculator();
+  
+  const chartTypes = ['daily', 'monthly', 'yoyTaka', 'yoyUnit', 'maxDemand'];
+  chartTypes.forEach(t => {
+    const key = `${billId}_${t}`;
+    if (descoChartInstances[key]) {
+      descoChartInstances[key].destroy();
+    }
+  });
+  
+  const descoAlwaysShowValuesPlugin = {
+    id: 'descoAlwaysShowValues',
+    afterDatasetsDraw(chart) {
+      const { ctx } = chart;
+      chart.data.datasets.forEach((dataset, datasetIndex) => {
+        const meta = chart.getDatasetMeta(datasetIndex);
+        if (meta.hidden) return;
+        
+        const isLine = dataset.type === 'line' || (chart.config.type === 'line' && dataset.type !== 'bar');
+        
+        meta.data.forEach((element, index) => {
+          const val = dataset.data[index];
+          if (val === undefined || val === null || val === 0) return;
+          
+          ctx.save();
+          ctx.font = 'bold 11px "JetBrains Mono", monospace, sans-serif';
+          
+          let labelText = '';
+          const dsLabel = dataset.label || '';
+          if ((dsLabel.includes('kW') && !dsLabel.includes('kWh')) || (chart.canvas && chart.canvas.id.includes('maxDemand'))) {
+            labelText = `${Number(val).toFixed(2)}`;
+          } else if (typeof val === 'number' && !Number.isInteger(val)) {
+            labelText = val.toFixed(1);
+          } else {
+            labelText = `${Math.round(val).toLocaleString()}`;
+          }
+          
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'bottom';
+          
+          if (dataset.borderColor && isLine) {
+            ctx.fillStyle = dataset.borderColor;
+          } else if (dataset.backgroundColor === '#1d3969') {
+            ctx.fillStyle = '#8ab4f8';
+          } else if (dataset.backgroundColor && typeof dataset.backgroundColor === 'string' && !dataset.backgroundColor.startsWith('rgba')) {
+            ctx.fillStyle = dataset.backgroundColor;
+          } else if (dataset.borderColor) {
+            ctx.fillStyle = dataset.borderColor;
+          } else {
+            ctx.fillStyle = '#f4f7ff';
+          }
+          
+          const x = element.x;
+          let y = element.y - 4;
+          
+          if (y < chart.chartArea.top + 9) {
+            y = chart.chartArea.top + 10;
+          }
+          
+          ctx.fillText(labelText, x, y);
+          ctx.restore();
+        });
+      });
+    }
+  };
+
+  const dailyCtx = document.getElementById(`descoChart_daily_${billId}`);
+  if (dailyCtx) {
+    const dailyUnits = dailyUsageData.map(d => d.units);
+    const minUnitVal = dailyUnits.length > 0 ? Math.min(...dailyUnits) : 0;
+    const maxUnitVal = dailyUnits.length > 0 ? Math.max(...dailyUnits) : 100;
+    const unitDiff = maxUnitVal - minUnitVal;
+    const dailyMinScale = Math.max(0, Math.floor(minUnitVal - (unitDiff || 1) * 0.25));
+
+    descoChartInstances[`${billId}_daily`] = new Chart(dailyCtx, {
+      type: 'bar',
+      data: {
+        labels: dailyUsageData.map(d => d.date),
+        datasets: [{
+          data: dailyUsageData.map(d => d.units),
+          backgroundColor: '#00C2FF',
+          borderRadius: 4,
+          barPercentage: 0.45,
+          categoryPercentage: 0.7
+        }]
+      },
+      plugins: [descoAlwaysShowValuesPlugin],
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        layout: { padding: { top: 14 } },
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: '#91a5c6', font: { size: 9 } } },
+          y: { 
+            min: dailyMinScale,
+            grace: '18%',
+            grid: { color: 'rgba(29, 57, 105, 0.1)' }, 
+            ticks: { color: '#91a5c6', font: { size: 9 } } 
           }
         }
       }
     });
   }
+  
+  const maxCtx = document.getElementById(`descoChart_maxDemand_${billId}`);
+  if (maxCtx) {
+    descoChartInstances[`${billId}_maxDemand`] = new Chart(maxCtx, {
+      type: 'line',
+      data: {
+        labels: compLabels,
+        datasets: [{
+          data: maxDemandData,
+          borderColor: '#ffe663',
+          borderWidth: 2,
+          pointBackgroundColor: '#ffe663',
+          tension: 0.3,
+          fill: false
+        }]
+      },
+      plugins: [descoAlwaysShowValuesPlugin],
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        layout: { padding: { top: 14 } },
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: '#91a5c6', font: { size: 9 } } },
+          y: { 
+            grace: '18%',
+            grid: { color: 'rgba(29, 57, 105, 0.1)' }, 
+            ticks: { color: '#91a5c6', font: { size: 9 } } 
+          }
+        }
+      }
+    });
+  }
+  
+  const yoyTakaCtx = document.getElementById(`descoChart_yoyTaka_${billId}`);
+  if (yoyTakaCtx) {
+    descoChartInstances[`${billId}_yoyTaka`] = new Chart(yoyTakaCtx, {
+      type: 'bar',
+      data: {
+        labels: compLabels.map(l => l.split(' ')[0]),
+        datasets: [
+          {
+            label: 'Previous Year (৳)',
+            data: prevTaka,
+            backgroundColor: '#1d3969',
+            borderRadius: 4
+          },
+          {
+            label: 'Current Year (৳)',
+            data: currTaka,
+            backgroundColor: '#00E676',
+            borderRadius: 4
+          }
+        ]
+      },
+      plugins: [descoAlwaysShowValuesPlugin],
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        layout: { padding: { top: 14 } },
+        plugins: { legend: { display: true, labels: { color: '#91a5c6', font: { size: 9 } } } },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: '#91a5c6', font: { size: 9 } } },
+          y: { 
+            grace: '18%',
+            grid: { color: 'rgba(29, 57, 105, 0.1)' }, 
+            ticks: { color: '#91a5c6', font: { size: 9 } } 
+          }
+        }
+      }
+    });
+  }
+  
+  const yoyUnitCtx = document.getElementById(`descoChart_yoyUnit_${billId}`);
+  if (yoyUnitCtx) {
+    descoChartInstances[`${billId}_yoyUnit`] = new Chart(yoyUnitCtx, {
+      type: 'bar',
+      data: {
+        labels: compLabels.map(l => l.split(' ')[0]),
+        datasets: [
+          {
+            label: 'Previous Year (kWh)',
+            data: prevUnit,
+            backgroundColor: '#1d3969',
+            borderRadius: 4
+          },
+          {
+            label: 'Current Year (kWh)',
+            data: currUnit,
+            backgroundColor: '#00C2FF',
+            borderRadius: 4
+          }
+        ]
+      },
+      plugins: [descoAlwaysShowValuesPlugin],
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        layout: { padding: { top: 14 } },
+        plugins: { legend: { display: true, labels: { color: '#91a5c6', font: { size: 9 } } } },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: '#91a5c6', font: { size: 9 } } },
+          y: { 
+            grace: '18%',
+            grid: { color: 'rgba(29, 57, 105, 0.1)' }, 
+            ticks: { color: '#91a5c6', font: { size: 9 } } 
+          }
+        }
+      }
+    });
+  }
+  
+  const monthlyCtx = document.getElementById(`descoChart_monthly_${billId}`);
+  if (monthlyCtx) {
+    descoChartInstances[`${billId}_monthly`] = new Chart(monthlyCtx, {
+      type: 'line',
+      data: {
+        labels: compLabels,
+        datasets: [
+          {
+            type: 'bar',
+            label: 'Units (kWh)',
+            data: currUnit,
+            backgroundColor: 'rgba(34, 211, 238, 0.3)',
+            borderColor: '#00C2FF',
+            borderWidth: 1,
+            borderRadius: 6,
+            yAxisID: 'y'
+          },
+          {
+            type: 'line',
+            label: 'Cost (৳)',
+            data: currTaka,
+            borderColor: '#00E676',
+            pointBackgroundColor: '#00E676',
+            borderWidth: 2,
+            tension: 0.3,
+            fill: false,
+            yAxisID: 'y1'
+          }
+        ]
+      },
+      plugins: [descoAlwaysShowValuesPlugin],
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        layout: { padding: { top: 14 } },
+        plugins: { legend: { display: true, labels: { color: '#91a5c6', font: { size: 9 } } } },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: '#91a5c6', font: { size: 9 } } },
+          y: {
+            position: 'left',
+            grace: '18%',
+            grid: { color: 'rgba(29, 57, 105, 0.1)' },
+            ticks: { color: '#00C2FF', font: { size: 9 } }
+          },
+          y1: {
+            position: 'right',
+            grace: '18%',
+            grid: { drawOnChartArea: false },
+            ticks: { color: '#00E676', font: { size: 9 } }
+          }
+        }
+      }
+    });
+  }
+}
+
+function hydrateAllPages() {
+  sortPaymentsData();
+  renderBillPages();
+  renderLandingPageCards();
+  renderDashboardPage();
+  renderDatabasePage();
+  renderStatsPage();
 }
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -6662,8 +9393,10 @@ YTD Spend by Bill
           <div style="height:140px; position:relative;">
             <canvas id="surchargeTrendChart"></canvas>
           </div>
+        </div>
       </div>
       
+      <!-- MONTHLY SPEND TREND -->
       <div class="chartCard fullWidth">
 
 <div class="chartTitle">
