@@ -918,6 +918,19 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 }
 
+
+.formGrid.fourCol {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+@media (max-width: 640px) {
+  .formGrid.fourCol {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+}
+
 /* DASHBOARD */
 
 .dashboardPage{
@@ -3124,8 +3137,13 @@ input[type="date"]::-webkit-calendar-picker-indicator {
       </div>
       
       <div class="formField">
-        <label>Amount Paid (৳)</label>
+        <label>Main Amount Paid (৳)</label>
         <input type="number" id="editAmount" placeholder="Enter amount...">
+      </div>
+      
+      <div class="formField">
+        <label>Fee / Gateway Surcharge (৳)</label>
+        <input type="number" id="editFee" placeholder="0 (Optional fee)">
       </div>
       
       <div class="formField">
@@ -3822,13 +3840,14 @@ async function fetchLocalFallback() {
   }
 }
 
-// Save Payment Record (Structured Cloud Firestore Schema)
-async function savePaymentRecord(billId, amount, payDate, billMonth) {
+// Save Payment Record (Structured Cloud Firestore Schema with Fee Support)
+async function savePaymentRecord(billId, amount, payDate, billMonth, fee = '') {
   const bill = billPages.find(b => b.id === billId);
   const billName = bill ? bill.name.replace('<br>', ' ') : billId;
   const billType = bill ? bill.type.toLowerCase() : 'prepaid';
   const utilityCategory = bill ? (bill.utility || (billType === 'prepaid' ? 'electric' : 'gas')) : 'electric';
   const amountNumeric = Math.round(parseFloat(amount));
+  const feeNumeric = Math.round(parseFloat(fee)) || 0;
   
   const newRecord = {
     uid: 'mr' + Math.random().toString(36).substr(2, 10),
@@ -3839,6 +3858,9 @@ async function savePaymentRecord(billId, amount, payDate, billMonth) {
     billMonth: billMonth || '',
     amount: amountNumeric.toString(),
     amountNum: amountNumeric,
+    fee: feeNumeric > 0 ? feeNumeric.toString() : '',
+    feeNum: feeNumeric,
+    totalPaid: amountNumeric + feeNumeric,
     payDate: payDate,
     savedAt: new Date().toISOString(),
     timestamp: new Date(payDate).getTime() || Date.now()
@@ -3850,10 +3872,8 @@ async function savePaymentRecord(billId, amount, payDate, billMonth) {
   
   if (currentUser && db) {
     try {
-      // 1. Write structured document into users/{uid}/payments/{docId}
       await db.collection('users').doc(currentUser.uid).collection('payments').doc(newRecord.uid).set(newRecord);
       
-      // 2. Update user profile lastActive timestamp
       db.collection('users').doc(currentUser.uid).set({
         email: currentUser.email,
         displayName: currentUser.displayName,
@@ -3861,7 +3881,8 @@ async function savePaymentRecord(billId, amount, payDate, billMonth) {
         lastActiveAt: new Date().toISOString()
       }, { merge: true }).catch(() => {});
       
-      showToast(`Saved ৳ ${amountNumeric.toLocaleString()} for ${billName} to Cloud!`);
+      const feeText = feeNumeric > 0 ? ` (+৳${feeNumeric} fee)` : '';
+      showToast(`Saved ৳ ${amountNumeric.toLocaleString()}${feeText} for ${billName} to Cloud!`);
     } catch (err) {
       console.error("Firestore save error:", err);
       showToast("Saved locally (offline mode).");
@@ -3869,7 +3890,8 @@ async function savePaymentRecord(billId, amount, payDate, billMonth) {
     }
   } else {
     saveToLocalStorage(newRecord);
-    showToast(`Saved ৳ ${amountNumeric.toLocaleString()} to local cache.`);
+    const feeText = feeNumeric > 0 ? ` (+৳${feeNumeric} fee)` : '';
+    showToast(`Saved ৳ ${amountNumeric.toLocaleString()}${feeText} to local cache.`);
   }
 }
 
@@ -3927,6 +3949,7 @@ function openEditModal(uid) {
   activeEditUid = uid;
   document.getElementById('editBillName').value = p.billName;
   document.getElementById('editAmount').value = parseFloat(p.amount);
+  document.getElementById('editFee').value = p.fee ? parseFloat(p.fee) : '';
   document.getElementById('editDate').value = p.payDate;
   
   const monthContainer = document.getElementById('editMonthContainer');
@@ -3953,6 +3976,7 @@ async function saveEditedRecord() {
   if (!activeEditUid) return;
   
   const amountVal = document.getElementById('editAmount').value.trim();
+  const feeVal = document.getElementById('editFee').value.trim();
   const dateVal = document.getElementById('editDate').value.trim();
   const monthVal = document.getElementById('editMonth').value;
   
@@ -3969,8 +3993,14 @@ async function saveEditedRecord() {
   if (recordIndex === -1) return;
   
   const record = paymentsData[recordIndex];
-  record.amount = Math.round(parseFloat(amountVal)).toString();
-  record.amountNum = Math.round(parseFloat(amountVal));
+  const amtNum = Math.round(parseFloat(amountVal));
+  const feeNum = Math.round(parseFloat(feeVal)) || 0;
+  
+  record.amount = amtNum.toString();
+  record.amountNum = amtNum;
+  record.fee = feeNum > 0 ? feeNum.toString() : '';
+  record.feeNum = feeNum;
+  record.totalPaid = amtNum + feeNum;
   record.payDate = dateVal;
   record.billMonth = (record.billType === 'postpaid' || record.billId === 'inspireBroadband') ? monthVal : '';
   
@@ -4342,14 +4372,22 @@ function renderBillPages() {
         </div>
         <div class="formSection">
           <div class="sectionTitle">Record Payment</div>
-          <div class="formGrid ${bill.form === 'postpaid' || bill.id === 'inspireBroadband' ? 'postpaid' : 'prepaid'}">
+          <div class="formGrid fourCol">
             <div class="inputCard">
-              <div class="inputLabel">Amount Paid (৳)</div>
-              <input type="number" class="inputAmountVal" value="" placeholder="Enter amount..." style="width:100%; height:40px; background:transparent; border:none; color:white; font-size:1.9rem; font-weight:800; font-family:'JetBrains Mono',monospace; outline:none;">
+              <div class="inputLabel">Main Amount (৳)</div>
+              <input type="number" class="inputAmountVal" value="" placeholder="e.g. 1500" 
+                onblur="handleAmountAutoSplit('${bill.id}', this)" 
+                oninput="handleAmountAutoSplitQuick('${bill.id}', this)"
+                style="width:100%; height:40px; background:transparent; border:none; color:white; font-size:1.8rem; font-weight:800; font-family:var(--font-amount); outline:none;">
+            </div>
+            <div class="inputCard">
+              <div class="inputLabel">Fee / Surcharge (৳)</div>
+              <input type="number" class="inputFeeVal" value="" placeholder="0" 
+                style="width:100%; height:40px; background:transparent; border:none; color:#FF7A00; font-size:1.8rem; font-weight:800; font-family:var(--font-amount); outline:none;">
             </div>
             <div class="inputCard">
               <div class="inputLabel">Date Paid</div>
-              <input type="date" class="inputDateVal" value="${localISODate}" onclick="try { this.showPicker(); } catch(e) {}" style="width:100%; height:40px; background:transparent; border:none; color:white; font-size:1.5rem; font-weight:800; font-family:'JetBrains Mono',monospace; outline:none; cursor:pointer;">
+              <input type="date" class="inputDateVal" value="${localISODate}" onclick="try { this.showPicker(); } catch(e) {}" style="width:100%; height:40px; background:transparent; border:none; color:white; font-size:1.4rem; font-weight:800; font-family:var(--font-mono); outline:none; cursor:pointer;">
             </div>
             ${billingMonthHtml}
           </div>
@@ -6014,11 +6052,66 @@ function renderStatsPage() {
   }
 }
 
+
+// Auto-split stray amount into Main Amount + Fee for specific prepaid bills
+function handleAmountAutoSplit(billId, inputEl) {
+  const autoSplitBills = ['rupnagarDesco', 'uttaraDesco', 'rupnagarGas'];
+  if (!autoSplitBills.includes(billId)) return;
+  
+  const section = document.getElementById(billId);
+  if (!section) return;
+  
+  const feeInput = section.querySelector('.inputFeeVal');
+  if (!feeInput) return;
+  
+  const rawVal = parseFloat(inputEl.value);
+  if (!rawVal || isNaN(rawVal) || rawVal <= 0) {
+    return;
+  }
+  
+  // Stray remainder logic (e.g. 1515 -> base 1500, fee 15; 2030 -> base 2000, fee 30; 1010 -> base 1000, fee 10)
+  const remainder = rawVal % 100;
+  if (remainder > 0 && rawVal > 100) {
+    const baseAmount = rawVal - remainder;
+    inputEl.value = baseAmount;
+    feeInput.value = remainder;
+    showToast(`⚡ Auto-split: ৳ ${baseAmount.toLocaleString()} main + ৳ ${remainder} fee`, 3500);
+  } else if (rawVal % 100 === 0) {
+    feeInput.value = ''; // Round amount -> fee empty
+  }
+}
+
+function handleAmountAutoSplitQuick(billId, inputEl) {
+  const autoSplitBills = ['rupnagarDesco', 'uttaraDesco', 'rupnagarGas'];
+  if (!autoSplitBills.includes(billId)) return;
+  
+  // When 4+ digits are typed, check for common stray fees e.g. 1515, 2030, 1010, 2020
+  const rawStr = inputEl.value.trim();
+  if (rawStr.length >= 4) {
+    const rawVal = parseFloat(rawStr);
+    const remainder = rawVal % 100;
+    if (remainder > 0 && rawVal > 100 && (remainder <= 50)) {
+      // Trigger auto-split seamlessly
+      const section = document.getElementById(billId);
+      if (section) {
+        const feeInput = section.querySelector('.inputFeeVal');
+        if (feeInput && !feeInput.value) {
+          const baseAmount = rawVal - remainder;
+          inputEl.value = baseAmount;
+          feeInput.value = remainder;
+          showToast(`⚡ Auto-split: ৳ ${baseAmount.toLocaleString()} main + ৳ ${remainder} fee`, 3500);
+        }
+      }
+    }
+  }
+}
+
 function submitPaymentForm(billId) {
   const section = document.getElementById(billId);
   if (!section) return;
   
   const amountVal = section.querySelector('.inputAmountVal').value.trim();
+  const feeVal = section.querySelector('.inputFeeVal') ? section.querySelector('.inputFeeVal').value.trim() : '';
   const dateVal = section.querySelector('.inputDateVal').value.trim();
   
   const monthSelect = section.querySelector('.inputMonthSelect');
@@ -6037,9 +6130,12 @@ function submitPaymentForm(billId) {
   saveBtn.innerText = 'Saving...';
   saveBtn.disabled = true;
   
-  savePaymentRecord(billId, amountVal, dateVal, monthVal)
+  savePaymentRecord(billId, amountVal, dateVal, monthVal, feeVal)
     .then(() => {
-      alert('Payment recorded successfully!');
+      showToast('Payment recorded successfully!');
+      // Reset inputs
+      section.querySelector('.inputAmountVal').value = '';
+      if (section.querySelector('.inputFeeVal')) section.querySelector('.inputFeeVal').value = '';
       goHome();
     })
     .catch(err => {
@@ -6099,12 +6195,10 @@ function exportCsv() {
     return;
   }
   
-  // Sort payments chronologically descending
   const sorted = [...paymentsData].sort((a, b) => {
     return (b.payDate || '').localeCompare(a.payDate || '');
   });
   
-  // Account/Meter mapping helper
   const meterMap = {
     rupnagarDesco: '140-10-368',
     rupnagarGas: '9840-02-14',
@@ -6125,14 +6219,18 @@ function exportCsv() {
     inspireBroadband: 'Internet / ISP'
   };
 
-  // Build Structured CSV Header & Rows (with UTF-8 BOM for perfect Excel/Numbers Unicode support)
   let csv = '\uFEFF';
-  csv += 'Transaction ID,Date Paid,Utility Name,Category,Account / Meter No,Billing Type,Billing Month,Amount (BDT),Created At (UTC)\n';
+  csv += 'Transaction ID,Date Paid,Utility Name,Category,Account / Meter No,Billing Type,Billing Month,Main Amount (BDT),Fee (BDT),Total Paid (BDT),Created At (UTC)\n';
   
   let totalAmount = 0;
+  let totalFees = 0;
   sorted.forEach(p => {
     const amt = parseFloat(p.amount) || 0;
+    const fee = parseFloat(p.fee) || 0;
+    const total = amt + fee;
     totalAmount += amt;
+    totalFees += fee;
+    
     const cat = p.utilityCategory ? (p.utilityCategory.charAt(0).toUpperCase() + p.utilityCategory.slice(1)) : (categoryMap[p.billId] || 'Utility');
     const meter = meterMap[p.billId] || '-';
     const bMonth = p.billMonth || '-';
@@ -6142,7 +6240,7 @@ function exportCsv() {
     const cleanUid = (p.uid || '').replace(/"/g, '""');
     const cleanName = (p.billName || '').replace(/<br>/g, ' ').replace(/"/g, '""');
     
-    csv += `"${cleanUid}","${p.payDate}","${cleanName}","${cat}","${meter}","${bType}","${bMonth}",${Math.round(amt)},"${createdAt}"\n`;
+    csv += `"${cleanUid}","${p.payDate}","${cleanName}","${cat}","${meter}","${bType}","${bMonth}",${Math.round(amt)},${Math.round(fee)},${Math.round(total)},"${createdAt}"\n`;
   });
 
   const todayStr = new Date().toISOString().split('T')[0];
@@ -6168,7 +6266,8 @@ function exportCsv() {
     }
   }
   
-  showToast(`✓ Exported ${sorted.length} records (Total: ৳ ${totalAmount.toLocaleString()}) to CSV!`, 4500);
+  const feeSummary = totalFees > 0 ? ` (incl. ৳ ${totalFees.toLocaleString()} fees)` : '';
+  showToast(`✓ Exported ${sorted.length} records (Total: ৳ ${(totalAmount + totalFees).toLocaleString()}${feeSummary}) to CSV!`, 4500);
 }
 
 function sortPaymentsData() {
