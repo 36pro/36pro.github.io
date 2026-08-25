@@ -3042,12 +3042,14 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     justify-content: center;
     gap: 2px;
     width: 100%;
+    flex: 1;
   }
   .billTitleRow {
     display: flex;
     align-items: center;
-    flex-wrap: wrap;
-    gap: 6px;
+    justify-content: space-between;
+    width: 100%;
+    gap: 8px;
   }
   .billTitle {
     font-size: 1.15rem;
@@ -3057,13 +3059,15 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   .billTypeBadge {
     display: inline-flex !important;
     align-items: center;
-    padding: 2px 7px;
+    padding: 2px 8px;
     border-radius: 6px;
     font-size: 0.68rem;
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.4px;
     font-family: var(--font-mono);
+    margin-left: auto;
+    flex-shrink: 0;
   }
   .badgePrepaid {
     background: rgba(0, 230, 118, 0.15);
