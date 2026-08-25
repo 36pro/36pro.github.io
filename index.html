@@ -1852,6 +1852,48 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 }
 
+
+/* TOP BAR AUTH / CLOUD BUTTON */
+.authHeaderBtn {
+  position: absolute;
+  top: 18px;
+  right: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: rgba(16, 36, 72, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  z-index: 100;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+
+.authHeaderBtn:hover {
+  transform: translateY(-2px);
+  border-color: #00C2FF;
+  box-shadow: 0 6px 20px rgba(0, 194, 255, 0.25);
+  background: rgba(22, 48, 96, 0.95);
+}
+
+.authStatusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #64748b;
+}
+.authStatusDot.connected {
+  background: #00E676;
+  box-shadow: 0 0 8px #00E676;
+}
+
 /* SETTINGS & MODAL */
 
 .settingsBtn{
@@ -2809,7 +2851,10 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 <div class="container">
 
-<button class="settingsBtn" onclick="openSettingsModal()" title="GitHub Settings">⚙</button>
+<button class="authHeaderBtn" onclick="openSettingsModal()" title="Firebase Cloud Sync & Settings">
+  <span class="authStatusDot" id="headerAuthDot"></span>
+  <span id="headerAuthLabel">🔥 Cloud Sync</span>
+</button>
 
 <div class="logo" onclick="goHome()" title="Billzy — Home">
   <svg class="logoSvgMark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60" fill="none">
@@ -3117,23 +3162,13 @@ function getBillIconHtml(bill, type) {
   
   const filename = assetMap[bill.id];
   if (filename) {
-    const gh = getGHSettings();
-    const localSrc = `assets/${filename}`;
-    const src = gh 
-      ? `https://raw.githubusercontent.com/${gh.owner}/${gh.repo}/${gh.branch}/assets/${filename}`
-      : localSrc;
-    return `<img src="${src}" onerror="this.onerror=null; this.src='${localSrc}';" alt="" style="width:100%; height:100%; object-fit:cover; border-radius:${borderRadius}; display:block;">`;
+    return `<img src="assets/${filename}" alt="${bill.name}" style="width:100%; height:100%; object-fit:cover; border-radius:${borderRadius}; display:block;">`;
   }
   return bill.icon || '';
 }
 
 function getHeroIconHtml(filename) {
-  const gh = getGHSettings();
-  const localSrc = `assets/${filename}`;
-  const src = gh 
-    ? `https://raw.githubusercontent.com/${gh.owner}/${gh.repo}/${gh.branch}/assets/${filename}`
-    : localSrc;
-  return `<img src="${src}" onerror="this.onerror=null; this.src='${localSrc}';" alt="" style="width:100%; height:100%; object-fit:contain; display:block;">`;
+  return `<img src="assets/${filename}" alt="" style="width:100%; height:100%; object-fit:contain; display:block;">`;
 }
 
 const billPages = [
@@ -3408,11 +3443,20 @@ function updateAuthUI(user) {
   const userAvatarImg = document.getElementById('userAvatarImg');
   const userAvatarPlaceholder = document.getElementById('userAvatarPlaceholder');
   
+  // Header buttons across pages
+  const headerDots = document.querySelectorAll('.authStatusDot');
+  const headerLabels = document.querySelectorAll('.authHeaderBtn span:last-child');
+  
   if (user) {
     if (loggedInView) loggedInView.classList.remove('hidden');
     if (loggedOutView) loggedOutView.classList.add('hidden');
     if (userDisplayName) userDisplayName.innerText = user.displayName || 'Google User';
     if (userEmail) userEmail.innerText = user.email || '';
+    
+    headerDots.forEach(dot => dot.classList.add('connected'));
+    headerLabels.forEach(label => {
+      label.innerText = user.displayName ? `👤 ${user.displayName.split(' ')[0]}` : '🟢 Connected';
+    });
     
     if (user.photoURL && userAvatarImg && userAvatarPlaceholder) {
       userAvatarImg.src = user.photoURL;
@@ -3426,6 +3470,11 @@ function updateAuthUI(user) {
   } else {
     if (loggedInView) loggedInView.classList.add('hidden');
     if (loggedOutView) loggedOutView.classList.remove('hidden');
+    
+    headerDots.forEach(dot => dot.classList.remove('connected'));
+    headerLabels.forEach(label => {
+      label.innerText = '🔑 Sign In';
+    });
   }
 }
 
@@ -3703,64 +3752,36 @@ async function saveEditedRecord() {
   
   const record = paymentsData[recordIndex];
   record.amount = Math.round(parseFloat(amountVal)).toString();
+  record.amountNum = Math.round(parseFloat(amountVal));
   record.payDate = dateVal;
   record.billMonth = (record.billType === 'postpaid' || record.billId === 'inspireBroadband') ? monthVal : '';
   
   const saveBtn = document.querySelector('#editModal .saveModalBtn');
-  saveBtn.innerText = 'Saving...';
-  saveBtn.disabled = true;
+  if (saveBtn) {
+    saveBtn.innerText = 'Saving...';
+    saveBtn.disabled = true;
+  }
   
-  const gh = getGHSettings();
-  if (gh) {
-    const url = `https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/${gh.path}`;
-    const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(paymentsData, null, 2))));
-    
+  if (currentUser && db) {
     try {
-      // Get the latest SHA before writing
-      const shaRes = await fetch(url + `?ref=${gh.branch}&_t=${Date.now()}`, {
-        headers: {
-          'Authorization': `token ${gh.token}`,
-          'Accept': 'application/vnd.github.v3+json'
-        }
-      });
-      if (shaRes.ok) {
-        const shaData = await shaRes.json();
-        githubFileSha = shaData.sha;
-      }
-      
-      const res = await fetch(url, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `token ${gh.token}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/vnd.github.v3+json'
-        },
-        body: JSON.stringify({
-          message: `Update payment record for ${record.billName}`,
-          content: contentBase64,
-          ...(githubFileSha ? { sha: githubFileSha } : {}),
-          branch: gh.branch
-        })
-      });
-      
-      if (!res.ok) {
-        const errBody = await res.text();
-        throw new Error(`GitHub returned status ${res.status}: ${errBody}`);
-      }
-      console.log('Updated payment on GitHub successfully!');
+      await db.collection('users').doc(currentUser.uid).collection('payments').doc(record.uid).update(record);
+      showToast("Updated payment record in Cloud!");
     } catch (err) {
-      console.error('Failed to update on GitHub, caching locally:', err);
-      alert('Failed to save to GitHub repository: ' + err.message + '\n\nSaving to local browser cache instead.');
+      console.error("Firestore update error:", err);
+      showToast("Updated payment locally.");
       updateLocalStorageRecord(record);
     }
   } else {
     updateLocalStorageRecord(record);
+    showToast("Updated payment in local cache.");
+  }
+  
+  if (saveBtn) {
+    saveBtn.innerText = 'Save Changes';
+    saveBtn.disabled = false;
   }
   
   closeEditModal();
-  saveBtn.innerText = 'Save Changes';
-  saveBtn.disabled = false;
-  
   hydrateAllPages();
 }
 
@@ -7593,7 +7614,10 @@ window.addEventListener('DOMContentLoaded', () => {
 
 <div class="container">
 
-<button class="settingsBtn" onclick="openSettingsModal()" title="GitHub Settings">⚙</button>
+<button class="authHeaderBtn" onclick="openSettingsModal()" title="Firebase Cloud Sync & Settings">
+  <span class="authStatusDot" id="headerAuthDot"></span>
+  <span id="headerAuthLabel">🔥 Cloud Sync</span>
+</button>
 
 <div class="logo" onclick="goHome()" title="Billzy — Home">
   <svg class="logoSvgMark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60" fill="none">
@@ -8132,7 +8156,10 @@ Pay now
 
 <div class="container">
 
-<button class="settingsBtn" onclick="openSettingsModal()" title="GitHub Settings">⚙</button>
+<button class="authHeaderBtn" onclick="openSettingsModal()" title="Firebase Cloud Sync & Settings">
+  <span class="authStatusDot" id="headerAuthDot"></span>
+  <span id="headerAuthLabel">🔥 Cloud Sync</span>
+</button>
 
 <div class="logo" onclick="goHome()" title="Billzy — Home">
   <svg class="logoSvgMark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60" fill="none">
@@ -8369,7 +8396,10 @@ placeholder="Search payments..."
 
 <div class="container">
 
-<button class="settingsBtn" onclick="openSettingsModal()" title="GitHub Settings">⚙</button>
+<button class="authHeaderBtn" onclick="openSettingsModal()" title="Firebase Cloud Sync & Settings">
+  <span class="authStatusDot" id="headerAuthDot"></span>
+  <span id="headerAuthLabel">🔥 Cloud Sync</span>
+</button>
 
 <div class="logo" onclick="goHome()" title="Billzy — Home">
   <svg class="logoSvgMark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60" fill="none">
