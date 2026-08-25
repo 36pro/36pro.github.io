@@ -5066,8 +5066,13 @@ function renderStatsPage() {
       surchargeTrendChartInstance.destroy();
     }
     
-    // Group surcharges by month (Rolling 6 Months)
-    const surchargeMonths = monthsList.slice(-6);
+    // Build guaranteed rolling 6 months ending on current month
+    const surchargeMonths = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const label = `${monthNames[d.getMonth()]} ${String(d.getFullYear()).substr(-2)}`;
+      surchargeMonths.push(label);
+    }
     const monthlyFees = {};
     surchargeMonths.forEach(m => monthlyFees[m] = 0);
     
