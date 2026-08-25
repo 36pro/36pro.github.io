@@ -5332,6 +5332,123 @@ function renderStatsPage() {
     });
   }
   
+  
+  // -------------------------------------------------------------
+  // PREPAID RECHARGE EFFICIENCY CALCULATION (Days per ৳ 1,000)
+  // -------------------------------------------------------------
+  const prepaidBills = billPages.filter(b => b.type === 'Prepaid');
+  const efficiencyByBill = [];
+  let totalDaysSum = 0;
+  let totalAmountSum = 0;
+  let totalValidCycles = 0;
+
+  prepaidBills.forEach(bill => {
+    // Sort payments chronological (oldest to newest)
+    const bPayments = paymentsData
+      .filter(p => p.billId === bill.id)
+      .map(parsePaymentRecord)
+      .sort((a, b) => new Date(a.payDate) - new Date(b.payDate));
+
+    let billDays = 0;
+    let billAmt = 0;
+    let billCycles = 0;
+
+    for (let i = 0; i < bPayments.length - 1; i++) {
+      const p1 = bPayments[i];
+      const p2 = bPayments[i + 1];
+      const d1 = new Date(p1.payDate);
+      const d2 = new Date(p2.payDate);
+      const diffDays = Math.round((d2 - d1) / (1000 * 60 * 60 * 24));
+
+      if (diffDays > 0 && p1.baseAmount > 0) {
+        billDays += diffDays;
+        billAmt += p1.baseAmount;
+        billCycles++;
+      }
+    }
+
+    if (billCycles > 0 && billAmt > 0) {
+      const daysPer1k = (billDays / (billAmt / 1000));
+      const dailyBurn = billDays > 0 ? (billAmt / billDays) : 0;
+      efficiencyByBill.push({
+        billId: bill.id,
+        name: bill.name.replace('<br>', ' '),
+        daysPer1k: Math.round(daysPer1k * 10) / 10,
+        dailyBurn: Math.round(dailyBurn),
+        cycles: billCycles,
+        totalDays: billDays,
+        totalAmt: billAmt
+      });
+      totalDaysSum += billDays;
+      totalAmountSum += billAmt;
+      totalValidCycles += billCycles;
+    }
+  });
+
+  // Calculate overall metrics
+  const overallDaysPer1k = totalAmountSum > 0 ? (totalDaysSum / (totalAmountSum / 1000)) : 0;
+  const overallDailyBurn = totalDaysSum > 0 ? (totalAmountSum / totalDaysSum) : 0;
+  
+  // Sort by most days per 1000 (most efficient)
+  efficiencyByBill.sort((a, b) => b.daysPer1k - a.daysPer1k);
+  const bestMeter = efficiencyByBill[0] || null;
+
+  // Populate DOM elements
+  const statOverallDaysPer1kEl = document.getElementById('statOverallDaysPer1k');
+  if (statOverallDaysPer1kEl) {
+    statOverallDaysPer1kEl.innerText = overallDaysPer1k > 0 ? `${overallDaysPer1k.toFixed(1)} Days` : 'N/A';
+  }
+
+  const statDailyBurnRateEl = document.getElementById('statDailyBurnRate');
+  if (statDailyBurnRateEl) {
+    statDailyBurnRateEl.innerText = overallDailyBurn > 0 ? `৳ ${Math.round(overallDailyBurn)} / day` : 'N/A';
+  }
+
+  const statBestEfficiencyEl = document.getElementById('statBestEfficiency');
+  const statBestEfficiencySubEl = document.getElementById('statBestEfficiencySub');
+  if (statBestEfficiencyEl && statBestEfficiencySubEl) {
+    if (bestMeter) {
+      statBestEfficiencyEl.innerText = `${bestMeter.daysPer1k.toFixed(1)} Days / 1k`;
+      statBestEfficiencySubEl.innerText = bestMeter.name;
+    } else {
+      statBestEfficiencyEl.innerText = '-';
+      statBestEfficiencySubEl.innerText = 'Need ≥ 2 recharges';
+    }
+  }
+
+  const statCyclesCountEl = document.getElementById('statCyclesCount');
+  if (statCyclesCountEl) {
+    statCyclesCountEl.innerText = `${totalValidCycles} Cycle${totalValidCycles !== 1 ? 's' : ''}`;
+  }
+
+  // Populate Efficiency Breakdown Bars
+  const efficiencyBarsContainer = document.getElementById('efficiencyBarsContainer');
+  if (efficiencyBarsContainer) {
+    if (efficiencyByBill.length === 0) {
+      efficiencyBarsContainer.innerHTML = `
+        <div style="padding:16px; text-align:center; color:#94a3b8; font-size:0.85rem;">
+          Recorded recharges will automatically compute your Days per ৳ 1,000 burn rate once multiple cycles exist.
+        </div>
+      `;
+    } else {
+      const maxRate = Math.max(...efficiencyByBill.map(x => x.daysPer1k), 1);
+      efficiencyBarsContainer.innerHTML = efficiencyByBill.map(item => {
+        const pct = Math.min(100, (item.daysPer1k / maxRate) * 100);
+        return `
+          <div class="barRow" style="grid-template-columns: 140px 1fr 110px;">
+            <div class="barLabel" style="font-size:0.85rem; font-weight:700; color:#f8fafc;">${item.name}</div>
+            <div class="barTrack">
+              <div class="barFill" style="width:${pct}%; background: linear-gradient(90deg, #00E676, #00C2FF);"></div>
+            </div>
+            <div class="barAmount" style="font-family:var(--font-mono); font-size:0.85rem; color:#00E676; font-weight:800;">
+              ${item.daysPer1k.toFixed(1)} Days / 1k
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+  }
+
   // Calculate elapsed months dynamically from June 2026 (inclusive) to current date
   const elapsedMonths = Math.max(1, (now.getFullYear() - 2026) * 12 + (now.getMonth() - 5) + 1);
   const avgMonthlySpend = statsMonthsSum / elapsedMonths;
@@ -9538,6 +9655,49 @@ YTD Spend by Bill
           <div style="font-size:0.88rem; font-weight:700; color:#dce7ff; margin-bottom:10px;">Monthly Surcharge Trend (BDT)</div>
           <div style="height:140px; position:relative;">
             <canvas id="surchargeTrendChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- PREPAID RECHARGE EFFICIENCY & BURN RATE -->
+      <div class="chartCard fullWidth" id="rechargeEfficiencySection">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+          <div class="chartTitle" style="margin-bottom:0;">
+            Prepaid Recharge Efficiency (Days per ৳ 1,000)
+          </div>
+          <div style="font-family:var(--font-mono); font-size:0.75rem; font-weight:700; color:#00E676; background:rgba(0,230,118,0.12); border:1px solid rgba(0,230,118,0.3); border-radius:999px; padding:4px 12px; text-transform:uppercase; letter-spacing:0.5px;">
+            Burn Rate Intelligence
+          </div>
+        </div>
+
+        <div class="surchargeGrid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin-bottom: 20px;">
+          <div class="surchargeStatItem">
+            <div class="surchargeStatLabel">Overall Average</div>
+            <div class="surchargeStatVal" id="statOverallDaysPer1k" style="color:#00E676;">0.0 Days</div>
+            <div style="font-size:0.72rem; color:#94a3b8; margin-top:2px;">per ৳ 1,000 recharge</div>
+          </div>
+          <div class="surchargeStatItem">
+            <div class="surchargeStatLabel">Average Daily Burn Rate</div>
+            <div class="surchargeStatVal" id="statDailyBurnRate" style="color:#00C2FF;">৳ 0 / day</div>
+            <div style="font-size:0.72rem; color:#94a3b8; margin-top:2px;">Across all prepaid meters</div>
+          </div>
+          <div class="surchargeStatItem">
+            <div class="surchargeStatLabel">Most Efficient Meter</div>
+            <div class="surchargeStatVal" id="statBestEfficiency" style="color:#FF7A00; font-size:1.4rem;">-</div>
+            <div style="font-size:0.72rem; color:#94a3b8; margin-top:2px;" id="statBestEfficiencySub">-</div>
+          </div>
+          <div class="surchargeStatItem">
+            <div class="surchargeStatLabel">Total Cycles Analyzed</div>
+            <div class="surchargeStatVal" id="statCyclesCount" style="color:#FFFFFF;">0 Cycles</div>
+            <div style="font-size:0.72rem; color:#94a3b8; margin-top:2px;">Recharge intervals</div>
+          </div>
+        </div>
+
+        <!-- Account Breakdown Efficiency List -->
+        <div style="margin-top:16px;">
+          <div style="font-size:0.88rem; font-weight:700; color:#dce7ff; margin-bottom:12px;">Efficiency by Account Meter</div>
+          <div id="efficiencyBarsContainer" class="horizontalBars">
+            <!-- Injected Dynamically -->
           </div>
         </div>
       </div>
