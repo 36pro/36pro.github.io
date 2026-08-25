@@ -3472,22 +3472,26 @@ async function fetchLocalFallback() {
   }
 }
 
-// Save Payment Record (Granular Firestore Doc Write)
+// Save Payment Record (Structured Cloud Firestore Schema)
 async function savePaymentRecord(billId, amount, payDate, billMonth) {
   const bill = billPages.find(b => b.id === billId);
   const billName = bill ? bill.name.replace('<br>', ' ') : billId;
   const billType = bill ? bill.type.toLowerCase() : 'prepaid';
+  const utilityCategory = bill ? (bill.utility || (billType === 'prepaid' ? 'electric' : 'gas')) : 'electric';
+  const amountNumeric = Math.round(parseFloat(amount));
   
   const newRecord = {
     uid: 'mr' + Math.random().toString(36).substr(2, 10),
     billId: billId,
     billName: billName,
     billType: billType,
+    utilityCategory: utilityCategory,
     billMonth: billMonth || '',
-    amount: Math.round(parseFloat(amount)).toString(),
+    amount: amountNumeric.toString(),
+    amountNum: amountNumeric,
     payDate: payDate,
     savedAt: new Date().toISOString(),
-    timestamp: Date.now()
+    timestamp: new Date(payDate).getTime() || Date.now()
   };
   
   // Optimistic UI update
@@ -3496,8 +3500,18 @@ async function savePaymentRecord(billId, amount, payDate, billMonth) {
   
   if (currentUser && db) {
     try {
+      // 1. Write structured document into users/{uid}/payments/{docId}
       await db.collection('users').doc(currentUser.uid).collection('payments').doc(newRecord.uid).set(newRecord);
-      showToast(`Saved ৳ ${parseFloat(amount).toLocaleString()} for ${billName} to Cloud!`);
+      
+      // 2. Update user profile lastActive timestamp
+      db.collection('users').doc(currentUser.uid).set({
+        email: currentUser.email,
+        displayName: currentUser.displayName,
+        photoURL: currentUser.photoURL || '',
+        lastActiveAt: new Date().toISOString()
+      }, { merge: true }).catch(() => {});
+      
+      showToast(`Saved ৳ ${amountNumeric.toLocaleString()} for ${billName} to Cloud!`);
     } catch (err) {
       console.error("Firestore save error:", err);
       showToast("Saved locally (offline mode).");
@@ -3505,7 +3519,7 @@ async function savePaymentRecord(billId, amount, payDate, billMonth) {
     }
   } else {
     saveToLocalStorage(newRecord);
-    showToast(`Saved ৳ ${parseFloat(amount).toLocaleString()} to local cache.`);
+    showToast(`Saved ৳ ${amountNumeric.toLocaleString()} to local cache.`);
   }
 }
 
@@ -3544,7 +3558,7 @@ async function deletePaymentRecord(uid) {
   }
 }
 
-// Migrate local data.json into Firestore Cloud
+// Migrate local data.json into Firestore Cloud with normalized NoSQL schema
 async function migrateLocalToFirebase() {
   if (!currentUser || !db) {
     alert("Please sign in with Google first.");
@@ -3572,18 +3586,44 @@ async function migrateLocalToFirebase() {
   
   try {
     const batch = db.batch();
-    const userPaymentsRef = db.collection('users').doc(currentUser.uid).collection('payments');
+    const userRef = db.collection('users').doc(currentUser.uid);
+    const userPaymentsRef = userRef.collection('payments');
+    
+    // Set user profile doc
+    batch.set(userRef, {
+      uid: currentUser.uid,
+      email: currentUser.email,
+      displayName: currentUser.displayName,
+      photoURL: currentUser.photoURL || '',
+      migratedAt: new Date().toISOString(),
+      lastActiveAt: new Date().toISOString()
+    }, { merge: true });
     
     sourceRecords.forEach(rec => {
+      const bill = billPages.find(b => b.id === rec.billId || b.name.replace('<br>', ' ') === rec.billName);
+      const utilityCategory = bill ? (bill.utility || 'electric') : 'electric';
+      const amountNumeric = Math.round(parseFloat(rec.amount));
+      
+      const normalizedDoc = {
+        uid: rec.uid,
+        billId: rec.billId || (bill ? bill.id : 'unknown'),
+        billName: rec.billName,
+        billType: rec.billType ? rec.billType.toLowerCase() : 'prepaid',
+        utilityCategory: utilityCategory,
+        billMonth: rec.billMonth || '',
+        amount: amountNumeric.toString(),
+        amountNum: amountNumeric,
+        payDate: rec.payDate,
+        savedAt: rec.savedAt || new Date().toISOString(),
+        timestamp: rec.savedAt ? new Date(rec.savedAt).getTime() : (new Date(rec.payDate).getTime() || Date.now())
+      };
+      
       const docRef = userPaymentsRef.doc(rec.uid);
-      batch.set(docRef, {
-        ...rec,
-        timestamp: rec.savedAt ? new Date(rec.savedAt).getTime() : Date.now()
-      }, { merge: true });
+      batch.set(docRef, normalizedDoc, { merge: true });
     });
     
     await batch.commit();
-    showToast(`Successfully imported ${sourceRecords.length} records to Firebase Cloud!`, 4000);
+    showToast(`Successfully imported & structured ${sourceRecords.length} records in Firebase Cloud!`, 4500);
     closeSettingsModal();
   } catch (err) {
     console.error("Migration error:", err);
