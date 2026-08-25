@@ -3293,6 +3293,224 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     border-radius: 20px;
   }
 }
+/* ============ REWARDING PAYMENT SUCCESS / ERROR SCREEN ============ */
+#paymentResultOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(2, 8, 23, 0.84);
+  backdrop-filter: blur(22px) saturate(190%);
+  -webkit-backdrop-filter: blur(22px) saturate(190%);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.35s ease;
+  padding: 18px;
+}
+
+#paymentResultOverlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.paymentResultCard {
+  position: relative;
+  width: min(400px, 100%);
+  border-radius: 28px;
+  background: linear-gradient(180deg, rgba(16, 34, 70, 0.94), rgba(7, 16, 36, 0.98));
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  padding: 32px 24px 28px 24px;
+  text-align: center;
+  box-shadow:
+    0 30px 70px -15px rgba(0, 0, 0, 0.85),
+    0 0 40px -8px var(--res-glow, rgba(0, 230, 118, 0.35));
+  transform: scale(0.82) translateY(24px);
+  opacity: 0;
+  transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.35s ease;
+  overflow: hidden;
+}
+
+#paymentResultOverlay.active .paymentResultCard {
+  transform: scale(1) translateY(0);
+  opacity: 1;
+}
+
+/* Ambient Radial Aura */
+.paymentResultCard::before {
+  content: '';
+  position: absolute;
+  top: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 240px;
+  height: 160px;
+  background: radial-gradient(circle, var(--res-aura, rgba(0, 230, 118, 0.22)) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* Icon Ring Animation */
+.resIconWrap {
+  position: relative;
+  width: 76px;
+  height: 76px;
+  margin: 0 auto 18px auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.resIconRing {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--res-icon-bg, rgba(0, 230, 118, 0.12));
+  border: 2px solid var(--res-icon-border, rgba(0, 230, 118, 0.4));
+  animation: resRingPulse 2s infinite ease-out;
+}
+
+@keyframes resRingPulse {
+  0% { transform: scale(0.95); opacity: 0.9; }
+  50% { transform: scale(1.08); opacity: 0.4; }
+  100% { transform: scale(0.95); opacity: 0.9; }
+}
+
+.resIconSvg {
+  width: 38px;
+  height: 38px;
+  color: var(--res-color, #00E676);
+  z-index: 2;
+}
+
+.resCheckPath {
+  stroke-dasharray: 50;
+  stroke-dashoffset: 50;
+  transition: stroke-dashoffset 0.6s cubic-bezier(0.65, 0, 0.45, 1) 0.15s;
+}
+
+#paymentResultOverlay.active .resCheckPath {
+  stroke-dashoffset: 0;
+}
+
+.resTitle {
+  font-family: var(--font-body);
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.4px;
+  margin-bottom: 6px;
+}
+
+.resSubtitle {
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #94a3b8;
+  margin-bottom: 20px;
+}
+
+/* Amount Hero Card inside Modal */
+.resAmountBox {
+  background: rgba(2, 8, 23, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  padding: 16px 14px;
+  margin-bottom: 20px;
+}
+
+.resAmountHero {
+  font-family: var(--font-amount);
+  font-size: 2.3rem;
+  font-weight: 900;
+  color: var(--res-color, #00E676);
+  line-height: 1;
+  letter-spacing: -0.5px;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 6px;
+}
+
+.resAmountHero .resCurr {
+  font-size: 1.5rem;
+  opacity: 0.85;
+}
+
+.resFeeBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  background: rgba(255, 122, 0, 0.14);
+  border: 1px solid rgba(255, 122, 0, 0.35);
+  color: #FF7A00;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: 999px;
+  text-transform: uppercase;
+}
+
+/* Breakdown Meta Rows */
+.resMetaList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 24px;
+  text-align: left;
+}
+
+.resMetaRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.82rem;
+}
+
+.resMetaLabel {
+  color: #64748b;
+  font-weight: 600;
+}
+
+.resMetaVal {
+  color: #f1f5f9;
+  font-weight: 700;
+  font-family: var(--font-body);
+}
+
+.resDoneBtn {
+  width: 100%;
+  height: 50px;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #00E676 0%, #00C2FF 50%, #FF7A00 100%);
+  color: #020817;
+  font-size: 1.05rem;
+  font-weight: 900;
+  font-family: var(--font-body);
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(0, 230, 118, 0.3);
+  transition: all 0.2s ease;
+}
+
+.resDoneBtn:hover {
+  filter: brightness(1.08);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 26px rgba(0, 230, 118, 0.4);
+}
+
+.resDoneBtn:active {
+  transform: translateY(0);
+}
+
+.resErrorBtn {
+  background: linear-gradient(135deg, #ff6077, #ff3b5c) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 20px rgba(255, 96, 119, 0.35) !important;
+}
+
 </style>
 </head>
 
@@ -3419,6 +3637,49 @@ input[type="date"]::-webkit-calendar-picker-indicator {
       <button class="testBtn" onclick="closeEditModal()" style="color:var(--muted);">Cancel</button>
       <button class="saveModalBtn" onclick="saveEditedRecord()">Save Changes</button>
     </div>
+  </div>
+</div>
+
+<!-- CENTER SCREEN REWARDING PAYMENT MODAL -->
+<div id="paymentResultOverlay" onclick="handlePaymentResultOverlayClick(event)">
+  <div class="paymentResultCard" id="paymentResultCard">
+    <div class="resIconWrap">
+      <div class="resIconRing" id="resIconRing"></div>
+      <div id="resIconContent">
+        <!-- SVG injected dynamically -->
+      </div>
+    </div>
+    <div class="resTitle" id="resTitle">Payment Recorded!</div>
+    <div class="resSubtitle" id="resSubtitle">Your utility records have been securely updated.</div>
+    
+    <div class="resAmountBox" id="resAmountBox">
+      <div class="resAmountHero">
+        <span class="resCurr">৳</span>
+        <span id="resAmountVal">0</span>
+      </div>
+      <div id="resFeeContainer"></div>
+    </div>
+
+    <div class="resMetaList" id="resMetaList">
+      <div class="resMetaRow">
+        <span class="resMetaLabel">Utility Account</span>
+        <span class="resMetaVal" id="resBillName">-</span>
+      </div>
+      <div class="resMetaRow">
+        <span class="resMetaLabel">Date Recorded</span>
+        <span class="resMetaVal" id="resDateVal">-</span>
+      </div>
+      <div class="resMetaRow" id="resMonthRow">
+        <span class="resMetaLabel">Billing Month</span>
+        <span class="resMetaVal" id="resMonthVal">-</span>
+      </div>
+      <div class="resMetaRow">
+        <span class="resMetaLabel">Cloud Sync</span>
+        <span class="resMetaVal" id="resSyncStatus" style="color:#00E676;">Synced</span>
+      </div>
+    </div>
+
+    <button class="resDoneBtn" id="resActionBtn" onclick="closePaymentResultModal()">Done</button>
   </div>
 </div>
 
@@ -6686,6 +6947,145 @@ function handleAmountAutoSplitQuick(billId, inputEl) {
   }
 }
 
+// =============================================================
+// REWARDING PAYMENT SUCCESS & ERROR MODAL CONTROLLER
+// =============================================================
+let paymentResultDismissTimer = null;
+
+function showPaymentSuccessModal(data) {
+  clearTimeout(paymentResultDismissTimer);
+  const overlay = document.getElementById('paymentResultOverlay');
+  const card = document.getElementById('paymentResultCard');
+  if (!overlay || !card) return;
+
+  // Set Theme Properties to Mint/Aqua Brand Glow
+  card.style.setProperty('--res-glow', 'rgba(0, 230, 118, 0.4)');
+  card.style.setProperty('--res-aura', 'rgba(0, 230, 118, 0.25)');
+  card.style.setProperty('--res-color', '#00E676');
+  card.style.setProperty('--res-icon-bg', 'rgba(0, 230, 118, 0.12)');
+  card.style.setProperty('--res-icon-border', 'rgba(0, 230, 118, 0.4)');
+
+  // Set Success Icon
+  const iconContent = document.getElementById('resIconContent');
+  if (iconContent) {
+    iconContent.innerHTML = `
+      <svg class="resIconSvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <polyline class="resCheckPath" points="20 6 9 17 4 12"/>
+      </svg>
+    `;
+  }
+
+  // Titles & Messages
+  document.getElementById('resTitle').innerText = 'Payment Recorded!';
+  document.getElementById('resSubtitle').innerText = 'Transaction saved & analytics updated in real-time.';
+
+  // Show Amount Box
+  document.getElementById('resAmountBox').style.display = 'block';
+  document.getElementById('resAmountVal').innerText = parseFloat(data.amount || 0).toLocaleString();
+
+  // Surcharge Fee Tag
+  const feeContainer = document.getElementById('resFeeContainer');
+  if (data.fee && parseFloat(data.fee) > 0) {
+    feeContainer.innerHTML = `<span class="resFeeBadge">+ ৳ ${parseFloat(data.fee).toLocaleString()} Fee</span>`;
+    feeContainer.style.display = 'block';
+  } else {
+    feeContainer.innerHTML = '';
+    feeContainer.style.display = 'none';
+  }
+
+  // Metadata Breakdown
+  document.getElementById('resMetaList').style.display = 'flex';
+  document.getElementById('resBillName').innerText = (data.billName || 'Utility Bill').replace('<br>', ' ');
+  document.getElementById('resDateVal').innerText = formatDateFriendly(data.date || new Date().toISOString().slice(0, 10));
+
+  const monthRow = document.getElementById('resMonthRow');
+  if (data.month) {
+    monthRow.style.display = 'flex';
+    document.getElementById('resMonthVal').innerText = data.month;
+  } else {
+    monthRow.style.display = 'none';
+  }
+
+  const syncStatusEl = document.getElementById('resSyncStatus');
+  if (syncStatusEl) {
+    syncStatusEl.innerText = data.isOffline ? 'Saved to Local Cache' : 'Synced to Cloud';
+    syncStatusEl.style.color = data.isOffline ? '#FF7A00' : '#00E676';
+  }
+
+  const btn = document.getElementById('resActionBtn');
+  btn.className = 'resDoneBtn';
+  btn.innerText = 'Done';
+  btn.onclick = () => {
+    closePaymentResultModal();
+    goHome();
+  };
+
+  overlay.classList.add('active');
+
+  // Trigger ambient tactile haptic if supported
+  if (navigator.vibrate) {
+    try { navigator.vibrate([40, 60, 40]); } catch(e) {}
+  }
+}
+
+function showPaymentErrorModal(errorMsg) {
+  clearTimeout(paymentResultDismissTimer);
+  const overlay = document.getElementById('paymentResultOverlay');
+  const card = document.getElementById('paymentResultCard');
+  if (!overlay || !card) return;
+
+  // Set Theme Properties to Coral Red Error Glow
+  card.style.setProperty('--res-glow', 'rgba(255, 96, 119, 0.4)');
+  card.style.setProperty('--res-aura', 'rgba(255, 96, 119, 0.25)');
+  card.style.setProperty('--res-color', '#ff6077');
+  card.style.setProperty('--res-icon-bg', 'rgba(255, 96, 119, 0.12)');
+  card.style.setProperty('--res-icon-border', 'rgba(255, 96, 119, 0.4)');
+
+  // Set Error Icon
+  const iconContent = document.getElementById('resIconContent');
+  if (iconContent) {
+    iconContent.innerHTML = `
+      <svg class="resIconSvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="15" y1="9" x2="9" y2="15"/>
+        <line x1="9" y1="9" x2="15" y2="15"/>
+      </svg>
+    `;
+  }
+
+  // Titles & Messages
+  document.getElementById('resTitle').innerText = 'Unable to Save';
+  document.getElementById('resSubtitle').innerText = errorMsg || 'An error occurred while saving the payment.';
+
+  // Hide Amount & Details Box for clean error state
+  document.getElementById('resAmountBox').style.display = 'none';
+  document.getElementById('resMetaList').style.display = 'none';
+
+  const btn = document.getElementById('resActionBtn');
+  btn.className = 'resDoneBtn resErrorBtn';
+  btn.innerText = 'Dismiss';
+  btn.onclick = closePaymentResultModal;
+
+  overlay.classList.add('active');
+}
+
+function closePaymentResultModal() {
+  clearTimeout(paymentResultDismissTimer);
+  const overlay = document.getElementById('paymentResultOverlay');
+  if (overlay) {
+    overlay.classList.remove('active');
+  }
+}
+
+function handlePaymentResultOverlayClick(e) {
+  if (e.target && e.target.id === 'paymentResultOverlay') {
+    closePaymentResultModal();
+    if (document.getElementById('resTitle').innerText === 'Payment Recorded!') {
+      goHome();
+    }
+  }
+}
+
 function submitPaymentForm(billId) {
   const section = document.getElementById(billId);
   if (!section) return;
@@ -6710,16 +7110,27 @@ function submitPaymentForm(billId) {
   saveBtn.innerText = 'Saving...';
   saveBtn.disabled = true;
   
+  const billObj = billPages.find(b => b.id === billId);
+  const billDisplayName = billObj ? billObj.name : billId;
+
   savePaymentRecord(billId, amountVal, dateVal, monthVal, feeVal)
     .then(() => {
-      showToast('Payment recorded successfully!');
       // Reset inputs
       section.querySelector('.inputAmountVal').value = '';
       if (section.querySelector('.inputFeeVal')) section.querySelector('.inputFeeVal').value = '';
-      goHome();
+
+      // Trigger rewarding center screen celebration
+      showPaymentSuccessModal({
+        billName: billDisplayName,
+        amount: amountVal,
+        fee: feeVal,
+        date: dateVal,
+        month: monthVal,
+        isOffline: !isFirebaseReady
+      });
     })
     .catch(err => {
-      alert('Failed to save payment: ' + err.message);
+      showPaymentErrorModal(err.message || 'Failed to record payment');
     })
     .finally(() => {
       saveBtn.innerText = 'Save Payment';
