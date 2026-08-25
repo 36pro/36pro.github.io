@@ -4443,18 +4443,12 @@ async function savePaymentRecord(billId, amount, payDate, billMonth, fee = '') {
         photoURL: currentUser.photoURL || '',
         lastActiveAt: new Date().toISOString()
       }, { merge: true }).catch(() => {});
-      
-      const feeText = feeNumeric > 0 ? ` (+৳${feeNumeric} fee)` : '';
-      showToast(`Saved ৳ ${amountNumeric.toLocaleString()}${feeText} for ${billName} to Cloud!`);
     } catch (err) {
       console.error("Firestore save error:", err);
-      showToast("Saved locally (offline mode).");
       saveToLocalStorage(newRecord);
     }
   } else {
     saveToLocalStorage(newRecord);
-    const feeText = feeNumeric > 0 ? ` (+৳${feeNumeric} fee)` : '';
-    showToast(`Saved ৳ ${amountNumeric.toLocaleString()}${feeText} to local cache.`);
   }
 }
 
