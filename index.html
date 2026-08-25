@@ -6302,51 +6302,6 @@ function renderStatsPage() {
     }
   }
   
-  const gapRowsContainer = document.querySelector('.gapTable');
-  if (gapRowsContainer) {
-    const gaps = [];
-    billPages.forEach(bill => {
-      const billPayments = paymentsData.filter(p => p.billId === bill.id);
-      const lastPayment = billPayments[0];
-      
-      let gapDays = 0;
-      let dateText = 'Never';
-      
-      if (lastPayment) {
-        gapDays = Math.floor((now - new Date(lastPayment.payDate)) / (1000 * 60 * 60 * 24));
-        dateText = formatDateFriendly(lastPayment.payDate);
-      }
-      
-      gaps.push({
-        name: bill.name.replace('<br>', ' '),
-        date: dateText,
-        days: gapDays
-      });
-    });
-    
-    gaps.sort((a, b) => b.days - a.days);
-    
-    const headerHtml = `
-      <div class="gapHeader">
-        <div>Bill</div>
-        <div>Last Payment</div>
-        <div>Gap (Days)</div>
-      </div>
-    `;
-    
-    const rowsHtml = gaps.map(g => {
-      const gapClass = g.days >= 30 ? 'gapDanger' : 'gapSuccess';
-      return `
-        <div class="gapRow">
-          <div>${g.name}</div>
-          <div>${g.date}</div>
-          <div class="${gapClass}">${g.days === 0 && g.date === 'Never' ? '-' : g.days}</div>
-        </div>
-      `;
-    }).join('');
-    
-    gapRowsContainer.innerHTML = headerHtml + rowsHtml;
-  }
 }
 
 
@@ -9472,61 +9427,7 @@ Year-over-Year Spend Comparison
 
 </div>
 
-<!-- GAP TABLE -->
 
-<div class="chartCard fullWidth">
-
-<div class="chartTitle">
-Payment Gap Summary
-</div>
-
-<div class="gapTable">
-
-<div class="gapHeader">
-<div>Bill</div>
-<div>Last Payment</div>
-<div>Gap (Days)</div>
-</div>
-
-<div class="gapRow">
-<div>Uttara Water</div>
-<div>24 Mar 2026</div>
-<div class="gapDanger">69</div>
-</div>
-
-<div class="gapRow">
-<div>Rupnagar Gas</div>
-<div>27 Apr 2026</div>
-<div class="gapSuccess">35</div>
-</div>
-
-<div class="gapRow">
-<div>Matuail Gas</div>
-<div>20 May 2026</div>
-<div class="gapSuccess">12</div>
-</div>
-
-<div class="gapRow">
-<div>Noakhali Palli</div>
-<div>27 May 2026</div>
-<div class="gapSuccess">5</div>
-</div>
-
-<div class="gapRow">
-<div>Rupnagar DESCO</div>
-<div>29 May 2026</div>
-<div class="gapSuccess">3</div>
-</div>
-
-<div class="gapRow">
-<div>Uttara DESCO</div>
-<div>31 May 2026</div>
-<div class="gapSuccess">1</div>
-</div>
-
-</div>
-
-</div>
 
 </div>
 
