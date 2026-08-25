@@ -3046,7 +3046,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   }
   .billTitleRow {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
     width: 100%;
     gap: 8px;
@@ -3054,12 +3054,16 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   .billTitle {
     font-size: 1.15rem;
     font-weight: 800;
-    line-height: 1.15;
+    line-height: 1.2;
+    margin: 0;
   }
   .billTypeBadge {
     display: inline-flex !important;
     align-items: center;
+    justify-content: center;
     padding: 2px 8px;
+    height: 20px;
+    box-sizing: border-box;
     border-radius: 6px;
     font-size: 0.68rem;
     font-weight: 800;
@@ -3068,6 +3072,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     font-family: var(--font-mono);
     margin-left: auto;
     flex-shrink: 0;
+    align-self: flex-start;
+    margin-top: 1px;
   }
   .badgePrepaid {
     background: rgba(0, 230, 118, 0.15);
