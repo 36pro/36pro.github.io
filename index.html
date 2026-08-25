@@ -7120,13 +7120,14 @@ function submitPaymentForm(billId) {
       if (section.querySelector('.inputFeeVal')) section.querySelector('.inputFeeVal').value = '';
 
       // Trigger rewarding center screen celebration
+      const isCloudSynced = Boolean(typeof currentUser !== 'undefined' && currentUser && typeof db !== 'undefined' && db);
       showPaymentSuccessModal({
         billName: billDisplayName,
         amount: amountVal,
         fee: feeVal,
         date: dateVal,
         month: monthVal,
-        isOffline: !isFirebaseReady
+        isOffline: !isCloudSynced
       });
     })
     .catch(err => {
