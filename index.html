@@ -4406,8 +4406,17 @@ async function savePaymentRecord(billId, amount, payDate, billMonth, fee = '') {
   const billName = bill ? bill.name.replace('<br>', ' ') : billId;
   const billType = bill ? bill.type.toLowerCase() : 'prepaid';
   const utilityCategory = bill ? (bill.utility || (billType === 'prepaid' ? 'electric' : 'gas')) : 'electric';
-  const amountNumeric = Math.round(parseFloat(amount));
-  const feeNumeric = Math.round(parseFloat(fee)) || 0;
+  let amountNumeric = Math.round(parseFloat(amount)) || 0;
+  let feeNumeric = Math.round(parseFloat(fee)) || 0;
+
+  // If fee was empty but amount has a stray gateway surcharge (e.g. 1515, 2030, 1010), auto-extract fee
+  if (feeNumeric === 0 && amountNumeric > 100) {
+    const remainder = amountNumeric % 100;
+    if (remainder > 0 && remainder <= 60) {
+      feeNumeric = remainder;
+      amountNumeric = amountNumeric - remainder;
+    }
+  }
   
   const newRecord = {
     uid: 'mr' + Math.random().toString(36).substr(2, 10),
@@ -6891,11 +6900,8 @@ function renderStatsPage() {
 }
 
 
-// Auto-split stray amount into Main Amount + Fee for specific prepaid bills
+// Auto-split stray amount into Main Amount + Fee for prepaid/utility bills
 function handleAmountAutoSplit(billId, inputEl) {
-  const autoSplitBills = ['rupnagarDesco', 'uttaraDesco', 'rupnagarGas'];
-  if (!autoSplitBills.includes(billId)) return;
-  
   const section = document.getElementById(billId);
   if (!section) return;
   
@@ -6909,27 +6915,23 @@ function handleAmountAutoSplit(billId, inputEl) {
   
   // Stray remainder logic (e.g. 1515 -> base 1500, fee 15; 2030 -> base 2000, fee 30; 1010 -> base 1000, fee 10)
   const remainder = rawVal % 100;
-  if (remainder > 0 && rawVal > 100) {
+  if (remainder > 0 && rawVal > 100 && remainder <= 60) {
     const baseAmount = rawVal - remainder;
     inputEl.value = baseAmount;
     feeInput.value = remainder;
-    showToast(`Auto-split: ৳ ${baseAmount.toLocaleString()} main + ৳ ${remainder} fee`, 3500);
-  } else if (rawVal % 100 === 0) {
-    feeInput.value = ''; // Round amount -> fee empty
+    showToast(`Auto-split: ${baseAmount.toLocaleString()} main + ${remainder} fee`, 3500);
+  } else if (rawVal % 100 === 0 && !feeInput.value) {
+    feeInput.value = '';
   }
 }
 
 function handleAmountAutoSplitQuick(billId, inputEl) {
-  const autoSplitBills = ['rupnagarDesco', 'uttaraDesco', 'rupnagarGas'];
-  if (!autoSplitBills.includes(billId)) return;
-  
   // When 4+ digits are typed, check for common stray fees e.g. 1515, 2030, 1010, 2020
   const rawStr = inputEl.value.trim();
   if (rawStr.length >= 4) {
     const rawVal = parseFloat(rawStr);
     const remainder = rawVal % 100;
     if (remainder > 0 && rawVal > 100 && (remainder <= 50)) {
-      // Trigger auto-split seamlessly
       const section = document.getElementById(billId);
       if (section) {
         const feeInput = section.querySelector('.inputFeeVal');
@@ -6937,7 +6939,7 @@ function handleAmountAutoSplitQuick(billId, inputEl) {
           const baseAmount = rawVal - remainder;
           inputEl.value = baseAmount;
           feeInput.value = remainder;
-          showToast(`Auto-split: ৳ ${baseAmount.toLocaleString()} main + ৳ ${remainder} fee`, 3500);
+          showToast(`Auto-split: ${baseAmount.toLocaleString()} main + ${remainder} fee`, 3500);
         }
       }
     }
@@ -7103,16 +7105,17 @@ function submitPaymentForm(billId) {
     return;
   }
 
-  // Bulletproof auto-split logic for prepaid energy/gas meters on submit
-  const autoSplitBills = ['rupnagarDesco', 'uttaraDesco', 'rupnagarGas'];
-  if (autoSplitBills.includes(billId) && (!feeVal || parseFloat(feeVal) === 0)) {
-    const numAmt = parseFloat(amountVal);
-    if (numAmt > 100) {
-      const remainder = numAmt % 100;
-      if (remainder > 0 && remainder <= 60) {
-        amountVal = (numAmt - remainder).toString();
-        feeVal = remainder.toString();
-      }
+  let numAmt = Math.round(parseFloat(amountVal)) || 0;
+  let numFee = Math.round(parseFloat(feeVal)) || 0;
+
+  // Auto-split fallback directly on submit if fee input is empty or 0
+  if (numFee === 0 && numAmt > 100) {
+    const remainder = numAmt % 100;
+    if (remainder > 0 && remainder <= 60) {
+      numFee = remainder;
+      numAmt = numAmt - remainder;
+      amountVal = numAmt.toString();
+      feeVal = numFee.toString();
     }
   }
   
@@ -7120,7 +7123,7 @@ function submitPaymentForm(billId) {
   const billDisplayName = billObj ? billObj.name : billId;
   const isCloudSynced = Boolean(typeof currentUser !== 'undefined' && currentUser && typeof db !== 'undefined' && db);
 
-  // Instantly trigger rewarding center-screen celebration with ZERO stutter
+  // Instantly trigger rewarding center-screen celebration with fee badge
   showPaymentSuccessModal({
     billName: billDisplayName,
     amount: amountVal,
