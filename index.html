@@ -1006,19 +1006,18 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 
 .statValue.durationVal {
-  font-size: 1.18rem !important;
+  font-size: 1.4rem !important;
   font-weight: 800;
-  line-height: 1.25;
+  line-height: 1.22;
   color: #00E676;
-  font-family: var(--font-body);
-  margin-top: 4px;
+  font-family: var(--font-amount);
+  letter-spacing: -0.3px;
+  margin-top: 10px;
 }
-.statSub {
-  font-size: 0.8rem;
-  color: #94a3b8;
-  font-weight: 600;
-  margin-top: 4px;
-  font-family: var(--font-mono);
+@media (max-width: 640px) {
+  .statValue.durationVal {
+    font-size: 1.15rem !important;
+  }
 }
 
 /* DASHBOARD */
@@ -4351,7 +4350,6 @@ function renderBillPages() {
 
       // Calculate Earlier Bill Duration (how long the bill before last lasted for)
       let prevDurationLabel = '-';
-      let prevDurationSub = '';
       let prevDurationClass = 'durationVal';
 
       if (billPayments.length >= 2) {
@@ -4373,27 +4371,22 @@ function renderBillPages() {
           const durationCombined = dayPart ? `${monthPart} ${dayPart}` : monthPart;
           
           prevDurationLabel = `${prevAmountFormatted} lasted ${durationCombined}`;
-          prevDurationSub = `${diffDays} Days`;
         } else if (diffDays > 0) {
           prevDurationLabel = `${prevAmountFormatted} lasted ${diffDays} Days`;
-          prevDurationSub = `${diffDays} Days`;
         } else {
           prevDurationLabel = `${prevAmountFormatted} (Same Day)`;
-          prevDurationSub = '0 Days';
         }
       } else if (billPayments.length === 1) {
-        prevDurationLabel = 'Current active';
-        prevDurationSub = 'First recharge';
+        prevDurationLabel = 'Current active recharge';
       } else {
         prevDurationLabel = '-';
-        prevDurationSub = 'No records';
       }
       
       stats = [
         ['Days Since Payment', elapsedText, elapsedClass],
         ['Last Amount', lastAmountText, 'green mono'],
         ['Last pay date', lastDateText, ''],
-        ['Earlier Bill Duration', prevDurationLabel, prevDurationClass, prevDurationSub]
+        ['Earlier Bill Duration', prevDurationLabel, prevDurationClass]
       ];
     } else { // Postpaid
       let nextDueText = '-';
@@ -4507,7 +4500,6 @@ function renderBillPages() {
             <div class="statCard">
               <div class="statLabel">${stat[0]}</div>
               <div class="statValue ${stat[2]}">${stat[1]}</div>
-              ${stat[3] ? `<div class="statSub">${stat[3]}</div>` : ''}
             </div>
           `).join('')}
         </div>
