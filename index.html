@@ -6088,23 +6088,87 @@ function setupDatabaseFilters() {
   }
 }
 
+// Robust, Structured CSV Export (Compatible with Excel, Numbers, Sheets & iOS Files)
 function exportToCSV() {
-  if (paymentsData.length === 0) {
-    alert('No data to export.');
+  exportCsv();
+}
+
+function exportCsv() {
+  if (!paymentsData || paymentsData.length === 0) {
+    showToast("No payment data to export.");
     return;
   }
-  let csv = 'UID,Date,Bill,Type,Amount,Month\n';
-  paymentsData.forEach(p => {
-    csv += `"${p.uid}","${p.payDate}","${p.billName}","${p.billType}","${p.amount}","${p.billMonth || ''}"\n`;
+  
+  // Sort payments chronologically descending
+  const sorted = [...paymentsData].sort((a, b) => {
+    return (b.payDate || '').localeCompare(a.payDate || '');
   });
   
+  // Account/Meter mapping helper
+  const meterMap = {
+    rupnagarDesco: '140-10-368',
+    rupnagarGas: '9840-02-14',
+    uttaraDesco: '3801-9924-11',
+    uttaraWater: 'WASA-UT-884',
+    matuailGas: 'MG-774-12',
+    noakhaliPalli: 'NP-5541-09',
+    inspireBroadband: 'ISP-8821'
+  };
+  
+  const categoryMap = {
+    rupnagarDesco: 'Electricity',
+    uttaraDesco: 'Electricity',
+    noakhaliPalli: 'Electricity',
+    uttaraWater: 'Water Supply',
+    rupnagarGas: 'Gas & Thermal',
+    matuailGas: 'Gas & Thermal',
+    inspireBroadband: 'Internet / ISP'
+  };
+
+  // Build Structured CSV Header & Rows (with UTF-8 BOM for perfect Excel/Numbers Unicode support)
+  let csv = '\uFEFF';
+  csv += 'Transaction ID,Date Paid,Utility Name,Category,Account / Meter No,Billing Type,Billing Month,Amount (BDT),Created At (UTC)\n';
+  
+  let totalAmount = 0;
+  sorted.forEach(p => {
+    const amt = parseFloat(p.amount) || 0;
+    totalAmount += amt;
+    const cat = p.utilityCategory ? (p.utilityCategory.charAt(0).toUpperCase() + p.utilityCategory.slice(1)) : (categoryMap[p.billId] || 'Utility');
+    const meter = meterMap[p.billId] || '-';
+    const bMonth = p.billMonth || '-';
+    const bType = p.billType ? (p.billType.charAt(0).toUpperCase() + p.billType.slice(1)) : 'Prepaid';
+    const createdAt = p.savedAt || (p.timestamp ? new Date(p.timestamp).toISOString() : '-');
+    
+    const cleanUid = (p.uid || '').replace(/"/g, '""');
+    const cleanName = (p.billName || '').replace(/<br>/g, ' ').replace(/"/g, '""');
+    
+    csv += `"${cleanUid}","${p.payDate}","${cleanName}","${cat}","${meter}","${bType}","${bMonth}",${Math.round(amt)},"${createdAt}"\n`;
+  });
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const filename = `billzy_payments_${todayStr}.csv`;
+  
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.setAttribute('download', 'billzy_payments_export.csv');
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  
+  if (navigator.msSaveBlob) {
+    navigator.msSaveBlob(blob, filename);
+  } else {
+    const link = document.createElement('a');
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', filename);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } else {
+      window.open('data:text/csv;charset=utf-8,' + encodeURIComponent(csv));
+    }
+  }
+  
+  showToast(`✓ Exported ${sorted.length} records (Total: ৳ ${totalAmount.toLocaleString()}) to CSV!`, 4500);
 }
 
 function sortPaymentsData() {
