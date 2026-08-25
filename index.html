@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no"/>
+<meta name="theme-color" content="#020817" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#020817">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>BILLZY</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -51,20 +55,27 @@
   box-sizing:border-box;
 }
 
+html{
+  background-color:#020817;
+  height:100%;
+  -webkit-text-size-adjust:100%;
+}
+
 body{
-  font-family:Inter,system-ui;
-
-  background:
-  radial-gradient(circle at top,#09162e 0%,#020817 58%);
-
+  font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
+  background-color:#020817;
+  background:radial-gradient(circle at top,#09162e 0%,#020817 58%);
   color:var(--text);
-
-  height:100vh;
-
-  overflow:hidden;
-
+  min-height:100vh;
+  min-height:100dvh;
+  padding-top:env(safe-area-inset-top, 0px);
+  padding-bottom:env(safe-area-inset-bottom, 0px);
+  padding-left:env(safe-area-inset-left, 0px);
+  padding-right:env(safe-area-inset-right, 0px);
   margin:0;
-  padding:0;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  overflow-x:hidden;
 }
 
 .page{
@@ -2713,6 +2724,304 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   padding-top: 8px;
   margin-top: 4px;
 }
+
+/* ==========================================================
+   IPHONE 15 PRO MAX & MODERN MOBILE LAYOUT OVERHAUL
+   ========================================================== */
+
+@media (max-width: 900px) {
+  body {
+    overflow-y: auto;
+  }
+  .page {
+    height: auto;
+    min-height: 100dvh;
+    padding-bottom: calc(40px + env(safe-area-inset-bottom, 0px));
+  }
+  .container {
+    width: 94%;
+    padding: 0 4px;
+  }
+  .statsGridMain {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .descoDashboardGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  /* Container Safe Padding */
+  .container {
+    width: 100%;
+    padding: 0 14px 40px;
+    box-sizing: border-box;
+  }
+
+  /* Header & Logo on Mobile */
+  .logo {
+    gap: 10px;
+    padding-top: 6px;
+  }
+  .logoSvgMark {
+    width: 34px;
+    height: 34px;
+  }
+  .logoWordmark {
+    font-size: 2.2rem;
+  }
+  .glow {
+    width: min(340px, 85%);
+    height: 1.5px;
+    margin: 8px auto 0;
+  }
+
+  /* Auth / Cloud Sync Button in Header */
+  .authHeaderBtn {
+    top: 10px;
+    right: 14px;
+    padding: 6px 12px;
+    font-size: 0.76rem;
+    gap: 6px;
+    border-radius: 999px;
+  }
+
+  /* HERO ACTION ROW (3-Pill Compact Row) */
+  .heroGrid {
+    margin-top: 14px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .heroCard {
+    height: 72px;
+    border-radius: 16px;
+    padding: 8px 4px;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+  }
+  .heroCard:nth-child(2) {
+    gap: 4px;
+  }
+  .heroIcon {
+    width: 30px;
+    height: 30px;
+    font-size: 1.35rem;
+  }
+  .heroIcon img {
+    width: 28px !important;
+    height: 28px !important;
+  }
+  .heroTitle {
+    font-size: 0.85rem;
+    font-weight: 800;
+    text-align: center;
+    line-height: 1;
+  }
+
+  /* BILL GRID (2-Column Responsive Deck on Mobile) */
+  .billGrid {
+    margin-top: 16px;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px;
+  }
+  .billCard,
+  .billGrid .billCard:nth-child(5),
+  .billGrid .billCard:nth-child(6),
+  .billGrid .billCard:nth-child(7) {
+    grid-column: auto !important;
+    min-height: 185px;
+    padding: 16px 10px 14px;
+    border-radius: 20px;
+  }
+  .billIcon {
+    width: 52px;
+    height: 52px;
+    font-size: 2rem;
+    margin-bottom: 8px;
+  }
+  .billName {
+    font-size: 1.15rem;
+    line-height: 1.15;
+    letter-spacing: -0.2px;
+  }
+  .billStatus {
+    font-size: 0.85rem;
+    padding-top: 8px;
+  }
+  .billStatus .amount-highlight {
+    font-size: 1.1rem;
+    display: inline-block;
+  }
+  .billSub {
+    font-size: 0.75rem;
+    margin-top: 2px;
+  }
+
+  /* DETAIL BILL PAGES ON MOBILE */
+  .topBar {
+    margin-top: 10px;
+    padding: 16px;
+    border-radius: 20px;
+  }
+  .billHeader {
+    gap: 12px;
+  }
+  .bigIcon {
+    width: 54px;
+    height: 54px;
+    border-radius: 16px;
+  }
+  .billTitle {
+    font-size: 1.35rem;
+  }
+  .account {
+    font-size: 1.25rem;
+  }
+  .billType {
+    font-size: 1.2rem;
+  }
+  .portalBtn {
+    margin-top: 10px;
+    padding: 10px 14px;
+    font-size: 0.82rem;
+    border-radius: 10px;
+  }
+
+  /* 2x2 Stat Cards on Detail Bill Pages */
+  .statsGrid {
+    margin-top: 14px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .statCard {
+    padding: 14px 12px;
+    border-radius: 16px;
+  }
+  .statLabel {
+    font-size: 0.75rem;
+  }
+  .statValue {
+    font-size: 1.45rem;
+    margin-top: 4px;
+  }
+
+  /* Forms on Mobile */
+  .formGrid.prepaid,
+  .formGrid.postpaid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .inputCard {
+    padding: 14px;
+    border-radius: 16px;
+  }
+  .inputLabel {
+    font-size: 0.78rem;
+  }
+  .inputAmountVal {
+    font-size: 1.5rem !important;
+    height: 38px !important;
+  }
+  .inputDateVal,
+  .inputCard select {
+    font-size: 16px !important; /* Prevents iOS Safari input auto-zoom */
+    height: 38px !important;
+  }
+  .saveBtn {
+    height: 48px;
+    font-size: 1rem;
+    border-radius: 14px;
+  }
+
+  /* 2x2 KPI Grid on Dashboard & Stats */
+  .kpiGrid {
+    margin-top: 14px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .kpiCard {
+    padding: 14px 12px;
+    border-radius: 16px;
+  }
+  .kpiLabel {
+    font-size: 0.72rem;
+  }
+  .kpiValue {
+    font-size: 1.45rem;
+    margin-top: 4px;
+  }
+  .kpiSub {
+    font-size: 0.72rem;
+    margin-top: 4px;
+  }
+
+  /* Dashboard Top & Title */
+  .dashboardTop, .databaseTop, .statsTop {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .dashboardTitle, .databaseTitle, .statsTitle {
+    font-size: 1.8rem;
+  }
+  .summaryBadges {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .badge {
+    padding: 4px 10px;
+    font-size: 0.75rem;
+  }
+
+  /* Database Toolbar on Mobile */
+  .databaseToolbar {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .toolbarLeft, .toolbarRight {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .searchBox, .filterSelect, .filterMonth {
+    width: 100% !important;
+    font-size: 16px !important;
+    height: 42px;
+  }
+  .recordInfo {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  /* Back Button on Mobile */
+  .backBtn {
+    margin-top: 8px;
+    padding: 10px 16px;
+    font-size: 0.85rem;
+    border-radius: 12px;
+  }
+
+  /* Charts on Mobile */
+  .chartCard {
+    padding: 16px 12px;
+    border-radius: 18px;
+  }
+  .chartTitle {
+    font-size: 1rem;
+    margin-bottom: 12px;
+  }
+
+  /* Modal Content on Mobile */
+  .modalContent {
+    width: 92%;
+    padding: 20px 16px;
+    border-radius: 20px;
+  }
+}
 </style>
 </head>
 
@@ -2761,19 +3070,11 @@ input[type="date"]::-webkit-calendar-picker-indicator {
           </div>
         </div>
 
-        <!-- Migration & Backup Tools -->
-        <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:18px;">
-          <button class="testBtn" onclick="migrateLocalToFirebase()" style="width:100%; padding:12px; background:rgba(0,194,255,0.15); border-color:#00C2FF; color:#00C2FF; font-weight:700;">
-            📥 Import Historical data.json to Cloud
+        <!-- Backup Tool -->
+        <div style="margin-bottom:18px;">
+          <button class="testBtn" onclick="exportCsv()" style="width:100%; padding:12px; font-size:0.9rem; font-weight:700; background:rgba(0,194,255,0.12); border:1px solid rgba(0,194,255,0.35); color:#00C2FF; border-radius:14px; display:flex; align-items:center; justify-content:center; gap:8px;">
+            ⤓ Export CSV Backup
           </button>
-          <div style="display:flex; gap:10px;">
-            <button class="testBtn" onclick="exportDataJsonBackup()" style="flex:1; padding:10px; font-size:0.8rem;">
-              💾 Export JSON
-            </button>
-            <button class="testBtn" onclick="exportCsv()" style="flex:1; padding:10px; font-size:0.8rem;">
-              ⤓ Export CSV
-            </button>
-          </div>
         </div>
 
         <button class="saveModalBtn" onclick="firebaseSignOut()" style="width:100%; background:rgba(255,96,119,0.15); border:1px solid rgba(255,96,119,0.3); color:#ff6077;">
@@ -3607,90 +3908,7 @@ async function deletePaymentRecord(uid) {
   }
 }
 
-// Migrate local data.json into Firestore Cloud with normalized NoSQL schema
-async function migrateLocalToFirebase() {
-  if (!currentUser || !db) {
-    alert("Please sign in with Google first.");
-    return;
-  }
-  
-  let sourceRecords = [];
-  try {
-    const res = await fetch('./data.json');
-    if (res.ok) {
-      sourceRecords = await res.json();
-    }
-  } catch (e) {
-    sourceRecords = paymentsData;
-  }
-  
-  if (sourceRecords.length === 0) {
-    alert("No records found in data.json to import.");
-    return;
-  }
-  
-  if (!confirm(`Import ${sourceRecords.length} historical payments into your Firebase Cloud database?`)) {
-    return;
-  }
-  
-  try {
-    const batch = db.batch();
-    const userRef = db.collection('users').doc(currentUser.uid);
-    const userPaymentsRef = userRef.collection('payments');
-    
-    // Set user profile doc
-    batch.set(userRef, {
-      uid: currentUser.uid,
-      email: currentUser.email,
-      displayName: currentUser.displayName,
-      photoURL: currentUser.photoURL || '',
-      migratedAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString()
-    }, { merge: true });
-    
-    sourceRecords.forEach(rec => {
-      const bill = billPages.find(b => b.id === rec.billId || b.name.replace('<br>', ' ') === rec.billName);
-      const utilityCategory = bill ? (bill.utility || 'electric') : 'electric';
-      const amountNumeric = Math.round(parseFloat(rec.amount));
-      
-      const normalizedDoc = {
-        uid: rec.uid,
-        billId: rec.billId || (bill ? bill.id : 'unknown'),
-        billName: rec.billName,
-        billType: rec.billType ? rec.billType.toLowerCase() : 'prepaid',
-        utilityCategory: utilityCategory,
-        billMonth: rec.billMonth || '',
-        amount: amountNumeric.toString(),
-        amountNum: amountNumeric,
-        payDate: rec.payDate,
-        savedAt: rec.savedAt || new Date().toISOString(),
-        timestamp: rec.savedAt ? new Date(rec.savedAt).getTime() : (new Date(rec.payDate).getTime() || Date.now())
-      };
-      
-      const docRef = userPaymentsRef.doc(rec.uid);
-      batch.set(docRef, normalizedDoc, { merge: true });
-    });
-    
-    await batch.commit();
-    showToast(`Successfully imported & structured ${sourceRecords.length} records in Firebase Cloud!`, 4500);
-    closeSettingsModal();
-  } catch (err) {
-    console.error("Migration error:", err);
-    alert("Migration failed: " + err.message);
-  }
-}
 
-// 1-Click Export JSON
-function exportDataJsonBackup() {
-  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(paymentsData, null, 2));
-  const downloadAnchor = document.createElement('a');
-  downloadAnchor.setAttribute("href", dataStr);
-  downloadAnchor.setAttribute("download", `billzy-backup-${new Date().toISOString().split('T')[0]}.json`);
-  document.body.appendChild(downloadAnchor);
-  downloadAnchor.click();
-  downloadAnchor.remove();
-  showToast("Downloaded data.json backup!");
-}
 
 // Settings modal
 function openSettingsModal() {
