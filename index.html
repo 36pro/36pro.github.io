@@ -4428,7 +4428,10 @@ async function savePaymentRecord(billId, amount, payDate, billMonth, fee = '') {
   
   // Optimistic UI update
   paymentsData.unshift(newRecord);
-  hydrateAllPages();
+  // Defer heavy chart and page hydration so modal pops with 60fps instant fluidity
+  setTimeout(() => {
+    hydrateAllPages();
+  }, 200);
   
   if (currentUser && db) {
     try {
@@ -7090,8 +7093,8 @@ function submitPaymentForm(billId) {
   const section = document.getElementById(billId);
   if (!section) return;
   
-  const amountVal = section.querySelector('.inputAmountVal').value.trim();
-  const feeVal = section.querySelector('.inputFeeVal') ? section.querySelector('.inputFeeVal').value.trim() : '';
+  let amountVal = section.querySelector('.inputAmountVal').value.trim();
+  let feeVal = section.querySelector('.inputFeeVal') ? section.querySelector('.inputFeeVal').value.trim() : '';
   const dateVal = section.querySelector('.inputDateVal').value.trim();
   
   const monthSelect = section.querySelector('.inputMonthSelect');
@@ -7105,37 +7108,43 @@ function submitPaymentForm(billId) {
     alert('Please select a valid payment date.');
     return;
   }
-  
-  const saveBtn = section.querySelector('.saveBtn');
-  saveBtn.innerText = 'Saving...';
-  saveBtn.disabled = true;
+
+  // Bulletproof auto-split logic for prepaid energy/gas meters on submit
+  const autoSplitBills = ['rupnagarDesco', 'uttaraDesco', 'rupnagarGas'];
+  if (autoSplitBills.includes(billId) && (!feeVal || parseFloat(feeVal) === 0)) {
+    const numAmt = parseFloat(amountVal);
+    if (numAmt > 100) {
+      const remainder = numAmt % 100;
+      if (remainder > 0 && remainder <= 60) {
+        amountVal = (numAmt - remainder).toString();
+        feeVal = remainder.toString();
+      }
+    }
+  }
   
   const billObj = billPages.find(b => b.id === billId);
   const billDisplayName = billObj ? billObj.name : billId;
+  const isCloudSynced = Boolean(typeof currentUser !== 'undefined' && currentUser && typeof db !== 'undefined' && db);
 
+  // Instantly trigger rewarding center-screen celebration with ZERO stutter
+  showPaymentSuccessModal({
+    billName: billDisplayName,
+    amount: amountVal,
+    fee: feeVal,
+    date: dateVal,
+    month: monthVal,
+    isOffline: !isCloudSynced
+  });
+
+  // Reset inputs immediately
+  section.querySelector('.inputAmountVal').value = '';
+  if (section.querySelector('.inputFeeVal')) section.querySelector('.inputFeeVal').value = '';
+
+  // Execute persistence asynchronously in background
   savePaymentRecord(billId, amountVal, dateVal, monthVal, feeVal)
-    .then(() => {
-      // Reset inputs
-      section.querySelector('.inputAmountVal').value = '';
-      if (section.querySelector('.inputFeeVal')) section.querySelector('.inputFeeVal').value = '';
-
-      // Trigger rewarding center screen celebration
-      const isCloudSynced = Boolean(typeof currentUser !== 'undefined' && currentUser && typeof db !== 'undefined' && db);
-      showPaymentSuccessModal({
-        billName: billDisplayName,
-        amount: amountVal,
-        fee: feeVal,
-        date: dateVal,
-        month: monthVal,
-        isOffline: !isCloudSynced
-      });
-    })
     .catch(err => {
+      console.error("Save payment error:", err);
       showPaymentErrorModal(err.message || 'Failed to record payment');
-    })
-    .finally(() => {
-      saveBtn.innerText = 'Save Payment';
-      saveBtn.disabled = false;
     });
 }
 
