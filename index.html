@@ -13,6 +13,11 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&family=Outfit:wght@600;700;800;900&family=Plus+Jakarta+Sans:ital,wght@0,600;0,700;0,800;0,900;1,800&display=swap" rel="stylesheet">
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Firebase App, Auth, Firestore (Compat SDK) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
 
 <style>
 
@@ -2674,46 +2679,90 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 
 
-<!-- SETTINGS MODAL -->
+<!-- SETTINGS / CLOUD PROFILE MODAL -->
 <div id="settingsModal" class="modalOverlay hidden">
-  <div class="modalContent">
+  <div class="modalContent" style="max-width: 520px;">
     <div class="modalHeader">
-      <h3>GitHub Sync Settings</h3>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span style="font-size:1.4rem;">🔥</span>
+        <h3 style="font-size:1.25rem;">Firebase Cloud Sync</h3>
+      </div>
       <button class="closeModalBtn" onclick="closeSettingsModal()">✕</button>
     </div>
     <div class="modalBody">
-      <p class="modalDesc">Save and retrieve payments directly from your GitHub repository to access your data from anywhere.</p>
-      
-      <div class="formField">
-        <label>GitHub Personal Access Token (PAT)</label>
-        <input type="password" id="ghToken" placeholder="ghp_xxxxxxxxxxxx">
-        <span style="font-size:0.78rem; color:var(--muted); margin-top:2px; line-height:1.2;">Needs <code>repo</code> scope (classic tokens) or Contents Read/Write (fine-grained tokens).</span>
+      <!-- Auth Status View -->
+      <div id="firebaseAuthLoggedIn" class="hidden">
+        <div style="display:flex; align-items:center; gap:16px; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:18px; padding:16px; margin-bottom:18px;">
+          <img id="userAvatarImg" src="" alt="Avatar" style="width:48px; height:48px; border-radius:50%; border:2px solid #00E676; object-fit:cover; display:none;">
+          <div id="userAvatarPlaceholder" style="width:48px; height:48px; border-radius:50%; background:linear-gradient(135deg, #00C2FF, #00E676); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:1.2rem; color:#020817;">U</div>
+          <div style="flex:1; overflow:hidden;">
+            <div id="userDisplayName" style="font-weight:800; font-size:1.1rem; color:#f8fafc; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">User Name</div>
+            <div id="userEmail" style="font-size:0.82rem; color:var(--muted); white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">user@example.com</div>
+          </div>
+          <div style="display:inline-flex; align-items:center; gap:6px; padding:4px 10px; background:rgba(0,230,118,0.15); border:1px solid rgba(0,230,118,0.3); border-radius:999px; font-size:0.75rem; font-weight:700; color:#00E676;">
+            ● Live
+          </div>
+        </div>
+
+        <div style="background:#050e20; border:1px solid var(--border); border-radius:16px; padding:16px; margin-bottom:18px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <span style="font-size:0.85rem; color:#94a3b8;">Database Engine</span>
+            <span style="font-size:0.85rem; font-weight:700; color:#00C2FF;">Cloud Firestore</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <span style="font-size:0.85rem; color:#94a3b8;">Real-Time Sync</span>
+            <span style="font-size:0.85rem; font-weight:700; color:#00E676;">Active (WebSocket)</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:0.85rem; color:#94a3b8;">Cloud Records</span>
+            <span id="cloudRecordCount" style="font-size:0.85rem; font-weight:800; color:#FFFFFF; font-family:var(--font-amount);">0 records</span>
+          </div>
+        </div>
+
+        <!-- Migration & Backup Tools -->
+        <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:18px;">
+          <button class="testBtn" onclick="migrateLocalToFirebase()" style="width:100%; padding:12px; background:rgba(0,194,255,0.15); border-color:#00C2FF; color:#00C2FF; font-weight:700;">
+            📥 Import Historical data.json to Cloud
+          </button>
+          <div style="display:flex; gap:10px;">
+            <button class="testBtn" onclick="exportDataJsonBackup()" style="flex:1; padding:10px; font-size:0.8rem;">
+              💾 Export JSON
+            </button>
+            <button class="testBtn" onclick="exportCsv()" style="flex:1; padding:10px; font-size:0.8rem;">
+              ⤓ Export CSV
+            </button>
+          </div>
+        </div>
+
+        <button class="saveModalBtn" onclick="firebaseSignOut()" style="width:100%; background:rgba(255,96,119,0.15); border:1px solid rgba(255,96,119,0.3); color:#ff6077;">
+          Sign Out of Cloud
+        </button>
       </div>
-      
-      <div class="formField">
-        <label>GitHub Username / Owner</label>
-        <input type="text" id="ghOwner" value="36pro" placeholder="e.g. Octocat">
+
+      <!-- Logged Out View -->
+      <div id="firebaseAuthLoggedOut">
+        <p class="modalDesc" style="margin-bottom:20px;">
+          Connect to <strong>Firebase Cloud</strong> to access your bills from your phone, laptop, and iPad with instant real-time sync.
+        </p>
+
+        <button onclick="signInWithGoogle()" style="width:100%; display:flex; align-items:center; justify-content:center; gap:12px; padding:14px; background:#FFFFFF; color:#0F172A; border:none; border-radius:14px; font-size:1rem; font-weight:700; cursor:pointer; box-shadow:0 6px 20px rgba(255,255,255,0.15); transition:transform 0.2s ease;">
+          <svg width="20" height="20" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+          </svg>
+          Sign in with Google
+        </button>
+
+        <div style="text-align:center; margin:20px 0; color:var(--text-dim); font-size:0.8rem; text-transform:uppercase; letter-spacing:1px;">
+          — Local Offline Mode Active —
+        </div>
+
+        <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:14px; padding:14px; font-size:0.85rem; color:#94a3b8;">
+          💡 When signed out, Billzy operates safely in local offline mode using your browser cache and <code>data.json</code>.
+        </div>
       </div>
-      
-      <div class="formField">
-        <label>Repository Name</label>
-        <input type="text" id="ghRepo" value="36pro.github.io" placeholder="e.g. billzy-data">
-        <span style="font-size:0.78rem; color:var(--muted); margin-top:2px; line-height:1.2;">The repository must exist on GitHub.</span>
-      </div>
-      
-      <div class="formField">
-        <label>File Path (in repository)</label>
-        <input type="text" id="ghPath" value="data.json" placeholder="data.json">
-      </div>
-      
-      <div class="formField">
-        <label>Branch Name</label>
-        <input type="text" id="ghBranch" value="main" placeholder="main">
-      </div>
-    </div>
-    <div class="modalFooter">
-      <button class="testBtn" onclick="testGitHubConnection()">Test Connection</button>
-      <button class="saveModalBtn" onclick="saveGitSettings()">Save Settings</button>
     </div>
   </div>
 </div>
@@ -3222,113 +3271,185 @@ let quarterlyStackedChartInstance = null;
 let cashFlowBubbleChartInstance = null;
 let spendInflationChartInstance = null;
 
-// Load GitHub settings from localStorage
-function getGHSettings() {
-  const token = localStorage.getItem('billzy_gh_token');
-  const owner = localStorage.getItem('billzy_gh_owner') || '36pro';
-  const repo = localStorage.getItem('billzy_gh_repo') || '36pro.github.io';
-  const path = localStorage.getItem('billzy_gh_path') || 'data.json';
-  const branch = localStorage.getItem('billzy_gh_branch') || 'main';
-  
-  if (token && owner && repo) {
-    return { token, owner, repo, path, branch };
+// ==========================================
+// FIREBASE CLOUD & REAL-TIME DATA LAYER
+// ==========================================
+const firebaseConfig = {
+  apiKey: "AIzaSyBtTPdQ0jy_T8XcuaqyccLQTqLs5ZyzKmQ",
+  authDomain: "billzy-dash.firebaseapp.com",
+  projectId: "billzy-dash",
+  storageBucket: "billzy-dash.firebasestorage.app",
+  messagingSenderId: "985712059255",
+  appId: "1:985712059255:web:b5f9d117b34a2ed8c07772"
+};
+
+// Initialize Firebase
+let firebaseApp = null;
+let auth = null;
+let db = null;
+let currentUser = null;
+let firestoreUnsubscribe = null;
+
+try {
+  if (typeof firebase !== 'undefined') {
+    firebaseApp = firebase.initializeApp(firebaseConfig);
+    auth = firebase.auth();
+    db = firebase.firestore();
+    
+    // Enable offline persistence
+    db.enablePersistence({ synchronizeTabs: true }).catch(err => {
+      console.warn("Firestore offline persistence notice:", err.code);
+    });
   }
-  return null;
+} catch (e) {
+  console.error("Firebase init error:", e);
 }
 
-// Fetch payments from GitHub or local source
-async function fetchPayments() {
-  const gh = getGHSettings();
-  if (gh) {
-    const url = `https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/${gh.path}?ref=${gh.branch}&_t=${Date.now()}`;
-    try {
-      const res = await fetch(url, {
-        headers: {
-          'Authorization': `token ${gh.token}`,
-          'Accept': 'application/vnd.github.v3+json'
-        }
-      });
-      if (res.status === 404) {
-        console.log('data.json not found on GitHub yet. Starting with empty/fallback data.');
-        githubFileSha = '';
-        await fetchLocalFallback();
-      } else {
-        if (!res.ok) {
-          throw new Error(`GitHub returned status ${res.status}`);
-        }
-        const data = await res.json();
-        githubFileSha = data.sha;
-        const decodedContent = decodeURIComponent(escape(atob(data.content.replace(/\s/g, ''))));
-        paymentsData = JSON.parse(decodedContent);
-        console.log('Loaded payments from GitHub successfully:', paymentsData.length);
-
-        // Auto-sync: Check for any locally saved payments to sync up to GitHub
-        const localSaved = localStorage.getItem('billzy_local_payments');
-        if (localSaved) {
-          const localList = JSON.parse(localSaved);
-          let newMerge = false;
-          localList.forEach(p => {
-            if (!paymentsData.some(item => item.uid === p.uid)) {
-              paymentsData.unshift(p); // Merge local payment
-              newMerge = true;
-            }
-          });
-          
-          if (newMerge) {
-            console.log('Syncing locally cached payments up to GitHub...');
-            const uploadUrl = `https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/${gh.path}`;
-            const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(paymentsData, null, 2))));
-            
-            try {
-              const uploadRes = await fetch(uploadUrl, {
-                method: 'PUT',
-                headers: {
-                  'Authorization': `token ${gh.token}`,
-                  'Content-Type': 'application/json',
-                  'Accept': 'application/vnd.github.v3+json'
-                },
-                body: JSON.stringify({
-                  message: 'Sync offline/locally cached payments',
-                  content: contentBase64,
-                  sha: githubFileSha,
-                  branch: gh.branch
-                })
-              });
-              if (uploadRes.ok) {
-                const uploadData = await uploadRes.json();
-                githubFileSha = uploadData.content.sha;
-                localStorage.removeItem('billzy_local_payments');
-                console.log('Successfully synced local cache to GitHub!');
-              } else {
-                console.error('Failed to upload local cache during sync:', uploadRes.status);
-              }
-            } catch (syncErr) {
-              console.error('Error uploading local cache during sync:', syncErr);
-            }
-          } else {
-            // Already synced, remove local cache
-            localStorage.removeItem('billzy_local_payments');
-          }
-        }
+// Auth State Observer
+if (auth) {
+  auth.onAuthStateChanged(user => {
+    currentUser = user;
+    updateAuthUI(user);
+    
+    if (user) {
+      console.log("Firebase Auth: Logged in as", user.email);
+      subscribeToFirestore(user.uid);
+    } else {
+      console.log("Firebase Auth: Operating in Offline/Fallback mode");
+      if (firestoreUnsubscribe) {
+        firestoreUnsubscribe();
+        firestoreUnsubscribe = null;
       }
-    } catch (err) {
-      console.error('Error fetching from GitHub, falling back to localStorage/mock:', err);
-      alert(`Failed to connect to GitHub: ${err.message}\n\nUsing offline data. Please check your settings.`);
-      await fetchLocalFallback();
+      fetchLocalFallback().then(() => {
+        hydrateAllPages();
+        handleRouting();
+      });
     }
-  } else {
-    await fetchLocalFallback();
+  });
+}
+
+// Real-Time Firestore Listener
+function subscribeToFirestore(userId) {
+  if (firestoreUnsubscribe) {
+    firestoreUnsubscribe();
   }
   
-  // Hydrate all pages with the loaded paymentsData
-  hydrateAllPages();
+  const paymentsRef = db.collection('users').doc(userId).collection('payments').orderBy('payDate', 'desc');
+  
+  firestoreUnsubscribe = paymentsRef.onSnapshot(snapshot => {
+    const cloudPayments = [];
+    snapshot.forEach(doc => {
+      cloudPayments.push(doc.data());
+    });
+    
+    console.log(`Firestore Real-Time Sync: Received ${cloudPayments.length} records`);
+    
+    if (cloudPayments.length > 0) {
+      paymentsData = cloudPayments;
+      // Cache in localStorage for instant offline boots
+      localStorage.setItem('billzy_firestore_cache', JSON.stringify(paymentsData));
+    } else {
+      // If cloud is empty, check if we have local data to offer migration
+      fetchLocalFallback().then(() => {
+        if (paymentsData.length > 0) {
+          showToast(`Found ${paymentsData.length} records in data.json. Click ⚙ to import to cloud!`, 5000);
+        }
+      });
+    }
+    
+    const countEl = document.getElementById('cloudRecordCount');
+    if (countEl) countEl.innerText = `${paymentsData.length} records`;
+    
+    hydrateAllPages();
+    handleRouting();
+  }, error => {
+    console.error("Firestore subscription error:", error);
+    showToast("Cloud sync offline, using local cache.", 3000);
+    fetchLocalFallback().then(() => {
+      hydrateAllPages();
+      handleRouting();
+    });
+  });
+}
 
-  // URL Hash Router: Update active view layout after page hydration
+// Google Sign In
+async function signInWithGoogle() {
+  if (!auth) {
+    alert("Firebase is not initialized.");
+    return;
+  }
+  try {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    await auth.signInWithPopup(provider);
+    showToast("Signed in with Google successfully!");
+  } catch (error) {
+    console.error("Google sign in error:", error);
+    alert("Google Sign-In: " + error.message);
+  }
+}
+
+// Sign Out
+async function firebaseSignOut() {
+  if (!auth) return;
+  try {
+    await auth.signOut();
+    showToast("Signed out of Firebase.");
+  } catch (error) {
+    console.error("Sign out error:", error);
+  }
+}
+
+// Update Modal and Header Profile UI
+function updateAuthUI(user) {
+  const loggedInView = document.getElementById('firebaseAuthLoggedIn');
+  const loggedOutView = document.getElementById('firebaseAuthLoggedOut');
+  const userDisplayName = document.getElementById('userDisplayName');
+  const userEmail = document.getElementById('userEmail');
+  const userAvatarImg = document.getElementById('userAvatarImg');
+  const userAvatarPlaceholder = document.getElementById('userAvatarPlaceholder');
+  
+  if (user) {
+    if (loggedInView) loggedInView.classList.remove('hidden');
+    if (loggedOutView) loggedOutView.classList.add('hidden');
+    if (userDisplayName) userDisplayName.innerText = user.displayName || 'Google User';
+    if (userEmail) userEmail.innerText = user.email || '';
+    
+    if (user.photoURL && userAvatarImg && userAvatarPlaceholder) {
+      userAvatarImg.src = user.photoURL;
+      userAvatarImg.style.display = 'block';
+      userAvatarPlaceholder.style.display = 'none';
+    } else if (userAvatarPlaceholder && userAvatarImg) {
+      userAvatarImg.style.display = 'none';
+      userAvatarPlaceholder.style.display = 'flex';
+      userAvatarPlaceholder.innerText = (user.displayName || user.email || 'U')[0].toUpperCase();
+    }
+  } else {
+    if (loggedInView) loggedInView.classList.add('hidden');
+    if (loggedOutView) loggedOutView.classList.remove('hidden');
+  }
+}
+
+// Fetch payments fallback
+async function fetchPayments() {
+  if (currentUser) {
+    // Realtime listener handles this
+    return;
+  }
+  await fetchLocalFallback();
+  hydrateAllPages();
   handleRouting();
 }
 
 async function fetchLocalFallback() {
   try {
+    // First try cached Firestore data
+    const cached = localStorage.getItem('billzy_firestore_cache');
+    if (cached) {
+      paymentsData = JSON.parse(cached);
+      return;
+    }
+    
+    // Otherwise fallback to data.json
     const res = await fetch('./data.json');
     if (res.ok) {
       paymentsData = await res.json();
@@ -3339,11 +3460,10 @@ async function fetchLocalFallback() {
     paymentsData = [];
   }
   
-  // Merge any payments from localStorage
+  // Merge any payments from local cache
   const localSaved = localStorage.getItem('billzy_local_payments');
   if (localSaved) {
     const localList = JSON.parse(localSaved);
-    // Merge only if UIDs are unique
     localList.forEach(p => {
       if (!paymentsData.some(item => item.uid === p.uid)) {
         paymentsData.push(p);
@@ -3352,7 +3472,7 @@ async function fetchLocalFallback() {
   }
 }
 
-// Save a payment
+// Save Payment Record (Granular Firestore Doc Write)
 async function savePaymentRecord(billId, amount, payDate, billMonth) {
   const bill = billPages.find(b => b.id === billId);
   const billName = bill ? bill.name.replace('<br>', ' ') : billId;
@@ -3366,63 +3486,27 @@ async function savePaymentRecord(billId, amount, payDate, billMonth) {
     billMonth: billMonth || '',
     amount: Math.round(parseFloat(amount)).toString(),
     payDate: payDate,
-    savedAt: new Date().toISOString()
+    savedAt: new Date().toISOString(),
+    timestamp: Date.now()
   };
   
-  // Append new record
+  // Optimistic UI update
   paymentsData.unshift(newRecord);
+  hydrateAllPages();
   
-  const gh = getGHSettings();
-  if (gh) {
-    const url = `https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/${gh.path}`;
-    const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(paymentsData, null, 2))));
-    
+  if (currentUser && db) {
     try {
-      // Get the latest SHA before writing
-      const shaRes = await fetch(url + `?ref=${gh.branch}&_t=${Date.now()}`, {
-        headers: {
-          'Authorization': `token ${gh.token}`,
-          'Accept': 'application/vnd.github.v3+json'
-        }
-      });
-      if (shaRes.ok) {
-        const shaData = await shaRes.json();
-        githubFileSha = shaData.sha;
-      } else {
-        githubFileSha = '';
-      }
-      
-      const res = await fetch(url, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `token ${gh.token}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/vnd.github.v3+json'
-        },
-        body: JSON.stringify({
-          message: `Add payment record for ${billName}`,
-          content: contentBase64,
-          ...(githubFileSha ? { sha: githubFileSha } : {}),
-          branch: gh.branch
-        })
-      });
-      
-      if (!res.ok) {
-        const errBody = await res.text();
-        throw new Error(`GitHub returned status ${res.status}: ${errBody}`);
-      }
-      console.log('Saved payment to GitHub successfully!');
+      await db.collection('users').doc(currentUser.uid).collection('payments').doc(newRecord.uid).set(newRecord);
+      showToast(`Saved ৳ ${parseFloat(amount).toLocaleString()} for ${billName} to Cloud!`);
     } catch (err) {
-      console.error('Failed to save to GitHub, caching locally:', err);
-      alert('Failed to save to GitHub repository: ' + err.message + '\n\nSaving to local browser cache instead.');
+      console.error("Firestore save error:", err);
+      showToast("Saved locally (offline mode).");
       saveToLocalStorage(newRecord);
     }
   } else {
     saveToLocalStorage(newRecord);
+    showToast(`Saved ৳ ${parseFloat(amount).toLocaleString()} to local cache.`);
   }
-  
-  // Re-hydrate
-  hydrateAllPages();
 }
 
 function saveToLocalStorage(newRecord) {
@@ -3435,113 +3519,99 @@ function saveToLocalStorage(newRecord) {
   localStorage.setItem('billzy_local_payments', JSON.stringify(localList));
 }
 
-// Delete a payment
+// Delete Payment Record
 async function deletePaymentRecord(uid) {
   if (!confirm('Are you sure you want to delete this payment record?')) return;
   
   paymentsData = paymentsData.filter(p => p.uid !== uid);
+  hydrateAllPages();
   
-  // Remove from localStorage if cached
+  if (currentUser && db) {
+    try {
+      await db.collection('users').doc(currentUser.uid).collection('payments').doc(uid).delete();
+      showToast("Payment record deleted from Cloud.");
+    } catch (err) {
+      console.error("Firestore delete error:", err);
+      showToast("Record deleted locally.");
+    }
+  }
+  
   const localSaved = localStorage.getItem('billzy_local_payments');
   if (localSaved) {
     let localList = JSON.parse(localSaved);
     localList = localList.filter(p => p.uid !== uid);
     localStorage.setItem('billzy_local_payments', JSON.stringify(localList));
   }
-  
-  const gh = getGHSettings();
-  if (gh) {
-    const url = `https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/${gh.path}`;
-    const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(paymentsData, null, 2))));
-    
-    try {
-      const shaRes = await fetch(url + `?ref=${gh.branch}&_t=${Date.now()}`, {
-        headers: {
-          'Authorization': `token ${gh.token}`,
-          'Accept': 'application/vnd.github.v3+json'
-        }
-      });
-      if (shaRes.ok) {
-        const shaData = await shaRes.json();
-        githubFileSha = shaData.sha;
-      } else {
-        githubFileSha = '';
-      }
-      
-      const res = await fetch(url, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `token ${gh.token}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/vnd.github.v3+json'
-        },
-        body: JSON.stringify({
-          message: `Delete payment record ${uid}`,
-          content: contentBase64,
-          ...(githubFileSha ? { sha: githubFileSha } : {}),
-          branch: gh.branch
-        })
-      });
-      
-      if (!res.ok) {
-        throw new Error(`GitHub returned status ${res.status}`);
-      }
-      console.log('Deleted record on GitHub successfully!');
-    } catch (err) {
-      console.error('Failed to sync deletion to GitHub:', err);
-      alert('Record deleted from browser cache. Could not sync with GitHub repository.');
-    }
-  }
-  
-  hydrateAllPages();
 }
 
-// Settings modal functions
+// Migrate local data.json into Firestore Cloud
+async function migrateLocalToFirebase() {
+  if (!currentUser || !db) {
+    alert("Please sign in with Google first.");
+    return;
+  }
+  
+  let sourceRecords = [];
+  try {
+    const res = await fetch('./data.json');
+    if (res.ok) {
+      sourceRecords = await res.json();
+    }
+  } catch (e) {
+    sourceRecords = paymentsData;
+  }
+  
+  if (sourceRecords.length === 0) {
+    alert("No records found in data.json to import.");
+    return;
+  }
+  
+  if (!confirm(`Import ${sourceRecords.length} historical payments into your Firebase Cloud database?`)) {
+    return;
+  }
+  
+  try {
+    const batch = db.batch();
+    const userPaymentsRef = db.collection('users').doc(currentUser.uid).collection('payments');
+    
+    sourceRecords.forEach(rec => {
+      const docRef = userPaymentsRef.doc(rec.uid);
+      batch.set(docRef, {
+        ...rec,
+        timestamp: rec.savedAt ? new Date(rec.savedAt).getTime() : Date.now()
+      }, { merge: true });
+    });
+    
+    await batch.commit();
+    showToast(`Successfully imported ${sourceRecords.length} records to Firebase Cloud!`, 4000);
+    closeSettingsModal();
+  } catch (err) {
+    console.error("Migration error:", err);
+    alert("Migration failed: " + err.message);
+  }
+}
+
+// 1-Click Export JSON
+function exportDataJsonBackup() {
+  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(paymentsData, null, 2));
+  const downloadAnchor = document.createElement('a');
+  downloadAnchor.setAttribute("href", dataStr);
+  downloadAnchor.setAttribute("download", `billzy-backup-${new Date().toISOString().split('T')[0]}.json`);
+  document.body.appendChild(downloadAnchor);
+  downloadAnchor.click();
+  downloadAnchor.remove();
+  showToast("Downloaded data.json backup!");
+}
+
+// Settings modal
 function openSettingsModal() {
   document.getElementById('settingsModal').classList.remove('hidden');
-  
-  // Populate inputs
-  document.getElementById('ghToken').value = localStorage.getItem('billzy_gh_token') || '';
-  document.getElementById('ghOwner').value = localStorage.getItem('billzy_gh_owner') || '36pro';
-  document.getElementById('ghRepo').value = localStorage.getItem('billzy_gh_repo') || '36pro.github.io';
-  document.getElementById('ghPath').value = localStorage.getItem('billzy_gh_path') || 'data.json';
-  document.getElementById('ghBranch').value = localStorage.getItem('billzy_gh_branch') || 'main';
+  updateAuthUI(currentUser);
 }
 
 function closeSettingsModal() {
   document.getElementById('settingsModal').classList.add('hidden');
 }
-
-function saveGitSettings() {
-  try {
-    const token = document.getElementById('ghToken').value.trim();
-    const owner = document.getElementById('ghOwner').value.trim();
-    const repo = document.getElementById('ghRepo').value.trim();
-    const path = document.getElementById('ghPath').value.trim() || 'data.json';
-    const branch = document.getElementById('ghBranch').value.trim() || 'main';
-    
-    if (token) localStorage.setItem('billzy_gh_token', token);
-    else localStorage.removeItem('billzy_gh_token');
-    
-    if (owner) localStorage.setItem('billzy_gh_owner', owner);
-    else localStorage.removeItem('billzy_gh_owner');
-    
-    if (repo) localStorage.setItem('billzy_gh_repo', repo);
-    else localStorage.removeItem('billzy_gh_repo');
-    
-    localStorage.setItem('billzy_gh_path', path);
-    localStorage.setItem('billzy_gh_branch', branch);
-    
-    closeSettingsModal();
-    fetchPayments().catch(err => {
-      console.error(err);
-    });
-  } catch (err) {
-    alert("Error saving settings: " + err.message);
-  }
-}
-
-let activeEditUid = null;
 
 function openEditModal(uid) {
   const p = paymentsData.find(item => item.uid === uid);
