@@ -694,6 +694,28 @@ body{
   font-size:2.7rem;
 }
 
+.billTitleWrap {
+  display: flex;
+  flex-direction: column;
+}
+.billTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.billTypeBadge {
+  display: none;
+}
+.mobileAccount {
+  display: none;
+}
+.desktopAccount {
+  display: block;
+}
+.desktopBillType {
+  display: block;
+}
+
 .billTitle{
   font-size:2.1rem;
   line-height:1.05;
@@ -2982,52 +3004,119 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     margin-top: 2px;
   }
 
-  /* DETAIL BILL PAGES ON MOBILE */
-  .topBar {
-    margin-top: 10px;
-    padding: 16px;
-    border-radius: 20px;
+  /* DETAIL BILL PAGES ON MOBILE - Compact Thinner Header & Raised Content */
+  .billPage .container {
+    padding-top: 4px;
   }
-  .billHeader {
+  .billPage .logo {
+    margin-top: 4px;
+    margin-bottom: 6px;
+  }
+  .billPage .backBtn {
+    margin-top: 4px;
+    margin-bottom: 8px;
+    padding: 6px 12px;
+    font-size: 0.8rem;
+  }
+  .topBar {
+    margin-top: 4px;
+    padding: 12px 14px;
+    border-radius: 16px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+  }
+  .leftInfo {
     gap: 12px;
+    width: 100%;
   }
   .bigIcon {
-    width: 54px;
-    height: 54px;
-    border-radius: 16px;
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    border-radius: 12px;
+  }
+  .billTitleWrap {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    width: 100%;
+  }
+  .billTitleRow {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
   }
   .billTitle {
-    font-size: 1.35rem;
+    font-size: 1.15rem;
+    font-weight: 800;
+    line-height: 1.15;
   }
-  .account {
-    font-size: 1.25rem;
+  .billTypeBadge {
+    display: inline-flex !important;
+    align-items: center;
+    padding: 2px 7px;
+    border-radius: 6px;
+    font-size: 0.68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    font-family: var(--font-mono);
   }
-  .billType {
-    font-size: 1.2rem;
+  .badgePrepaid {
+    background: rgba(0, 230, 118, 0.15);
+    color: #00E676;
+    border: 1px solid rgba(0, 230, 118, 0.3);
+  }
+  .badgePostpaid {
+    background: rgba(0, 194, 255, 0.15);
+    color: #00C2FF;
+    border: 1px solid rgba(0, 194, 255, 0.3);
+  }
+  .mobileAccount {
+    display: block !important;
+    font-size: 0.8rem !important;
+    font-weight: 700;
+    color: #94a3b8;
+    margin-top: 1px;
+    letter-spacing: 0.3px;
+  }
+  .desktopAccount,
+  .desktopBillType {
+    display: none !important;
   }
   .portalBtn {
-    margin-top: 10px;
-    padding: 10px 14px;
-    font-size: 0.82rem;
+    margin-top: 6px;
+    padding: 8px 12px;
+    font-size: 0.78rem;
     border-radius: 10px;
   }
 
-  /* 2x2 Stat Cards on Detail Bill Pages */
+  /* 2x2 Stat Cards on Detail Bill Pages - Tighter spacing to move contents up */
   .statsGrid {
-    margin-top: 14px;
+    margin-top: 8px;
     grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
+    gap: 8px;
   }
   .statCard {
-    padding: 14px 12px;
-    border-radius: 16px;
+    padding: 10px 10px;
+    border-radius: 14px;
   }
   .statLabel {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
   }
   .statValue {
-    font-size: 1.45rem;
-    margin-top: 4px;
+    font-size: 1.35rem;
+    margin-top: 3px;
+  }
+  .formSection {
+    margin-top: 10px;
+  }
+  .sectionTitle {
+    font-size: 0.95rem;
+    margin-bottom: 6px;
   }
 
   /* Forms on Mobile */
@@ -4503,10 +4592,16 @@ function renderBillPages() {
         <div class="topBar">
           <div class="leftInfo">
             <div class="bigIcon">${getBillIconHtml(bill, 'bigIcon')}</div>
-            <div class="billTitle">${bill.name}</div>
+            <div class="billTitleWrap">
+              <div class="billTitleRow">
+                <div class="billTitle">${bill.name}</div>
+                <span class="billTypeBadge ${bill.type === 'Prepaid' ? 'badgePrepaid' : 'badgePostpaid'}">${bill.type}</span>
+              </div>
+              <div class="account mono mobileAccount">AC NO: ${bill.account}</div>
+            </div>
           </div>
-          <div class="account mono">AC NO: ${bill.account}</div>
-          <div class="billType">${bill.type}</div>
+          <div class="account mono desktopAccount">AC NO: ${bill.account}</div>
+          <div class="billType desktopBillType">${bill.type}</div>
         </div>
         ${actionRowHtml}
         <div class="statsGrid">
