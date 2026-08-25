@@ -1898,29 +1898,38 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 .editBtn,
-.deleteBtn{
-  border:none;
-
-  background:none;
-
-  cursor:pointer;
-
-  font-size:1.15rem;
-
-  transition:.2s;
+.deleteBtn {
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  transition: all 0.2s ease;
+  font-family: var(--font-body);
 }
 
-.editBtn{
-  color:#8ab4ff;
+.editBtn {
+  color: #00C2FF;
+  border-color: rgba(0, 194, 255, 0.3);
 }
 
-.deleteBtn{
-  color:#ff8a9c;
+.editBtn:hover {
+  background: rgba(0, 194, 255, 0.15);
+  border-color: #00C2FF;
+  transform: translateY(-1px);
 }
 
-.deleteBtn:hover{
-  color:var(--danger);
-  transform:scale(1.15);
+.deleteBtn {
+  color: #ff6077;
+  border-color: rgba(255, 96, 119, 0.3);
+}
+
+.deleteBtn:hover {
+  background: rgba(255, 96, 119, 0.15);
+  border-color: #ff6077;
+  transform: translateY(-1px);
 }
 
 .emptyState{
@@ -3138,10 +3147,10 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   <div class="modalContent" style="max-width: 520px;">
     <div class="modalHeader">
       <div style="display:flex; align-items:center; gap:10px;">
-        <span style="font-size:1.4rem;">🔥</span>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00C2FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
         <h3 style="font-size:1.25rem;">Firebase Cloud Sync</h3>
       </div>
-      <button class="closeModalBtn" onclick="closeSettingsModal()">✕</button>
+      <button class="closeModalBtn" onclick="closeSettingsModal()">×</button>
     </div>
     <div class="modalBody">
       <!-- Auth Status View -->
@@ -3154,7 +3163,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
             <div id="userEmail" style="font-size:0.82rem; color:var(--muted); white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">user@example.com</div>
           </div>
           <div style="display:inline-flex; align-items:center; gap:6px; padding:4px 10px; background:rgba(0,230,118,0.15); border:1px solid rgba(0,230,118,0.3); border-radius:999px; font-size:0.75rem; font-weight:700; color:#00E676;">
-            ● Live
+            <span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:#00E676; margin-right:4px;"></span>Live
           </div>
         </div>
 
@@ -3176,7 +3185,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
         <!-- Backup Tool -->
         <div style="margin-bottom:18px;">
           <button class="testBtn" onclick="exportCsv()" style="width:100%; padding:12px; font-size:0.9rem; font-weight:700; background:rgba(0,194,255,0.12); border:1px solid rgba(0,194,255,0.35); color:#00C2FF; border-radius:14px; display:flex; align-items:center; justify-content:center; gap:8px;">
-            ⤓ Export CSV Backup
+            Export CSV Backup
           </button>
         </div>
 
@@ -3206,7 +3215,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
         </div>
 
         <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:14px; padding:14px; font-size:0.85rem; color:#94a3b8;">
-          💡 When signed out, Billzy operates safely in local offline mode using your browser cache and <code>data.json</code>.
+           When signed out, Billzy operates safely in local offline mode using your browser cache and <code>data.json</code>.
         </div>
       </div>
     </div>
@@ -3218,7 +3227,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   <div class="modalContent">
     <div class="modalHeader">
       <h3>Edit Payment Record</h3>
-      <button class="closeModalBtn" onclick="closeEditModal()">✕</button>
+      <button class="closeModalBtn" onclick="closeEditModal()">×</button>
     </div>
     <div class="modalBody">
       <div class="formField">
@@ -3262,7 +3271,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 <button class="authHeaderBtn" onclick="openSettingsModal()" title="Firebase Cloud Sync & Settings">
   <span class="authStatusDot" id="headerAuthDot"></span>
-  <span id="headerAuthLabel">🔥 Cloud Sync</span>
+  <span id="headerAuthLabel">Cloud Sync</span>
 </button>
 
 <div class="logo" onclick="goHome()" title="Billzy — Home">
@@ -3290,7 +3299,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 </div>
 
 <div class="heroCard" onclick="openDatabase()">
-  <div class="heroIcon" id="heroIcon_database">🗄</div>
+  <div class="heroIcon" id="heroIcon_database"></div>
   <div class="heroTitle">Database</div>
 </div>
 
@@ -3299,7 +3308,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 <div class="billGrid">
 
 <div class="billCard" data-utility="electric" onclick="openPage('rupnagarDesco')">
-<div class="billIcon">⚡</div>
+<div class="billIcon"></div>
 
 <div class="billName">
 Rupnagar<br>DESCO
@@ -3312,7 +3321,7 @@ Last Paid 2000
 </div>
 
 <div class="billCard" data-utility="gas" onclick="openPage('rupnagarGas')">
-<div class="billIcon">🔥</div>
+<div class="billIcon"></div>
 
 <div class="billName">
 Rupnagar<br>Gas
@@ -3325,7 +3334,7 @@ Last Paid 2014
 </div>
 
 <div class="billCard" data-utility="electric" onclick="openPage('uttaraDesco')">
-<div class="billIcon">🗼</div>
+<div class="billIcon"></div>
 
 <div class="billName">
 Uttara<br>DESCO
@@ -3338,7 +3347,7 @@ Last Paid 3500
 </div>
 
 <div class="billCard" data-utility="water" onclick="openPage('uttaraWater')">
-<div class="billIcon">💧</div>
+<div class="billIcon"></div>
 
 <div class="billName">
 Uttara<br>Water
@@ -3350,7 +3359,7 @@ Next Due in 15 Days
 </div>
 
 <div class="billCard" data-utility="gas" onclick="openPage('matuailGas')">
-<div class="billIcon">🔥</div>
+<div class="billIcon"></div>
 
 <div class="billName">
 Matuail<br>Gas
@@ -3362,7 +3371,7 @@ Next Due in 30 Days
 </div>
 
 <div class="billCard" data-utility="electric" onclick="openPage('noakhaliPalli')">
-<div class="billIcon">⚡</div>
+<div class="billIcon"></div>
 
 <div class="billName">
 Noakhali<br>Palli
@@ -3374,7 +3383,7 @@ Next Due in 30 Days
 </div>
 
 <div class="billCard" data-utility="gas" onclick="openPage('inspireBroadband')">
-<div class="billIcon">📶</div>
+<div class="billIcon"></div>
 
 <div class="billName">
 Inspire<br>Broadband
@@ -3585,7 +3594,7 @@ const billPages = [
 {
 id:'rupnagarDesco',
   utility:'electric',
-icon:'⚡',
+icon:'',
 name:'Rupnagar<br>DESCO',
 account:'140-10-368',
 type:'Prepaid',
@@ -3602,7 +3611,7 @@ form:'prepaid'
 {
 id:'rupnagarGas',
   utility:'gas',
-icon:'🔥',
+icon:'',
 name:'Rupnagar<br>Gas',
 account:'110-407-082-016',
 type:'Prepaid',
@@ -3619,7 +3628,7 @@ form:'prepaid'
 {
 id:'uttaraDesco',
   utility:'electric',
-icon:'🗼',
+icon:'',
 name:'Uttara<br>DESCO',
 account:'250-38-654',
 type:'Prepaid',
@@ -3636,7 +3645,7 @@ form:'prepaid'
 {
 id:'uttaraWater',
   utility:'water',
-icon:'💧',
+icon:'',
 name:'Uttara<br>Water',
 account:'0901798991',
 type:'Postpaid',
@@ -3653,7 +3662,7 @@ form:'postpaid'
 {
 id:'matuailGas',
   utility:'gas',
-icon:'🔥',
+icon:'',
 name:'Matuail<br>Gas',
 account:'108-26-719',
 type:'Postpaid',
@@ -3670,7 +3679,7 @@ form:'postpaid'
 {
 id:'noakhaliPalli',
   utility:'electric',
-icon:'⚡',
+icon:'',
 name:'Noakhali<br>Palli',
 account:'103-102-312-7100',
 type:'Postpaid',
@@ -3687,7 +3696,7 @@ form:'postpaid'
 {
 id:'inspireBroadband',
   utility:'gas',
-icon:'📶',
+icon:'',
 name:'Inspire<br>Broadband',
 account:'rpmehedi6',
 type:'Prepaid',
@@ -3706,6 +3715,7 @@ form:'prepaid'
 let paymentsData = [];
 let githubFileSha = '';
 let monthlySpendChartInstance = null;
+let surchargeTrendChartInstance = null;
 let yoyCompareChartInstance = null;
 let cumulativeCompareChartInstance = null;
 let seasonalityChartInstance = null;
@@ -3796,7 +3806,7 @@ function subscribeToFirestore(userId) {
       // If cloud is empty, check if we have local data to offer migration
       fetchLocalFallback().then(() => {
         if (paymentsData.length > 0) {
-          showToast(`Found ${paymentsData.length} records in data.json. Click ⚙ to import to cloud!`, 5000);
+          showToast(`Found ${paymentsData.length} records in data.json. Click  to import to cloud!`, 5000);
         }
       });
     }
@@ -3864,7 +3874,7 @@ function updateAuthUI(user) {
     
     headerDots.forEach(dot => dot.classList.add('connected'));
     headerLabels.forEach(label => {
-      label.innerText = user.displayName ? `👤 ${user.displayName.split(' ')[0]}` : '🟢 Connected';
+      label.innerText = user.displayName ? `${user.displayName.split(' ')[0]}` : ' Connected';
     });
     
     if (user.photoURL && userAvatarImg && userAvatarPlaceholder) {
@@ -3882,7 +3892,7 @@ function updateAuthUI(user) {
     
     headerDots.forEach(dot => dot.classList.remove('connected'));
     headerLabels.forEach(label => {
-      label.innerText = '🔑 Sign In';
+      label.innerText = 'Sign In';
     });
   }
 }
@@ -4884,8 +4894,8 @@ function renderDatabasePage() {
         <div>${p.billMonth || '-'}</div>
         <div class="noteMuted">${p.note || '-'}</div>
         <div class="actionsCell">
-          <button class="editBtn" onclick="openEditModal('${p.uid}')">✎</button>
-          <button class="deleteBtn" onclick="deletePaymentRecord('${p.uid}')">✕</button>
+          <button class="editBtn" onclick="openEditModal('${p.uid}')">Edit</button>
+          <button class="deleteBtn" onclick="deletePaymentRecord('${p.uid}')">Delete</button>
         </div>
       </div>
     `;
@@ -4894,7 +4904,7 @@ function renderDatabasePage() {
   if (filtered.length === 0) {
     rowsHtml = `
       <div class="emptyState">
-        <div class="emptyIcon">🗄</div>
+        <div class="emptyIcon"></div>
         <div class="emptyTitle">No Records Found</div>
         <div>Try adjusting your filters or record a new payment.</div>
       </div>
@@ -4999,13 +5009,101 @@ function renderStatsPage() {
   }
   
   const surchargeElecEl = document.getElementById('surchargeElecText');
-  if (surchargeElecEl) surchargeElecEl.innerText = `⚡ Electricity Fees: ৳ ${elecFees.toLocaleString()}`;
+  if (surchargeElecEl) surchargeElecEl.innerText = `Electricity: ৳ ${elecFees.toLocaleString()}`;
   
   const surchargeGasEl = document.getElementById('surchargeGasText');
-  if (surchargeGasEl) surchargeGasEl.innerText = `🔥 Gas Fees: ৳ ${gasFees.toLocaleString()}`;
+  if (surchargeGasEl) surchargeGasEl.innerText = `Gas: ৳ ${gasFees.toLocaleString()}`;
   
   const surchargeOtherEl = document.getElementById('surchargeOtherText');
-  if (surchargeOtherEl) surchargeOtherEl.innerText = `🌐 Other Fees: ৳ ${otherFees.toLocaleString()}`;
+  if (surchargeOtherEl) surchargeOtherEl.innerText = `Other Utilities: ৳ ${otherFees.toLocaleString()}`;
+
+  // Update Surcharge Allocation Bar
+  const totalCombined = totalBaseSpend + totalSurcharges;
+  const purePct = totalCombined > 0 ? ((totalBaseSpend / totalCombined) * 100).toFixed(1) : 100;
+  const feePct = totalCombined > 0 ? ((totalSurcharges / totalCombined) * 100).toFixed(1) : 0;
+  
+  const purePctLabel = document.getElementById('pureSpendPctLabel');
+  if (purePctLabel) purePctLabel.innerText = `Pure Energy Spend: ${purePct}% (৳ ${totalBaseSpend.toLocaleString()})`;
+  
+  const feePctLabel = document.getElementById('feeSpendPctLabel');
+  if (feePctLabel) feePctLabel.innerText = `Gateway Surcharges: ${feePct}% (৳ ${totalSurcharges.toLocaleString()})`;
+  
+  const pureBar = document.getElementById('pureSpendBar');
+  if (pureBar) pureBar.style.width = `${purePct}%`;
+  
+  const feeBar = document.getElementById('feeSpendBar');
+  if (feeBar) feeBar.style.width = `${feePct}%`;
+
+  // Render Monthly Surcharge Trend Chart
+  const ctxSurcharge = document.getElementById('surchargeTrendChart');
+  if (ctxSurcharge && typeof Chart !== 'undefined') {
+    if (surchargeTrendChartInstance) {
+      surchargeTrendChartInstance.destroy();
+    }
+    
+    // Group surcharges by month
+    const monthlyFees = {};
+    monthsList.forEach(m => monthlyFees[m] = 0);
+    
+    paymentsData.forEach(rawP => {
+      const p = parsePaymentRecord(rawP);
+      if (p.hasFee) {
+        const pDate = new Date(p.payDate);
+        const label = `${monthNames[pDate.getMonth()]} ${String(pDate.getFullYear()).substr(-2)}`;
+        if (monthlyFees[label] !== undefined) {
+          monthlyFees[label] += p.fee;
+        }
+      }
+    });
+
+    surchargeTrendChartInstance = new Chart(ctxSurcharge, {
+      type: 'bar',
+      data: {
+        labels: monthsList,
+        datasets: [{
+          label: 'Surcharges (৳)',
+          data: monthsList.map(m => monthlyFees[m] || 0),
+          backgroundColor: 'rgba(255, 122, 0, 0.45)',
+          borderColor: '#FF7A00',
+          borderWidth: 1.5,
+          borderRadius: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#0b1730',
+            titleColor: '#f4f7ff',
+            bodyColor: '#FF7A00',
+            borderColor: '#FF7A00',
+            borderWidth: 1,
+            callbacks: {
+              label: function(ctx) {
+                return ' Surcharge: ৳ ' + Math.round(ctx.parsed.y);
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { color: '#91a5c6', font: { size: 10 } }
+          },
+          y: {
+            grid: { color: 'rgba(29, 57, 105, 0.2)' },
+            ticks: {
+              color: '#91a5c6',
+              font: { size: 10 },
+              callback: function(val) { return '৳' + val; }
+            }
+          }
+        }
+      }
+    });
+  }
   
   // Calculate elapsed months dynamically from June 2026 (inclusive) to current date
   const elapsedMonths = Math.max(1, (now.getFullYear() - 2026) * 12 + (now.getMonth() - 5) + 1);
@@ -6267,7 +6365,7 @@ function handleAmountAutoSplit(billId, inputEl) {
     const baseAmount = rawVal - remainder;
     inputEl.value = baseAmount;
     feeInput.value = remainder;
-    showToast(`⚡ Auto-split: ৳ ${baseAmount.toLocaleString()} main + ৳ ${remainder} fee`, 3500);
+    showToast(`Auto-split: ৳ ${baseAmount.toLocaleString()} main + ৳ ${remainder} fee`, 3500);
   } else if (rawVal % 100 === 0) {
     feeInput.value = ''; // Round amount -> fee empty
   }
@@ -6291,7 +6389,7 @@ function handleAmountAutoSplitQuick(billId, inputEl) {
           const baseAmount = rawVal - remainder;
           inputEl.value = baseAmount;
           feeInput.value = remainder;
-          showToast(`⚡ Auto-split: ৳ ${baseAmount.toLocaleString()} main + ৳ ${remainder} fee`, 3500);
+          showToast(`Auto-split: ৳ ${baseAmount.toLocaleString()} main + ৳ ${remainder} fee`, 3500);
         }
       }
     }
@@ -6459,7 +6557,7 @@ function exportCsv() {
   }
   
   const feeSummary = totalFees > 0 ? ` (incl. ৳ ${totalFees.toLocaleString()} fees)` : '';
-  showToast(`✓ Exported ${sorted.length} records (Total: ৳ ${(totalAmount + totalFees).toLocaleString()}${feeSummary}) to CSV!`, 4500);
+  showToast(` Exported ${sorted.length} records (Total: ৳ ${(totalAmount + totalFees).toLocaleString()}${feeSummary}) to CSV!`, 4500);
 }
 
 
@@ -7286,7 +7384,7 @@ async function loadLiveDESCOData(billId, accountNo) {
     
     container.innerHTML = `
       <div class="descoLiveTitle">
-        <span>⚡</span> DESCO Live Meter Analytics
+        <span></span> DESCO Live Meter Analytics
       </div>
       
       <div class="descoKpiGrid">
@@ -7408,12 +7506,12 @@ async function loadLiveDESCOData(billId, accountNo) {
     console.error('Failed to load DESCO Live API Data:', err);
     container.innerHTML = `
       <div class="descoLiveTitle">
-        <span>⚡</span> DESCO Live Meter Analytics
+        <span></span> DESCO Live Meter Analytics
       </div>
       
       <div class="corsWarningCard">
         <div class="corsWarningTitle">
-          <span>⚠️</span> Live DESCO Data Blocked by CORS
+          <span>️</span> Live DESCO Data Blocked by CORS
         </div>
         <div class="corsWarningDesc">
           Your browser blocked the request to the DESCO prepaid server because of cross-origin security restrictions. 
@@ -7590,7 +7688,7 @@ async function openDescoStatsPage(billId, fromRouting = false) {
       
       <div class="corsWarningCard">
         <div class="corsWarningTitle">
-          <span>⚠️</span> Live DESCO Dashboard Blocked by CORS
+          <span>️</span> Live DESCO Dashboard Blocked by CORS
         </div>
         <div class="corsWarningDesc">
           Your browser blocked the request to the DESCO prepaid server because of cross-origin security restrictions.
@@ -7599,7 +7697,7 @@ async function openDescoStatsPage(billId, fromRouting = false) {
           <ul style="margin-top: 10px; margin-left: 20px; display: flex; flex-direction: column; gap: 8px;">
             <li>Install a browser extension such as <code>Allow CORS: Access-Control-Allow-Origin</code>.</li>
             <li>Enable the extension in your browser tools.</li>
-            <li>Click the "Back" button above and click <strong>Live Analytics 📊</strong> again to load the real-time daily, monthly, and recharge statistics dashboard!</li>
+            <li>Click the "Back" button above and click <strong>Live Analytics </strong> again to load the real-time daily, monthly, and recharge statistics dashboard!</li>
           </ul>
         </div>
       </div>
@@ -8221,7 +8319,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
 <button class="authHeaderBtn" onclick="openSettingsModal()" title="Firebase Cloud Sync & Settings">
   <span class="authStatusDot" id="headerAuthDot"></span>
-  <span id="headerAuthLabel">🔥 Cloud Sync</span>
+  <span id="headerAuthLabel">Cloud Sync</span>
 </button>
 
 <div class="logo" onclick="goHome()" title="Billzy — Home">
@@ -8303,7 +8401,7 @@ Due soon
 
 <div class="billCell">
 
-<div class="billMiniIcon">⚡</div>
+<div class="billMiniIcon"></div>
 
 <div>
 
@@ -8369,7 +8467,7 @@ Pay now
 
 <div class="billCell">
 
-<div class="billMiniIcon">📶</div>
+<div class="billMiniIcon"></div>
 
 <div>
 
@@ -8435,7 +8533,7 @@ Pay now
 
 <div class="billCell">
 
-<div class="billMiniIcon">🔥</div>
+<div class="billMiniIcon"></div>
 
 <div>
 
@@ -8497,7 +8595,7 @@ Pay now
 
 <div class="billCell">
 
-<div class="billMiniIcon">💧</div>
+<div class="billMiniIcon"></div>
 
 <div>
 
@@ -8563,7 +8661,7 @@ Pay now
 
 <div class="billCell">
 
-<div class="billMiniIcon">⚡</div>
+<div class="billMiniIcon"></div>
 
 <div>
 
@@ -8629,7 +8727,7 @@ Pay now
 
 <div class="billCell">
 
-<div class="billMiniIcon">🗼</div>
+<div class="billMiniIcon"></div>
 
 <div>
 
@@ -8691,7 +8789,7 @@ Pay now
 
 <div class="billCell">
 
-<div class="billMiniIcon">🔥</div>
+<div class="billMiniIcon"></div>
 
 <div>
 
@@ -8763,7 +8861,7 @@ Pay now
 
 <button class="authHeaderBtn" onclick="openSettingsModal()" title="Firebase Cloud Sync & Settings">
   <span class="authStatusDot" id="headerAuthDot"></span>
-  <span id="headerAuthLabel">🔥 Cloud Sync</span>
+  <span id="headerAuthLabel">Cloud Sync</span>
 </button>
 
 <div class="logo" onclick="goHome()" title="Billzy — Home">
@@ -8818,7 +8916,7 @@ placeholder="Search payments..."
 
 <div class="monthFilterWrapper">
   <input type="month" class="filterMonth" onclick="try { this.showPicker(); } catch(e) {}">
-  <button class="clearMonthBtn" title="Clear Month Filter">✕</button>
+  <button class="clearMonthBtn" title="Clear Month Filter"></button>
 </div>
 
 </div>
@@ -8842,7 +8940,7 @@ placeholder="Search payments..."
 </button>
 
 <button class="toolbarBtn">
-⤓ Export CSV
+Export CSV
 </button>
 
 </div>
@@ -8873,8 +8971,8 @@ placeholder="Search payments..."
 <div class="noteMuted">-</div>
 
 <div class="actionsCell">
-<button class="editBtn">✎</button>
-<button class="deleteBtn">✕</button>
+<button class="editBtn">Edit</button>
+<button class="deleteBtn">Delete</button>
 </div>
 
 </div>
@@ -8889,8 +8987,8 @@ placeholder="Search payments..."
 <div class="noteMuted">-</div>
 
 <div class="actionsCell">
-<button class="editBtn">✎</button>
-<button class="deleteBtn">✕</button>
+<button class="editBtn">Edit</button>
+<button class="deleteBtn">Delete</button>
 </div>
 
 </div>
@@ -8905,8 +9003,8 @@ placeholder="Search payments..."
 <div class="noteMuted">-</div>
 
 <div class="actionsCell">
-<button class="editBtn">✎</button>
-<button class="deleteBtn">✕</button>
+<button class="editBtn">Edit</button>
+<button class="deleteBtn">Delete</button>
 </div>
 
 </div>
@@ -8921,8 +9019,8 @@ placeholder="Search payments..."
 <div class="noteMuted">-</div>
 
 <div class="actionsCell">
-<button class="editBtn">✎</button>
-<button class="deleteBtn">✕</button>
+<button class="editBtn">Edit</button>
+<button class="deleteBtn">Delete</button>
 </div>
 
 </div>
@@ -8937,8 +9035,8 @@ placeholder="Search payments..."
 <div class="noteMuted">-</div>
 
 <div class="actionsCell">
-<button class="editBtn">✎</button>
-<button class="deleteBtn">✕</button>
+<button class="editBtn">Edit</button>
+<button class="deleteBtn">Delete</button>
 </div>
 
 </div>
@@ -8953,8 +9051,8 @@ placeholder="Search payments..."
 <div class="noteMuted">-</div>
 
 <div class="actionsCell">
-<button class="editBtn">✎</button>
-<button class="deleteBtn">✕</button>
+<button class="editBtn">Edit</button>
+<button class="deleteBtn">Delete</button>
 </div>
 
 </div>
@@ -8969,8 +9067,8 @@ placeholder="Search payments..."
 <div>Leak issue</div>
 
 <div class="actionsCell">
-<button class="editBtn">✎</button>
-<button class="deleteBtn">✕</button>
+<button class="editBtn">Edit</button>
+<button class="deleteBtn">Delete</button>
 </div>
 
 </div>
@@ -8985,8 +9083,8 @@ placeholder="Search payments..."
 <div class="noteMuted">-</div>
 
 <div class="actionsCell">
-<button class="editBtn">✎</button>
-<button class="deleteBtn">✕</button>
+<button class="editBtn">Edit</button>
+<button class="deleteBtn">Delete</button>
 </div>
 
 </div>
@@ -9003,7 +9101,7 @@ placeholder="Search payments..."
 
 <button class="authHeaderBtn" onclick="openSettingsModal()" title="Firebase Cloud Sync & Settings">
   <span class="authStatusDot" id="headerAuthDot"></span>
-  <span id="headerAuthLabel">🔥 Cloud Sync</span>
+  <span id="headerAuthLabel">Cloud Sync</span>
 </button>
 
 <div class="logo" onclick="goHome()" title="Billzy — Home">
@@ -9232,16 +9330,18 @@ YTD Spend by Bill
 
 <!-- SURCHARGE & FEE INTELLIGENCE OVERVIEW -->
       <div class="surchargeCard fullWidth" id="surchargeIntelligenceSection">
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-          <div style="display:flex; align-items:center; gap:10px;">
-            <span style="font-size:1.4rem;">⚡</span>
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div style="width:40px; height:40px; border-radius:12px; background:rgba(255,122,0,0.15); border:1px solid rgba(255,122,0,0.3); display:flex; align-items:center; justify-content:center;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FF7A00" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            </div>
             <div>
-              <h3 style="font-size:1.15rem; font-weight:800; color:#FFFFFF;">Gateway Surcharges & Fees Intelligence</h3>
-              <p style="font-size:0.78rem; color:#94a3b8; margin-top:2px;">Breakdown of gateway fees vs pure utility energy spend</p>
+              <h3 style="font-size:1.25rem; font-weight:800; color:#FFFFFF; letter-spacing:-0.3px;">Gateway Surcharges & Fees Intelligence</h3>
+              <p style="font-size:0.82rem; color:#94a3b8; margin-top:2px;">Audited breakdown of gateway transaction fees versus pure utility energy spend</p>
             </div>
           </div>
-          <div style="display:inline-flex; align-items:center; gap:6px; padding:4px 10px; background:rgba(255,122,0,0.15); border:1px solid rgba(255,122,0,0.3); border-radius:999px; font-size:0.75rem; font-weight:700; color:#FF7A00;">
-            🔥 Auto-Decomposed
+          <div style="display:inline-flex; align-items:center; gap:6px; padding:6px 14px; background:rgba(255,122,0,0.12); border:1px solid rgba(255,122,0,0.3); border-radius:999px; font-size:0.75rem; font-weight:800; color:#FF7A00; text-transform:uppercase; letter-spacing:0.5px;">
+            Decomposed Surcharges
           </div>
         </div>
 
@@ -9255,20 +9355,38 @@ YTD Spend by Bill
             <div class="surchargeStatVal" id="statPureSpend" style="color:#00E676;">৳ 0</div>
           </div>
           <div class="surchargeStatItem">
-            <div class="surchargeStatLabel">Effective Surcharge Rate</div>
+            <div class="surchargeStatLabel">Effective Fee Rate</div>
             <div class="surchargeStatVal" id="statFeeRate" style="color:#00C2FF;">0.0%</div>
           </div>
           <div class="surchargeStatItem">
-            <div class="surchargeStatLabel">Avg Fee / Recharge</div>
+            <div class="surchargeStatLabel">Avg Fee / Transaction</div>
             <div class="surchargeStatVal" id="statAvgFee" style="color:#FFFFFF;">৳ 0</div>
           </div>
         </div>
 
-        <div style="margin-top:16px; display:flex; justify-content:space-between; font-size:0.78rem; color:#94a3b8;">
-          <span id="surchargeElecText">⚡ Electricity Fees: ৳ 0</span>
-          <span id="surchargeGasText">🔥 Gas Fees: ৳ 0</span>
-          <span id="surchargeOtherText">🌐 Other Fees: ৳ 0</span>
+        <!-- Proportional Spend Allocation Bar -->
+        <div class="surchargeAllocationWrap">
+          <div style="display:flex; justify-content:space-between; font-size:0.82rem; font-weight:700;">
+            <span style="color:#00E676;" id="pureSpendPctLabel">Pure Energy Spend: 0%</span>
+            <span style="color:#FF7A00;" id="feeSpendPctLabel">Gateway Overhead: 0%</span>
+          </div>
+          <div class="surchargeAllocBarTrack">
+            <div class="surchargeAllocPure" id="pureSpendBar" style="width:98%;"></div>
+            <div class="surchargeAllocFee" id="feeSpendBar" style="width:2%;"></div>
+          </div>
+          <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-top:8px; font-size:0.78rem; color:#94a3b8;">
+            <span id="surchargeElecText">Electricity Surcharges: ৳ 0</span>
+            <span id="surchargeGasText">Gas Surcharges: ৳ 0</span>
+            <span id="surchargeOtherText">Other Surcharges: ৳ 0</span>
+          </div>
         </div>
+
+        <!-- Monthly Surcharge Timeline Chart -->
+        <div style="margin-top:20px;">
+          <div style="font-size:0.88rem; font-weight:700; color:#dce7ff; margin-bottom:10px;">Monthly Surcharge Trend (BDT)</div>
+          <div style="height:140px; position:relative;">
+            <canvas id="surchargeTrendChart"></canvas>
+          </div>
       </div>
       
       <div class="chartCard fullWidth">
