@@ -931,6 +931,79 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   }
 }
 
+
+/* SURCHARGE & FEE INTELLIGENCE STYLES */
+.surchargeTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: rgba(255, 122, 0, 0.15);
+  border: 1px solid rgba(255, 122, 0, 0.35);
+  color: #FF7A00;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 6px;
+  margin-left: 6px;
+  vertical-align: middle;
+  font-family: var(--font-mono);
+}
+
+.surchargeCard {
+  background: linear-gradient(135deg, rgba(22, 33, 62, 0.95), rgba(12, 20, 42, 0.98));
+  border: 1px solid rgba(255, 122, 0, 0.3);
+  border-radius: 20px;
+  padding: 22px;
+  margin-top: 20px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+}
+
+.surchargeCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #FF7A00, #00C2FF, #00E676);
+}
+
+.surchargeGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-top: 14px;
+}
+
+@media (max-width: 768px) {
+  .surchargeGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.surchargeStatItem {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.surchargeStatLabel {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.surchargeStatVal {
+  font-size: 1.35rem;
+  font-weight: 900;
+  color: #FFFFFF;
+  margin-top: 4px;
+  font-family: var(--font-amount);
+}
+
 /* DASHBOARD */
 
 .dashboardPage{
@@ -4702,7 +4775,7 @@ function renderDatabasePage() {
   const typeFilter = filterSelects[1] ? filterSelects[1].value : 'All Types';
   
   const filterMonthEl = document.querySelector('.filterMonth');
-  const monthFilter = filterMonthEl ? filterMonthEl.value : ''; // "YYYY-MM"
+  const monthFilter = filterMonthEl ? filterMonthEl.value : '';
   
   const headerHtml = `
     <div class="dbHeader">
@@ -4730,17 +4803,26 @@ function renderDatabasePage() {
   });
   
   let rowsHtml = '';
-  let totalAmountSum = 0;
+  let totalBaseSum = 0;
+  let totalFeeSum = 0;
   
-  filtered.forEach(p => {
-    totalAmountSum += parseFloat(p.amount);
+  filtered.forEach(rawP => {
+    const p = parsePaymentRecord(rawP);
+    totalBaseSum += p.baseAmount;
+    totalFeeSum += p.fee;
+    
+    const feeTagHtml = p.hasFee 
+      ? `<span class="surchargeTag" title="Gateway fee / Surcharge">+৳${p.fee} fee</span>` 
+      : '';
     
     rowsHtml += `
       <div class="dbRow">
         <div>${formatDateFriendly(p.payDate)}</div>
         <div>${p.billName}</div>
         <div style="text-transform: capitalize;">${p.billType}</div>
-        <div class="amountCell">৳ ${Math.round(parseFloat(p.amount)).toLocaleString(undefined, {maximumFractionDigits: 0})}</div>
+        <div class="amountCell">
+          ৳ ${p.baseAmount.toLocaleString()}${feeTagHtml}
+        </div>
         <div>${p.billMonth || '-'}</div>
         <div class="noteMuted">${p.note || '-'}</div>
         <div class="actionsCell">
@@ -4764,14 +4846,27 @@ function renderDatabasePage() {
   table.innerHTML = headerHtml + rowsHtml;
   
   const recordCountEl = document.querySelector('.recordCount');
-  if (recordCountEl) recordCountEl.innerText = `${filtered.length} records`;
+  if (recordCountEl) {
+    recordCountEl.innerText = `${filtered.length} records`;
+  }
   
   const totalAmountEl = document.querySelector('.totalAmount');
-  if (totalAmountEl) totalAmountEl.innerText = `৳ ${Math.round(totalAmountSum).toLocaleString(undefined, {maximumFractionDigits: 0})}`;
+  if (totalAmountEl) {
+    const feeText = totalFeeSum > 0 ? ` (incl. ৳ ${totalFeeSum.toLocaleString()} fees)` : '';
+    totalAmountEl.innerText = `৳ ${(totalBaseSum + totalFeeSum).toLocaleString()}${feeText}`;
+  }
+  
 }
 
 function renderStatsPage() {
-  let totalSpend = 0;
+    let totalSpend = 0;
+  let totalBaseSpend = 0;
+  let totalSurcharges = 0;
+  let elecFees = 0;
+  let gasFees = 0;
+  let otherFees = 0;
+  let feeTransactionsCount = 0;
+  
   let ytdSpend = 0;
   let highestBill = 0;
   let highestBillLabel = '-';
@@ -4791,29 +4886,68 @@ function renderStatsPage() {
   
   const now = new Date();
   const currentYear = now.getFullYear();
-  
-  const statsStartDate = new Date(2026, 5, 1); // June 1, 2026 (Month index 5 is June)
+  const statsStartDate = new Date(2026, 5, 1);
   let statsMonthsSum = 0;
   
-  paymentsData.forEach(p => {
-    const amt = parseFloat(p.amount);
-    totalSpend += amt;
+  paymentsData.forEach(rawP => {
+    const p = parsePaymentRecord(rawP);
+    totalSpend += p.total;
+    totalBaseSpend += p.baseAmount;
+    totalSurcharges += p.fee;
+    
+    if (p.hasFee) {
+      feeTransactionsCount++;
+      if (p.billId.includes('Desco') || p.billId.includes('Palli')) {
+        elecFees += p.fee;
+      } else if (p.billId.includes('Gas')) {
+        gasFees += p.fee;
+      } else {
+        otherFees += p.fee;
+      }
+    }
     
     const pDate = new Date(p.payDate);
     if (pDate.getFullYear() === currentYear) {
-      ytdSpend += amt;
+      ytdSpend += p.total;
     }
     
-    if (amt > highestBill) {
-      highestBill = amt;
+    if (p.total > highestBill) {
+      highestBill = p.total;
       highestBillLabel = p.billName;
     }
     
-    // Sum only payments starting from June 2026 onwards to prevent 0-amount skews
     if (pDate >= statsStartDate && pDate <= now) {
-      statsMonthsSum += amt;
+      statsMonthsSum += p.total;
     }
   });
+
+  // Populate Surcharge Intelligence Elements
+  const statTotalFeesEl = document.getElementById('statTotalFees');
+  if (statTotalFeesEl) statTotalFeesEl.innerText = `৳ ${totalSurcharges.toLocaleString()}`;
+  
+  const statPureSpendEl = document.getElementById('statPureSpend');
+  if (statPureSpendEl) statPureSpendEl.innerText = `৳ ${totalBaseSpend.toLocaleString()}`;
+  
+  const statFeeRateEl = document.getElementById('statFeeRate');
+  if (statFeeRateEl) {
+    const rate = totalBaseSpend > 0 ? ((totalSurcharges / totalBaseSpend) * 100).toFixed(2) : '0.00';
+    statFeeRateEl.innerText = `${rate}%`;
+  }
+  
+  const statAvgFeeEl = document.getElementById('statAvgFee');
+  if (statAvgFeeEl) {
+    const avg = feeTransactionsCount > 0 ? (totalSurcharges / feeTransactionsCount).toFixed(1) : '0';
+    statAvgFeeEl.innerText = `৳ ${avg}`;
+  }
+  
+  const surchargeElecEl = document.getElementById('surchargeElecText');
+  if (surchargeElecEl) surchargeElecEl.innerText = `⚡ Electricity Fees: ৳ ${elecFees.toLocaleString()}`;
+  
+  const surchargeGasEl = document.getElementById('surchargeGasText');
+  if (surchargeGasEl) surchargeGasEl.innerText = `🔥 Gas Fees: ৳ ${gasFees.toLocaleString()}`;
+  
+  const surchargeOtherEl = document.getElementById('surchargeOtherText');
+  if (surchargeOtherEl) surchargeOtherEl.innerText = `🌐 Other Fees: ৳ ${otherFees.toLocaleString()}`;
   
   // Calculate elapsed months dynamically from June 2026 (inclusive) to current date
   const elapsedMonths = Math.max(1, (now.getFullYear() - 2026) * 12 + (now.getMonth() - 5) + 1);
@@ -6268,6 +6402,38 @@ function exportCsv() {
   
   const feeSummary = totalFees > 0 ? ` (incl. ৳ ${totalFees.toLocaleString()} fees)` : '';
   showToast(`✓ Exported ${sorted.length} records (Total: ৳ ${(totalAmount + totalFees).toLocaleString()}${feeSummary}) to CSV!`, 4500);
+}
+
+
+// Universal Payment Parser: Intelligently decomposes legacy lump sums & explicit fees
+function parsePaymentRecord(p) {
+  const autoSplitBills = ['rupnagarDesco', 'uttaraDesco', 'rupnagarGas'];
+  const rawAmt = parseFloat(p.amount) || 0;
+  
+  let fee = 0;
+  let baseAmount = rawAmt;
+  
+  if (p.fee !== undefined && p.fee !== '' && p.fee !== null) {
+    fee = parseFloat(p.fee) || 0;
+    baseAmount = p.amountNum ? parseFloat(p.amountNum) : (rawAmt > fee ? rawAmt : rawAmt);
+  } else if (autoSplitBills.includes(p.billId)) {
+    // Intelligent legacy fallback for historical lump sum records
+    const remainder = rawAmt % 100;
+    if (remainder > 0 && rawAmt > 100 && remainder <= 60) {
+      fee = remainder;
+      baseAmount = rawAmt - remainder;
+    }
+  }
+  
+  const total = baseAmount + fee;
+  
+  return {
+    ...p,
+    baseAmount: Math.round(baseAmount),
+    fee: Math.round(fee),
+    total: Math.round(total),
+    hasFee: fee > 0
+  };
 }
 
 function sortPaymentsData() {
@@ -9006,7 +9172,48 @@ YTD Spend by Bill
 
 <!-- MONTHLY SPEND -->
 
-<div class="chartCard fullWidth">
+<!-- SURCHARGE & FEE INTELLIGENCE OVERVIEW -->
+      <div class="surchargeCard fullWidth" id="surchargeIntelligenceSection">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="font-size:1.4rem;">⚡</span>
+            <div>
+              <h3 style="font-size:1.15rem; font-weight:800; color:#FFFFFF;">Gateway Surcharges & Fees Intelligence</h3>
+              <p style="font-size:0.78rem; color:#94a3b8; margin-top:2px;">Breakdown of gateway fees vs pure utility energy spend</p>
+            </div>
+          </div>
+          <div style="display:inline-flex; align-items:center; gap:6px; padding:4px 10px; background:rgba(255,122,0,0.15); border:1px solid rgba(255,122,0,0.3); border-radius:999px; font-size:0.75rem; font-weight:700; color:#FF7A00;">
+            🔥 Auto-Decomposed
+          </div>
+        </div>
+
+        <div class="surchargeGrid">
+          <div class="surchargeStatItem">
+            <div class="surchargeStatLabel">Total Surcharges Paid</div>
+            <div class="surchargeStatVal" id="statTotalFees" style="color:#FF7A00;">৳ 0</div>
+          </div>
+          <div class="surchargeStatItem">
+            <div class="surchargeStatLabel">Pure Utility Spend</div>
+            <div class="surchargeStatVal" id="statPureSpend" style="color:#00E676;">৳ 0</div>
+          </div>
+          <div class="surchargeStatItem">
+            <div class="surchargeStatLabel">Effective Surcharge Rate</div>
+            <div class="surchargeStatVal" id="statFeeRate" style="color:#00C2FF;">0.0%</div>
+          </div>
+          <div class="surchargeStatItem">
+            <div class="surchargeStatLabel">Avg Fee / Recharge</div>
+            <div class="surchargeStatVal" id="statAvgFee" style="color:#FFFFFF;">৳ 0</div>
+          </div>
+        </div>
+
+        <div style="margin-top:16px; display:flex; justify-content:space-between; font-size:0.78rem; color:#94a3b8;">
+          <span id="surchargeElecText">⚡ Electricity Fees: ৳ 0</span>
+          <span id="surchargeGasText">🔥 Gas Fees: ৳ 0</span>
+          <span id="surchargeOtherText">🌐 Other Fees: ৳ 0</span>
+        </div>
+      </div>
+      
+      <div class="chartCard fullWidth">
 
 <div class="chartTitle">
 Monthly Spend Trend
