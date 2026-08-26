@@ -2677,6 +2677,18 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 .uniqueStatsPage::-webkit-scrollbar-thumb:hover {
   background: rgba(56, 189, 248, 0.45);
+.uniqueStatsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 20px;
+  margin-bottom: 8px;
+  width: 100%;
+}
+
+#uniqueStatsTitle {
+  text-align: right;
+  margin-left: auto;
 }
 
 #uniqueStatsContent {
@@ -8454,8 +8466,9 @@ async function openUniqueStatsPage(billId, fromRouting = false) {
   
   const bill = billPages.find(b => b.id === billId);
   if (bill) {
+    const cleanName = bill.name.replace(/<br>/gi, ' ').trim();
     document.getElementById('uniqueStatsTitle').innerHTML = `
-      <span style="font-size:1.8rem; font-weight:800; color:var(--accent2);">${bill.name} Statistics</span>
+      <span style="font-size:1.8rem; font-weight:800; color:var(--accent2); text-align:right;">${cleanName} Statistics</span>
     `;
   }
   
@@ -10779,12 +10792,13 @@ Year-over-Year Spend Comparison
   <div class="logoWordmark">billzy<span>°</span></div>
 </div>
     <div class="glow"></div>
-    <div class="backBtn" id="uniqueStatsBackBtn" onclick="goHome()">
-      ← Back to Bill Details
-    </div>
-    
-    <div id="uniqueStatsTitle" style="margin-top: 24px; margin-bottom: 16px;">
-      <!-- Title Injected Dynamically -->
+    <div class="uniqueStatsHeader">
+      <div class="backBtn" id="uniqueStatsBackBtn" onclick="goHome()">
+        ← Back to Bill Details
+      </div>
+      <div id="uniqueStatsTitle">
+        <!-- Title Injected Dynamically -->
+      </div>
     </div>
     
     <div id="uniqueStatsContent" style="margin-top:24px; width: 100%;">
