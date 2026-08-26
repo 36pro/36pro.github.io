@@ -1925,6 +1925,13 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   gap:14px;
 }
 
+.desktopOnly {
+  display: inline;
+}
+.mobileOnly {
+  display: none;
+}
+
 .dbHeader{
   padding:18px 24px;
 
@@ -3274,6 +3281,74 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     padding: 4px 10px;
     font-size: 0.75rem;
   }
+
+  /* MOBILE DATABASE TABLE: 5 ESSENTIAL COLUMNS (Date, Bill, Amount, Month, Action) */
+@media (max-width: 768px) {
+  .databaseTable {
+    overflow-x: hidden !important;
+    width: 100% !important;
+  }
+  .dbHeader,
+  .dbRow {
+    min-width: 0 !important;
+    width: 100% !important;
+    grid-template-columns: 82px 76px 1fr 62px 74px !important;
+    gap: 6px !important;
+    padding: 11px 8px !important;
+    font-size: 0.78rem !important;
+  }
+  .dbHeader {
+    font-size: 0.75rem !important;
+    padding: 10px 8px !important;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .colType,
+  .colNote {
+    display: none !important;
+  }
+  .desktopOnly {
+    display: none !important;
+  }
+  .mobileOnly {
+    display: inline !important;
+    font-weight: 800 !important;
+    font-size: 0.76rem !important;
+    color: #f1f5f9;
+  }
+  .amountCell.colAmount {
+    font-size: 0.85rem !important;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 3px;
+  }
+  .surchargeTag {
+    font-size: 0.62rem !important;
+    padding: 1px 4px !important;
+    margin-left: 2px !important;
+  }
+  .colMonth {
+    font-size: 0.74rem !important;
+    color: #94a3b8;
+    white-space: nowrap;
+  }
+  .colDate {
+    font-size: 0.74rem !important;
+    color: #cbd5e1;
+    white-space: nowrap;
+  }
+  .actionsCell.colActions {
+    gap: 3px !important;
+  }
+  .editBtn,
+  .deleteBtn {
+    padding: 3px 5px !important;
+    font-size: 0.68rem !important;
+    border-radius: 6px !important;
+  }
+}
 
   /* Database Toolbar on Mobile */
   .databaseToolbar {
@@ -5324,6 +5399,20 @@ function renderDashboardPage() {
   if (dueSoonBadge) dueSoonBadge.innerText = dueSoonCount;
 }
 
+function getShortBillName(name) {
+  if (!name) return '';
+  const clean = name.replace(/<br>/gi, ' ').replace(/\s+/g, ' ').trim();
+  const lower = clean.toLowerCase();
+  if (lower.includes('uttara') && lower.includes('desco')) return 'U.DESCO';
+  if (lower.includes('rupnagar') && lower.includes('desco')) return 'R.DESCO';
+  if (lower.includes('uttara') && (lower.includes('water') || lower.includes('wasa'))) return 'U.WATER';
+  if (lower.includes('rupnagar') && lower.includes('gas')) return 'R.GAS';
+  if (lower.includes('inspire')) return 'INSPIRE.B';
+  if (lower.includes('noakhali') || lower.includes('palli')) return 'N.PALLI';
+  if (lower.includes('matuail') && lower.includes('gas')) return 'M.GAS';
+  return clean;
+}
+
 function renderDatabasePage() {
   const table = document.querySelector('.databaseTable');
   if (!table) return;
@@ -5340,13 +5429,13 @@ function renderDatabasePage() {
   
   const headerHtml = `
     <div class="dbHeader">
-      <div>Date</div>
-      <div>Bill</div>
-      <div>Type</div>
-      <div>Amount (৳)</div>
-      <div>Month</div>
-      <div>Note</div>
-      <div>Actions</div>
+      <div class="colDate">Date</div>
+      <div class="colBill">Bill</div>
+      <div class="colType">Type</div>
+      <div class="colAmount">Amount</div>
+      <div class="colMonth">Month</div>
+      <div class="colNote">Note</div>
+      <div class="colActions">Action</div>
     </div>
   `;
   
@@ -5378,15 +5467,18 @@ function renderDatabasePage() {
     
     rowsHtml += `
       <div class="dbRow">
-        <div>${formatDateFriendly(p.payDate)}</div>
-        <div>${p.billName}</div>
-        <div style="text-transform: capitalize;">${p.billType}</div>
-        <div class="amountCell">
+        <div class="colDate">${formatDateFriendly(p.payDate)}</div>
+        <div class="colBill">
+          <span class="desktopOnly">${p.billName.replace(/<br>/gi, ' ')}</span>
+          <span class="mobileOnly">${getShortBillName(p.billName)}</span>
+        </div>
+        <div class="colType" style="text-transform: capitalize;">${p.billType}</div>
+        <div class="amountCell colAmount">
           ${p.baseAmount.toLocaleString()}${feeTagHtml}
         </div>
-        <div>${p.billMonth || '-'}</div>
-        <div class="noteMuted">${p.note || '-'}</div>
-        <div class="actionsCell">
+        <div class="colMonth">${p.billMonth || '-'}</div>
+        <div class="noteMuted colNote">${p.note || '-'}</div>
+        <div class="actionsCell colActions">
           <button class="editBtn" onclick="openEditModal('${p.uid}')">Edit</button>
           <button class="deleteBtn" onclick="deletePaymentRecord('${p.uid}')">Delete</button>
         </div>
