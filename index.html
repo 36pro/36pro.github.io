@@ -6138,6 +6138,9 @@ function renderStatsPage() {
     return `${days.toFixed(1)} days`;
   }
 
+  const currentSeason = getSeason(new Date());
+  const currentSeasonName = getSeasonName(new Date());
+
   eligibleBills.forEach(bill => {
     // Sort payments chronological (oldest to newest)
     const bPayments = paymentsData
@@ -6145,9 +6148,14 @@ function renderStatsPage() {
       .map(parsePaymentRecord)
       .sort((a, b) => new Date(a.payDate) - new Date(b.payDate));
 
-    let billDays = 0;
-    let billAmt = 0;
-    let billCycles = 0;
+    const isElectric = isElectricityBill(bill.id);
+    let allDays = 0;
+    let allAmt = 0;
+    let allCycles = 0;
+
+    let seasonDays = 0;
+    let seasonAmt = 0;
+    let seasonCycles = 0;
 
     for (let i = 0; i < bPayments.length - 1; i++) {
       const p1 = bPayments[i];
@@ -6157,27 +6165,41 @@ function renderStatsPage() {
       const diffDays = Math.round((d2 - d1) / (1000 * 60 * 60 * 24));
 
       if (diffDays > 0 && p1.baseAmount > 0) {
-        billDays += diffDays;
-        billAmt += p1.baseAmount;
-        billCycles++;
+        allDays += diffDays;
+        allAmt += p1.baseAmount;
+        allCycles++;
+
+        if (isElectric && getSeason(d1) === currentSeason) {
+          seasonDays += diffDays;
+          seasonAmt += p1.baseAmount;
+          seasonCycles++;
+        }
       }
     }
 
-    if (billCycles > 0 && billAmt > 0) {
-      const daysPer1k = (billDays / (billAmt / 1000));
-      const dailyBurn = billDays > 0 ? (billAmt / billDays) : 0;
+    // For electricity bills, prioritize current seasonal cycles if available
+    const useSeasonal = isElectric && seasonCycles > 0 && seasonAmt > 0;
+    const finalDays = useSeasonal ? seasonDays : allDays;
+    const finalAmt = useSeasonal ? seasonAmt : allAmt;
+    const finalCycles = useSeasonal ? seasonCycles : allCycles;
+
+    if (finalCycles > 0 && finalAmt > 0) {
+      const daysPer1k = (finalDays / (finalAmt / 1000));
+      const dailyBurn = finalDays > 0 ? (finalAmt / finalDays) : 0;
       efficiencyByBill.push({
         billId: bill.id,
         name: bill.name.replace('<br>', ' '),
         daysPer1k: Math.round(daysPer1k * 10) / 10,
         dailyBurn: Math.round(dailyBurn),
-        cycles: billCycles,
-        totalDays: billDays,
-        totalAmt: billAmt
+        cycles: finalCycles,
+        totalDays: finalDays,
+        totalAmt: finalAmt,
+        isSeasonal: useSeasonal,
+        seasonName: useSeasonal ? currentSeasonName : null
       });
-      totalDaysSum += billDays;
-      totalAmountSum += billAmt;
-      totalValidCycles += billCycles;
+      totalDaysSum += finalDays;
+      totalAmountSum += finalAmt;
+      totalValidCycles += finalCycles;
     }
   });
 
@@ -6232,7 +6254,10 @@ function renderStatsPage() {
         const pct = Math.min(100, (item.daysPer1k / maxRate) * 100);
         return `
           <div class="barRow" style="grid-template-columns: 140px 1fr 110px;">
-            <div class="barLabel" style="font-size:0.85rem; font-weight:700; color:#f8fafc;">${item.name}</div>
+            <div class="barLabel" style="font-size:0.85rem; font-weight:700; color:#f8fafc; display:flex; align-items:center; gap:6px;">
+              <span>${item.name}</span>
+              ${item.isSeasonal ? `<span style="font-size:0.62rem; padding:1px 5px; border-radius:4px; background:rgba(0,194,255,0.12); color:#00C2FF; font-weight:700;">${item.seasonName}</span>` : ''}
+            </div>
             <div class="barTrack">
               <div class="barFill" style="width:${pct}%; background: linear-gradient(90deg, #00E676, #00C2FF);"></div>
             </div>
@@ -7838,6 +7863,27 @@ function sortPaymentsData() {
 let uniqueChartInstances = {};
 
 // Helper: build prepaid recharges duration and rate math
+// ==========================================
+// SEASONAL ELECTRICITY INTELLIGENCE HELPERS
+// Summer: March to September (Months 2 to 8)
+// Winter: October to February (Months 9, 10, 11, 0, 1)
+// ==========================================
+function getSeason(dateObj = new Date()) {
+  const d = (typeof dateObj === 'string' || typeof dateObj === 'number') ? new Date(dateObj) : dateObj;
+  if (isNaN(d.getTime())) return 'summer';
+  const month = d.getMonth(); // 0 = Jan, 1 = Feb, ... 11 = Dec
+  return (month >= 2 && month <= 8) ? 'summer' : 'winter';
+}
+
+function getSeasonName(dateObj = new Date()) {
+  return getSeason(dateObj) === 'summer' ? 'Summer' : 'Winter';
+}
+
+function isElectricityBill(billId) {
+  const electricIds = ['rupnagarDesco', 'uttaraDesco', 'noakhaliPalli'];
+  return electricIds.includes(billId);
+}
+
 function buildPrepaidCycles(payments) {
   const sorted = [...payments].sort((a, b) => new Date(a.payDate) - new Date(b.payDate));
   return sorted.map((p, i) => {
@@ -7883,7 +7929,11 @@ function renderForecastGauge(payments) {
   const cycles = buildPrepaidCycles(payments);
   const validCycles = cycles.filter(c => c.daysPer1000 !== null);
   if (validCycles.length === 0) return;
-  const avgRate = validCycles.reduce((sum, c) => sum + c.daysPer1000, 0) / validCycles.length;
+  
+  const currentSeason = getSeason(new Date());
+  const seasonalCycles = validCycles.filter(c => getSeason(new Date(c.payDate)) === currentSeason);
+  const cyclesToUse = seasonalCycles.length > 0 ? seasonalCycles : validCycles;
+  const avgRate = cyclesToUse.reduce((sum, c) => sum + c.daysPer1000, 0) / cyclesToUse.length;
   
   const lastPayment = [...payments].sort((a, b) => new Date(a.payDate) - new Date(b.payDate)).pop();
   const lastPayDate = new Date(lastPayment.payDate);
@@ -8987,9 +9037,46 @@ function renderDescoStatsDashboard(billId, bill, locationName, apiData) {
     dailyUsageData = dailyUsageData.slice(-15);
   }
   
-  const avgDailyUnits = validDiffCount > 0 ? (totalDailyDiffUnits / validDiffCount) : 10;
-  const avgDailyCost = avgDailyUnits * avgUnitCost;
-  const daysRemaining = avgDailyCost > 0 ? (balance.balance / avgDailyCost) : 30;
+  const recentDailyUnits = validDiffCount > 0 ? (totalDailyDiffUnits / validDiffCount) : 10;
+  const recentDailyCost = recentDailyUnits * avgUnitCost;
+  
+  // Seasonal Electricity Intelligence (Summer: Mar-Sep, Winter: Oct-Feb)
+  const currentSeason = getSeason(new Date());
+  const currentSeasonName = getSeasonName(new Date());
+  
+  // Extract historical monthly consumption for the active season from 24-month API data
+  const seasonalMonthly = sortedMonthly.filter(m => {
+    if (!m.month) return false;
+    const parts = m.month.split('-');
+    if (parts.length < 2) return false;
+    const mIdx = parseInt(parts[1], 10) - 1;
+    return (currentSeason === 'summer') ? (mIdx >= 2 && mIdx <= 8) : (mIdx < 2 || mIdx >= 9);
+  });
+  
+  let seasonTotalTaka = 0;
+  let seasonTotalUnits = 0;
+  let seasonMonthCount = 0;
+  
+  seasonalMonthly.forEach(m => {
+    if (m.consumedTaka > 0 && m.consumedUnit > 0) {
+      seasonTotalTaka += m.consumedTaka;
+      seasonTotalUnits += m.consumedUnit;
+      seasonMonthCount++;
+    }
+  });
+  
+  const seasonAvgDailyCost = seasonMonthCount > 0 ? (seasonTotalTaka / seasonMonthCount / 30.416) : 0;
+  const seasonAvgDailyUnits = seasonMonthCount > 0 ? (seasonTotalUnits / seasonMonthCount / 30.416) : 0;
+  
+  // Blend recent daily meter reads (60%) with historical seasonal pattern (40%) for maximum accuracy
+  const effectiveDailyCost = seasonAvgDailyCost > 0
+    ? (recentDailyCost * 0.60 + seasonAvgDailyCost * 0.40)
+    : recentDailyCost;
+  const effectiveDailyUnits = seasonAvgDailyUnits > 0
+    ? (recentDailyUnits * 0.60 + seasonAvgDailyUnits * 0.40)
+    : recentDailyUnits;
+    
+  const daysRemaining = effectiveDailyCost > 0 ? (balance.balance / effectiveDailyCost) : 30;
   
   const exhaustionDate = new Date();
   exhaustionDate.setTime(Date.now() + daysRemaining * 24 * 60 * 60 * 1000);
@@ -9011,8 +9098,8 @@ function renderDescoStatsDashboard(billId, bill, locationName, apiData) {
   }
   
   const formattedBalance = parseFloat(balance.balance).toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0});
-  const formattedDailyUnits = avgDailyUnits.toFixed(2);
-  const formattedDailyCost = Math.round(avgDailyCost);
+  const formattedDailyUnits = effectiveDailyUnits.toFixed(2);
+  const formattedDailyCost = Math.round(effectiveDailyCost);
   
   const last10Recharges = recharge.slice(0, 10);
   let rechargeRows = '';
@@ -9135,11 +9222,17 @@ function renderDescoStatsDashboard(billId, bill, locationName, apiData) {
         <!-- Pretty stat cards side-by-side -->
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; flex: 1.2; min-width: 280px;">
           <div class="descoCard" style="padding: 14px 16px;">
-            <div class="descoLabel" style="font-size:0.8rem; margin-bottom: 4px;">Avg Daily Usage</div>
+            <div class="descoLabel" style="font-size:0.8rem; margin-bottom: 4px; display:flex; align-items:center; justify-content:space-between;">
+              <span>Avg Daily Usage</span>
+              <span style="font-size:0.65rem; padding:1px 5px; border-radius:4px; background:rgba(0,194,255,0.12); color:#00C2FF; font-weight:700;">${currentSeasonName}</span>
+            </div>
             <div style="font-size: 1.3rem; font-weight: 800; color: var(--accent2);">${formattedDailyUnits} <span style="font-size:0.8rem; font-weight:500; color:var(--muted);">kWh</span></div>
           </div>
           <div class="descoCard" style="padding: 14px 16px;">
-            <div class="descoLabel" style="font-size:0.8rem; margin-bottom: 4px;">Avg Daily Cost</div>
+            <div class="descoLabel" style="font-size:0.8rem; margin-bottom: 4px; display:flex; align-items:center; justify-content:space-between;">
+              <span>Avg Daily Cost</span>
+              <span style="font-size:0.65rem; padding:1px 5px; border-radius:4px; background:rgba(0,230,118,0.12); color:#00E676; font-weight:700;">${currentSeasonName}</span>
+            </div>
             <div style="font-size: 1.3rem; font-weight: 800; color: #fff;">৳ ${formattedDailyCost} <span style="font-size:0.8rem; font-weight:500; color:var(--muted);">/ day</span></div>
           </div>
           <div class="descoCard" style="padding: 14px 16px;">
