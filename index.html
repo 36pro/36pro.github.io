@@ -6148,7 +6148,7 @@ function renderStatsPage() {
       .map(parsePaymentRecord)
       .sort((a, b) => new Date(a.payDate) - new Date(b.payDate));
 
-    const isElectric = isElectricityBill(bill.id);
+    const isSeasonal = isSeasonalUtility(bill.id);
     let allDays = 0;
     let allAmt = 0;
     let allCycles = 0;
@@ -6169,7 +6169,7 @@ function renderStatsPage() {
         allAmt += p1.baseAmount;
         allCycles++;
 
-        if (isElectric && getSeason(d1) === currentSeason) {
+        if (isSeasonal && getSeason(d1) === currentSeason) {
           seasonDays += diffDays;
           seasonAmt += p1.baseAmount;
           seasonCycles++;
@@ -6177,8 +6177,8 @@ function renderStatsPage() {
       }
     }
 
-    // For electricity bills, prioritize current seasonal cycles if available
-    const useSeasonal = isElectric && seasonCycles > 0 && seasonAmt > 0;
+    // For all seasonal utilities (Electricity, Gas, Water), prioritize current active season cycles if available
+    const useSeasonal = isSeasonal && seasonCycles > 0 && seasonAmt > 0;
     const finalDays = useSeasonal ? seasonDays : allDays;
     const finalAmt = useSeasonal ? seasonAmt : allAmt;
     const finalCycles = useSeasonal ? seasonCycles : allCycles;
@@ -7879,9 +7879,14 @@ function getSeasonName(dateObj = new Date()) {
   return getSeason(dateObj) === 'summer' ? 'Summer' : 'Winter';
 }
 
+function isSeasonalUtility(billId) {
+  // Includes Electricity, Gas, and Water utilities
+  const seasonalIds = ['rupnagarDesco', 'uttaraDesco', 'noakhaliPalli', 'rupnagarGas', 'matuailGas', 'uttaraWater'];
+  return seasonalIds.includes(billId);
+}
+
 function isElectricityBill(billId) {
-  const electricIds = ['rupnagarDesco', 'uttaraDesco', 'noakhaliPalli'];
-  return electricIds.includes(billId);
+  return isSeasonalUtility(billId);
 }
 
 function buildPrepaidCycles(payments) {
