@@ -1859,8 +1859,10 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   color:var(--accent);
 
   font-weight:800;
+  font-size:1.15rem;
 
-  font-family:"JetBrains Mono",monospace;
+  font-family:var(--font-amount);
+  font-feature-settings:'tnum' 1;
 }
 
 .toolbarBtn{
@@ -5371,7 +5373,7 @@ function renderDatabasePage() {
     totalFeeSum += p.fee;
     
     const feeTagHtml = p.hasFee 
-      ? `<span class="surchargeTag" title="Gateway fee / Surcharge">+৳${p.fee} fee</span>` 
+      ? `<span class="surchargeTag" title="Gateway fee / Surcharge">+${p.fee} fee</span>` 
       : '';
     
     rowsHtml += `
@@ -5411,8 +5413,8 @@ function renderDatabasePage() {
   
   const totalAmountEl = document.querySelector('.totalAmount');
   if (totalAmountEl) {
-    const feeText = totalFeeSum > 0 ? ` (incl. ৳ ${totalFeeSum.toLocaleString()} fees)` : '';
-    totalAmountEl.innerText = `৳ ${(totalBaseSum + totalFeeSum).toLocaleString()}${feeText}`;
+    const feeText = totalFeeSum > 0 ? ` (incl. ${totalFeeSum.toLocaleString()} fees)` : '';
+    totalAmountEl.innerText = `${(totalBaseSum + totalFeeSum).toLocaleString()}${feeText}`;
   }
   
 }
@@ -9673,7 +9675,7 @@ placeholder="Search payments..."
 </div>
 
 <div class="totalAmount">
-৳ 48,650
+48,650
 </div>
 
 </div>
