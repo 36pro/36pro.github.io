@@ -8373,20 +8373,20 @@ const CHART_REGISTRY = [
     render: renderRateTrendChart
   },
   {
-    id: 'billLag',
-    title: 'Bill Month vs. Pay Date',
-    appliesTo: ['Postpaid'],
-    minPayments: 1,
-    accent: '#fb7185',
-    render: renderBillLagChart
-  },
-  {
     id: 'monthlyTotal',
     title: 'Monthly Total',
     appliesTo: ['Prepaid', 'Postpaid'],
     minPayments: 1,
     accent: '#2dd4bf',
     render: renderMonthlyTotalChart
+  },
+  {
+    id: 'billLag',
+    title: 'Bill Month vs. Pay Date',
+    appliesTo: ['Postpaid'],
+    minPayments: 1,
+    accent: '#fb7185',
+    render: renderBillLagChart
   },
   {
     id: 'amountVsDuration',
