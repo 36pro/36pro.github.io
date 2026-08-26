@@ -981,12 +981,13 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   border: 1px solid rgba(255, 122, 0, 0.35);
   color: #FF7A00;
   font-size: 0.72rem;
-  font-weight: 700;
-  padding: 2px 6px;
+  font-weight: 800;
+  padding: 2px 8px;
   border-radius: 6px;
-  margin-left: 6px;
+  margin-left: 10px;
   vertical-align: middle;
   font-family: var(--font-mono);
+  letter-spacing: 0.2px;
 }
 
 .surchargeCard {
@@ -1753,37 +1754,62 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   height: 50px;
   border-radius: 14px;
   border: 1px solid var(--border);
-  background: #0b1730;
-  color: white;
-  padding: 0 16px;
+  background: rgba(11, 23, 48, 0.9);
+  color: #f1f5f9;
+  padding: 0 14px;
   cursor: pointer;
-  font-family: inherit;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.filterMonth:hover,
+.filterMonth:focus {
+  border-color: #00C2FF;
+  box-shadow: 0 0 16px rgba(0, 194, 255, 0.2);
 }
 
 .filterMonth::-webkit-calendar-picker-indicator {
-  filter: invert(1);
+  filter: invert(0.8) sepia(1) saturate(5) hue-rotate(160deg);
   cursor: pointer;
+  opacity: 0.85;
+  transition: transform 0.2s ease;
+}
+
+.filterMonth::-webkit-calendar-picker-indicator:hover {
+  transform: scale(1.15);
+  opacity: 1;
 }
 
 .clearMonthBtn {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--muted);
-  font-size: 0.75rem;
+  background: rgba(255, 255, 255, 0.04);
+  color: #94a3b8;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: all 0.25s ease;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.clearMonthBtn svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
 }
 
 .clearMonthBtn:hover {
-  background: rgba(255, 96, 119, 0.15);
-  border-color: var(--danger);
-  color: var(--danger);
+  background: rgba(255, 96, 119, 0.18);
+  border-color: rgba(255, 96, 119, 0.45);
+  color: #ff6077;
+  transform: rotate(90deg) scale(1.05);
 }
 
 .searchBox{
@@ -5354,7 +5380,7 @@ function renderDatabasePage() {
         <div>${p.billName}</div>
         <div style="text-transform: capitalize;">${p.billType}</div>
         <div class="amountCell">
-          ৳ ${p.baseAmount.toLocaleString()}${feeTagHtml}
+          ${p.baseAmount.toLocaleString()}${feeTagHtml}
         </div>
         <div>${p.billMonth || '-'}</div>
         <div class="noteMuted">${p.note || '-'}</div>
@@ -7145,6 +7171,14 @@ function submitPaymentForm(billId) {
     });
 }
 
+function clearDatabaseMonthFilter() {
+  const filterMonth = document.querySelector('.filterMonth');
+  if (filterMonth) {
+    filterMonth.value = '';
+  }
+  renderDatabasePage();
+}
+
 function setupDatabaseFilters() {
   const searchBox = document.querySelector('.searchBox');
   if (searchBox) {
@@ -7159,16 +7193,12 @@ function setupDatabaseFilters() {
   const filterMonth = document.querySelector('.filterMonth');
   if (filterMonth) {
     filterMonth.onchange = renderDatabasePage;
+    filterMonth.oninput = renderDatabasePage;
   }
   
   const clearMonthBtn = document.querySelector('.clearMonthBtn');
   if (clearMonthBtn) {
-    clearMonthBtn.onclick = () => {
-      if (filterMonth) {
-        filterMonth.value = '';
-        renderDatabasePage();
-      }
-    };
+    clearMonthBtn.onclick = clearDatabaseMonthFilter;
   }
   
   const refreshBtn = document.querySelectorAll('.toolbarBtn')[0];
@@ -9623,8 +9653,13 @@ placeholder="Search payments..."
 </select>
 
 <div class="monthFilterWrapper">
-  <input type="month" class="filterMonth" onclick="try { this.showPicker(); } catch(e) {}">
-  <button class="clearMonthBtn" title="Clear Month Filter"></button>
+  <input type="month" class="filterMonth" id="dbFilterMonth" onclick="try { this.showPicker(); } catch(e) {}" title="Filter by Month">
+  <button class="clearMonthBtn" id="dbClearMonthBtn" onclick="clearDatabaseMonthFilter()" title="Reset Month Filter" aria-label="Reset Month Filter">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18"/>
+      <line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+  </button>
 </div>
 
 </div>
