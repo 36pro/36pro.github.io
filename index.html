@@ -1847,6 +1847,12 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   gap:16px;
 }
 
+.toolbarActions{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
 .recordInfo{
   text-align:right;
 }
@@ -1892,7 +1898,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .databaseTable{
   margin-top:20px;
 
-  border-radius:24px;
+  border-radius:14px;
 
   overflow:hidden;
 
@@ -3468,13 +3474,35 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   /* Database Toolbar on Mobile */
   .databaseToolbar {
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
+    margin-top: 6px;
   }
-  .toolbarLeft, .toolbarRight {
+  .toolbarLeft {
     width: 100%;
     flex-direction: column;
     align-items: stretch;
     gap: 8px;
+  }
+  .toolbarRight {
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+  }
+  .toolbarActions {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    flex-shrink: 0 !important;
+  }
+  .toolbarBtn {
+    height: 35px !important;
+    padding: 0 10px !important;
+    font-size: 0.75rem !important;
+    border-radius: 9px !important;
+    white-space: nowrap !important;
   }
   .searchBox, .filterSelect, .filterMonth {
     width: 100% !important;
@@ -3482,8 +3510,28 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     height: 42px;
   }
   .recordInfo {
-    justify-content: space-between;
-    width: 100%;
+    text-align: right !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-end !important;
+    justify-content: center !important;
+    line-height: 1.2 !important;
+  }
+  .recordCount {
+    font-size: 0.72rem !important;
+    color: #94a3b8 !important;
+    font-weight: 700 !important;
+    white-space: nowrap !important;
+  }
+  .totalAmount {
+    font-size: 0.88rem !important;
+    white-space: nowrap !important;
+    color: var(--accent) !important;
+    font-weight: 800 !important;
+  }
+  .databaseTable {
+    border-radius: 12px !important;
+    margin-top: 10px !important;
   }
 
   /* Back Button on Mobile */
@@ -9947,25 +9995,23 @@ placeholder="Search payments..."
 
 <div class="toolbarRight">
 
+<div class="toolbarActions">
+  <button class="toolbarBtn refreshBtn" onclick="fetchPayments()" title="Refresh records">
+    ↻ Refresh
+  </button>
+  <button class="toolbarBtn exportBtn" onclick="exportToCSV()" title="Export CSV">
+    Export CSV
+  </button>
+</div>
+
 <div class="recordInfo">
-
-<div class="recordCount">
-24 records
+  <div class="recordCount">
+    24 records
+  </div>
+  <div class="totalAmount">
+    48,650
+  </div>
 </div>
-
-<div class="totalAmount">
-48,650
-</div>
-
-</div>
-
-<button class="toolbarBtn">
-↻ Refresh
-</button>
-
-<button class="toolbarBtn">
-Export CSV
-</button>
 
 </div>
 
