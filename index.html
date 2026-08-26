@@ -1976,10 +1976,18 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   color:var(--muted);
 }
 
-.actionsCell{
-  display:flex;
-  align-items:center;
-  gap:16px;
+.dbHeader .colActions {
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.actionsCell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
 }
 
 .editBtn,
@@ -3339,7 +3347,16 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     color: #cbd5e1;
     white-space: nowrap;
   }
+  .dbHeader .colActions {
+    text-align: center !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
   .actionsCell.colActions {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
     gap: 3px !important;
   }
   .editBtn,
