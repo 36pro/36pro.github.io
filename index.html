@@ -5419,8 +5419,7 @@ function renderBillPages() {
             <div class="inputCard">
               <div class="inputLabel">Main Amount (৳)</div>
               <input type="number" class="inputAmountVal" value="" placeholder="" 
-                onblur="handleAmountAutoSplit('${bill.id}', this)" 
-                oninput="handleAmountAutoSplitQuick('${bill.id}', this)"
+                ${['rupnagarDesco', 'uttaraDesco', 'rupnagarGas'].includes(bill.id) ? `onblur="handleAmountAutoSplit('${bill.id}', this)" oninput="handleAmountAutoSplitQuick('${bill.id}', this)"` : ''}
                 style="width:100%; height:40px; background:transparent; border:none; color:white; font-size:1.8rem; font-weight:800; font-family:var(--font-amount); outline:none;">
             </div>
             <div class="inputCard">
@@ -7445,7 +7444,10 @@ function renderStatsPage() {
 
 
 // Auto-split stray amount into Main Amount + Fee for prepaid/utility bills
+const AUTO_SPLIT_ELIGIBLE_BILLS = ['rupnagarDesco', 'uttaraDesco', 'rupnagarGas'];
+
 function handleAmountAutoSplit(billId, inputEl) {
+  if (!AUTO_SPLIT_ELIGIBLE_BILLS.includes(billId)) return;
   const section = document.getElementById(billId);
   if (!section) return;
   
@@ -7470,6 +7472,7 @@ function handleAmountAutoSplit(billId, inputEl) {
 }
 
 function handleAmountAutoSplitQuick(billId, inputEl) {
+  if (!AUTO_SPLIT_ELIGIBLE_BILLS.includes(billId)) return;
   // When 4+ digits are typed, check for common stray fees e.g. 1515, 2030, 1010, 2020
   const rawStr = inputEl.value.trim();
   if (rawStr.length >= 4) {
