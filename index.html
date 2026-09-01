@@ -7831,34 +7831,22 @@ function parsePaymentRecord(p) {
   let fee = 0;
   let baseAmount = rawAmt;
   
-  if (!autoSplitBills.includes(p.billId)) {
-    // Strictly forbid auto-splitting fees on inspireBroadband, matuailGas, noakhaliPalli, uttaraWater
-    // If a record was previously auto-split into base + fee, restore the full total as baseAmount
-    if (p.totalPaid && parseFloat(p.totalPaid) > 0) {
-      baseAmount = parseFloat(p.totalPaid);
-      fee = 0;
-    } else if (p.fee && parseFloat(p.fee) > 0 && p.amountNum) {
-      baseAmount = parseFloat(p.amountNum) + parseFloat(p.fee);
-      fee = 0;
-    } else if (p.fee && parseFloat(p.fee) > 0) {
-      baseAmount = rawAmt + parseFloat(p.fee);
-      fee = 0;
-    } else {
-      baseAmount = rawAmt;
-      fee = 0;
+  // If an explicit fee was provided (manually entered by user in the Fee box)
+  if (p.fee !== undefined && p.fee !== '' && p.fee !== null && parseFloat(p.fee) > 0) {
+    fee = parseFloat(p.fee) || 0;
+    baseAmount = p.amountNum !== undefined && p.amountNum !== '' ? parseFloat(p.amountNum) : rawAmt;
+  } 
+  // Only auto-split lump sums for eligible prepaid recharge bills when fee box was left empty
+  else if (autoSplitBills.includes(p.billId)) {
+    const remainder = rawAmt % 100;
+    if (remainder > 0 && rawAmt > 100 && remainder <= 60) {
+      fee = remainder;
+      baseAmount = rawAmt - remainder;
     }
   } else {
-    if (p.fee !== undefined && p.fee !== '' && p.fee !== null && parseFloat(p.fee) > 0) {
-      fee = parseFloat(p.fee) || 0;
-      baseAmount = p.amountNum ? parseFloat(p.amountNum) : (rawAmt > fee ? rawAmt : rawAmt);
-    } else if (autoSplitBills.includes(p.billId)) {
-      // Intelligent legacy fallback for historical lump sum records
-      const remainder = rawAmt % 100;
-      if (remainder > 0 && rawAmt > 100 && remainder <= 60) {
-        fee = remainder;
-        baseAmount = rawAmt - remainder;
-      }
-    }
+    // Non-auto-split bills with empty fee box: exact raw amount, zero fee
+    fee = 0;
+    baseAmount = rawAmt;
   }
   
   const total = baseAmount + fee;
