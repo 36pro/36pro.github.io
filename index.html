@@ -4835,8 +4835,9 @@ async function savePaymentRecord(billId, amount, payDate, billMonth, fee = '') {
   let amountNumeric = Math.round(parseFloat(amount)) || 0;
   let feeNumeric = Math.round(parseFloat(fee)) || 0;
 
-  // If fee was empty but amount has a stray gateway surcharge (e.g. 1515, 2030, 1010), auto-extract fee
-  if (feeNumeric === 0 && amountNumeric > 100) {
+  // If fee was empty but amount has a stray gateway surcharge, only auto-extract for prepaid recharge bills (DESCO, Rupnagar Gas)
+  const AUTO_SPLIT_ELIGIBLE_BILLS = ['rupnagarDesco', 'uttaraDesco', 'rupnagarGas'];
+  if (AUTO_SPLIT_ELIGIBLE_BILLS.includes(billId) && feeNumeric === 0 && amountNumeric > 100) {
     const remainder = amountNumeric % 100;
     if (remainder > 0 && remainder <= 60) {
       feeNumeric = remainder;
@@ -7655,8 +7656,9 @@ function submitPaymentForm(billId) {
   let numAmt = Math.round(parseFloat(amountVal)) || 0;
   let numFee = Math.round(parseFloat(feeVal)) || 0;
 
-  // Auto-split fallback directly on submit if fee input is empty or 0
-  if (numFee === 0 && numAmt > 100) {
+  // Auto-split fallback directly on submit if fee input is empty or 0 (ONLY for DESCO and Rupnagar Gas)
+  const AUTO_SPLIT_ELIGIBLE_BILLS = ['rupnagarDesco', 'uttaraDesco', 'rupnagarGas'];
+  if (AUTO_SPLIT_ELIGIBLE_BILLS.includes(billId) && numFee === 0 && numAmt > 100) {
     const remainder = numAmt % 100;
     if (remainder > 0 && remainder <= 60) {
       numFee = remainder;
@@ -7773,10 +7775,11 @@ function exportCsv() {
   
   let totalAmount = 0;
   let totalFees = 0;
-  sorted.forEach(p => {
-    const amt = parseFloat(p.amount) || 0;
-    const fee = parseFloat(p.fee) || 0;
-    const total = amt + fee;
+  sorted.forEach(rawP => {
+    const p = parsePaymentRecord(rawP);
+    const amt = p.baseAmount;
+    const fee = p.fee;
+    const total = p.total;
     totalAmount += amt;
     totalFees += fee;
     
@@ -7828,15 +7831,33 @@ function parsePaymentRecord(p) {
   let fee = 0;
   let baseAmount = rawAmt;
   
-  if (p.fee !== undefined && p.fee !== '' && p.fee !== null) {
-    fee = parseFloat(p.fee) || 0;
-    baseAmount = p.amountNum ? parseFloat(p.amountNum) : (rawAmt > fee ? rawAmt : rawAmt);
-  } else if (autoSplitBills.includes(p.billId)) {
-    // Intelligent legacy fallback for historical lump sum records
-    const remainder = rawAmt % 100;
-    if (remainder > 0 && rawAmt > 100 && remainder <= 60) {
-      fee = remainder;
-      baseAmount = rawAmt - remainder;
+  if (!autoSplitBills.includes(p.billId)) {
+    // Strictly forbid auto-splitting fees on inspireBroadband, matuailGas, noakhaliPalli, uttaraWater
+    // If a record was previously auto-split into base + fee, restore the full total as baseAmount
+    if (p.totalPaid && parseFloat(p.totalPaid) > 0) {
+      baseAmount = parseFloat(p.totalPaid);
+      fee = 0;
+    } else if (p.fee && parseFloat(p.fee) > 0 && p.amountNum) {
+      baseAmount = parseFloat(p.amountNum) + parseFloat(p.fee);
+      fee = 0;
+    } else if (p.fee && parseFloat(p.fee) > 0) {
+      baseAmount = rawAmt + parseFloat(p.fee);
+      fee = 0;
+    } else {
+      baseAmount = rawAmt;
+      fee = 0;
+    }
+  } else {
+    if (p.fee !== undefined && p.fee !== '' && p.fee !== null && parseFloat(p.fee) > 0) {
+      fee = parseFloat(p.fee) || 0;
+      baseAmount = p.amountNum ? parseFloat(p.amountNum) : (rawAmt > fee ? rawAmt : rawAmt);
+    } else if (autoSplitBills.includes(p.billId)) {
+      // Intelligent legacy fallback for historical lump sum records
+      const remainder = rawAmt % 100;
+      if (remainder > 0 && rawAmt > 100 && remainder <= 60) {
+        fee = remainder;
+        baseAmount = rawAmt - remainder;
+      }
     }
   }
   
