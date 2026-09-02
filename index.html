@@ -5491,11 +5491,17 @@ function renderLandingPageCards() {
           <div class="billSub" style="color:${subColor}; font-weight:600; margin-top: 4px;">${subText}</div>
         `;
       } else if (bill.id === 'inspireBroadband') {
-        // Inspire Broadband is a prepaid monthly subscription. Rather than using standard '+30 days' math,
-        // we set its expiry date to the 1st of the next calendar month (e.g. paid on July 1st -> expires August 1st).
-        // Passing '1' as the day parameter locks it to the first day of that next month.
-        const payDateObj = new Date(lastPayment.payDate);
-        const expiryDate = new Date(payDateObj.getFullYear(), payDateObj.getMonth() + 1, 1);
+        // Inspire Broadband is a prepaid monthly subscription.
+        // If a specific billMonth is recorded (e.g. "September 2026"), it covers through the end of that month,
+        // expiring on the 1st of the subsequent month (e.g. Oct 1st).
+        let expiryDate;
+        const paidMonthDate = parseBillMonth(lastPayment.billMonth);
+        if (paidMonthDate) {
+          expiryDate = new Date(paidMonthDate.getFullYear(), paidMonthDate.getMonth() + 1, 1);
+        } else {
+          const payDateObj = new Date(lastPayment.payDate);
+          expiryDate = new Date(payDateObj.getFullYear(), payDateObj.getMonth() + 1, 1);
+        }
         
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -5598,11 +5604,16 @@ function renderDashboardPage() {
       } else {
         if (lastPayment) {
           // Prepaid monthly subscription logic (e.g. Inspire Broadband).
-          // To calculate the next due date, we add exactly 1 month to the payment date and set the day to 1.
-          // This aligns the next due date with the first day of the next calendar month (e.g. Jul 1st -> Aug 1st).
-          const nextDueDate = new Date(lastPayment.payDate);
-          nextDueDate.setMonth(nextDueDate.getMonth() + 1);
-          nextDueDate.setDate(1);
+          // If billMonth is recorded (e.g. "September 2026"), next due date is the 1st of the next month (e.g. Oct 1st).
+          let nextDueDate;
+          const paidMonthDate = parseBillMonth(lastPayment.billMonth);
+          if (paidMonthDate) {
+            nextDueDate = new Date(paidMonthDate.getFullYear(), paidMonthDate.getMonth() + 1, 1);
+          } else {
+            nextDueDate = new Date(lastPayment.payDate);
+            nextDueDate.setMonth(nextDueDate.getMonth() + 1);
+            nextDueDate.setDate(1);
+          }
           
           const diffTime = nextDueDate - now;
           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
