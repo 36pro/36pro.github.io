@@ -6226,7 +6226,7 @@ function renderBillPages() {
           const diffTime = nextFYDueDate - now;
           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
           if (diffDays < 0) {
-            nextDueText = `Overdue by ${formatOverdueMonths(Math.abs(diffDays))}`;
+            nextDueText = `Overdue by ${Math.abs(diffDays)} days`;
             nextDueClass = 'red';
           } else {
             nextDueText = `In ${diffDays} days (${formatDateFriendlyShort(formatLocalDate(nextFYDueDate))})`;
@@ -6282,7 +6282,7 @@ function renderBillPages() {
         const diffTime = nextDueDate - now;
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         if (diffDays < 0) {
-          nextDueText = `Overdue by ${formatOverdueMonths(Math.abs(diffDays))}`;
+          nextDueText = `Overdue by ${Math.abs(diffDays)} days`;
           nextDueClass = 'red';
         } else if (diffDays === 0) {
           nextDueText = 'Due Today (21st)';
@@ -6332,7 +6332,7 @@ function renderBillPages() {
         const diffTime = nextDue - now;
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         if (diffDays < 0) {
-          nextDueText = `Overdue by ${formatOverdueMonths(Math.abs(diffDays))}`;
+          nextDueText = bill.id === 'matuailGas' ? `Overdue by ${formatOverdueMonths(Math.abs(diffDays))}` : `Overdue by ${Math.abs(diffDays)} days`;
           nextDueClass = 'red';
         } else {
           nextDueText = `In ${diffDays} days`;
@@ -6789,9 +6789,9 @@ function renderLandingPageCards() {
 
           if (diffDays < 0) {
             const overdueDays = Math.abs(diffDays);
-            subText = `Paid for ${lastPayment.billMonth}${propSuffix} • Overdue ${formatOverdueMonths(overdueDays)}`;
+            subText = `Paid for ${lastPayment.billMonth}${propSuffix} • Overdue ${overdueDays}d`;
             subColor = '#ff6368'; // Red
-            shortStatus = `Overdue ${formatOverdueMonths(overdueDays)}`;
+            shortStatus = `Overdue ${overdueDays}d`;
             shortColor = '#ff6368';
           } else {
             subText = `Paid for ${lastPayment.billMonth}${propSuffix} • Due in ${diffDays}d (1 Apr)`;
@@ -6823,9 +6823,10 @@ function renderLandingPageCards() {
             const diffTime = today - overdueDate;
             const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
             const overdueDays = diffDays + 1;
-            subText = `Paid for ${lastPayment.billMonth} • Overdue ${formatOverdueMonths(overdueDays)}`;
+            const overdueStr = bill.id === 'matuailGas' ? formatOverdueMonths(overdueDays) : `${overdueDays}d`;
+            subText = `Paid for ${lastPayment.billMonth} • Overdue ${overdueStr}`;
             subColor = '#ff6368'; // Red
-            shortStatus = `Overdue ${formatOverdueMonths(overdueDays)}`;
+            shortStatus = `Overdue ${overdueStr}`;
             shortColor = '#ff6368';
           }
         }
@@ -6866,9 +6867,9 @@ function renderLandingPageCards() {
           let subText = '';
           let subColor = '';
           if (diffDays < 0) {
-            subText = `Overdue by ${formatOverdueMonths(Math.abs(diffDays))}`;
+            subText = `Overdue by ${Math.abs(diffDays)} Days`;
             subColor = '#ff6368'; // Red
-            shortStatus = `Overdue ${formatOverdueMonths(Math.abs(diffDays))}`;
+            shortStatus = `Overdue ${Math.abs(diffDays)}d`;
             shortColor = '#ff6368';
           } else if (diffDays === 0) {
             subText = `Due Today (21st)`;
@@ -6907,9 +6908,9 @@ function renderLandingPageCards() {
         let subText = '';
         let subColor = '';
         if (diffDays < 0) {
-          subText = `Overdue by ${formatOverdueMonths(Math.abs(diffDays))}`;
+          subText = `Overdue by ${Math.abs(diffDays)} Days`;
           subColor = '#ff6368'; // Red
-          shortStatus = `Overdue ${formatOverdueMonths(Math.abs(diffDays))}`;
+          shortStatus = `Overdue ${Math.abs(diffDays)}d`;
           shortColor = '#ff6368';
         } else {
           subText = `Next Due in ${diffDays} Days`;
@@ -7101,7 +7102,7 @@ function renderDashboardPage() {
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
             if (diffDays < 0) {
-              nextDueSub = `Overdue by ${formatOverdueMonths(Math.abs(diffDays))}`;
+              nextDueSub = `Overdue by ${Math.abs(diffDays)} days`;
               nextDueClass = 'dangerText';
               statusText = 'Overdue';
               statusClass = 'statusOverdue';
@@ -7218,7 +7219,7 @@ function renderDashboardPage() {
             
             nextDueTop = formatDateFriendly(formatLocalDate(nextDueDate));
             if (diffDays < 0) {
-              nextDueSub = `Overdue by ${formatOverdueMonths(Math.abs(diffDays))}`;
+              nextDueSub = `Overdue by ${Math.abs(diffDays)} days`;
               nextDueClass = 'dangerText';
               statusText = 'Overdue';
               statusClass = 'statusOverdue';
@@ -7252,7 +7253,7 @@ function renderDashboardPage() {
           
           nextDueTop = formatDateFriendly(formatLocalDate(nextDueDate));
           if (diffDays < 0) {
-            nextDueSub = `Overdue by ${formatOverdueMonths(Math.abs(diffDays))}`;
+            nextDueSub = `Overdue by ${Math.abs(diffDays)} days`;
             nextDueClass = 'dangerText';
             statusText = 'Overdue';
             statusClass = 'statusOverdue';
@@ -7293,7 +7294,7 @@ function renderDashboardPage() {
           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
           
           if (diffDays < 0) {
-            nextDueSub = `Overdue by ${formatOverdueMonths(Math.abs(diffDays))}`;
+            nextDueSub = bill.id === 'matuailGas' ? `Overdue by ${formatOverdueMonths(Math.abs(diffDays))}` : `Overdue by ${Math.abs(diffDays)} days`;
             nextDueClass = 'dangerText';
             statusText = 'Overdue';
             statusClass = 'statusOverdue';
@@ -9877,7 +9878,7 @@ function renderForecastGauge(payments) {
         
         ctx.font = 'bold 18px "JetBrains Mono", sans-serif';
         ctx.fillStyle = color;
-        const line1 = daysLeft < 0 ? `Overdue by ${formatOverdueMonths(Math.abs(daysLeft))}` : `~${daysLeft} days left`;
+        const line1 = daysLeft < 0 ? `Overdue by ${Math.abs(daysLeft)}d` : `~${daysLeft} days left`;
         ctx.fillText(line1, left + width / 2, top + height / 2 - 10);
         
         ctx.font = 'bold 13px "JetBrains Mono", sans-serif';
