@@ -7397,13 +7397,17 @@ function formatDateStack(dateStr) {
   return { dayMonth: dateStr, year: '' };
 }
 
-// Helper: Format Month compactly for mobile (e.g. "Aug 26" or "Jan 26 - Jun 26")
+// Helper: Format Month compactly for mobile (e.g. "Aug 26" or stacked "Jul 25 / Feb 26")
 function formatShortMonth(monthStr) {
   if (!monthStr || monthStr === '-' || monthStr === 'N/A') return '-';
   const clean = monthStr.trim();
-  if (clean.includes(' - ') || clean.includes(' to ')) {
-    const parts = clean.split(/ - | to /);
-    return `${formatShortSingleMonth(parts[0])} - ${formatShortSingleMonth(parts[1])}`;
+  if (clean.includes(' - ') || clean.includes(' to ') || (clean.includes('-') && !clean.startsWith('-'))) {
+    const parts = clean.split(/\s*-\s*|\s+to\s+/i);
+    if (parts.length >= 2) {
+      const m1 = formatShortSingleMonth(parts[0]);
+      const m2 = formatShortSingleMonth(parts[parts.length - 1]);
+      return `<span class="mobileMonthStack" style="display:flex; flex-direction:column; line-height:1.15; font-size:0.68rem; align-items:center;"><span>${m1}</span><span style="font-size:0.62rem; color:#64748b;">${m2}</span></span>`;
+    }
   }
   return formatShortSingleMonth(clean);
 }
