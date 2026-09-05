@@ -1534,30 +1534,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   color:var(--accent2);
 }
 
-.landTaxPresetBtn {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #94a3b8;
-  font-size: 0.8rem;
-  font-weight: 700;
-  padding: 4px 10px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  user-select: none;
-}
-.landTaxPresetBtn:hover {
-  background: rgba(0, 194, 255, 0.15);
-  border-color: rgba(0, 194, 255, 0.4);
-  color: #00C2FF;
-}
-.landTaxPresetBtn.active {
-  background: rgba(0, 194, 255, 0.25);
-  border-color: #00C2FF;
-  color: #00C2FF;
-  box-shadow: 0 0 10px rgba(0, 194, 255, 0.2);
-}
-
 .paymentInfo{
   display:flex;
   flex-direction:column;
@@ -5803,69 +5779,22 @@ function onLandTaxPropertyChange() {
   updateLandTaxCalculation();
 }
 
-function onLandTaxYearRangeChange() {
-  const section = document.getElementById('landTax');
-  if (!section) return;
-  const fromSelect = section.querySelector('.inputLandTaxFromYearSelect');
-  const toSelect = section.querySelector('.inputLandTaxToYearSelect');
-  if (!fromSelect || !toSelect) return;
-
-  const fromY = parseInt(fromSelect.value, 10);
-  let toY = parseInt(toSelect.value, 10);
-
-  if (toY < fromY) {
-    toSelect.value = fromY.toString();
-  }
-  updateLandTaxCalculation();
-}
-
-function setLandTaxDurationPreset(years) {
-  const section = document.getElementById('landTax');
-  if (!section) return;
-  const fromSelect = section.querySelector('.inputLandTaxFromYearSelect');
-  const toSelect = section.querySelector('.inputLandTaxToYearSelect');
-  if (!fromSelect || !toSelect) return;
-
-  const fromY = parseInt(fromSelect.value, 10) || new Date().getFullYear();
-  const targetToY = fromY + (years - 1);
-
-  if (!Array.from(toSelect.options).some(o => parseInt(o.value, 10) === targetToY)) {
-    const opt = document.createElement('option');
-    opt.value = targetToY.toString();
-    opt.innerText = targetToY.toString();
-    toSelect.appendChild(opt);
-  }
-  toSelect.value = targetToY.toString();
-  updateLandTaxCalculation();
-}
-
 function updateLandTaxCalculation() {
   const section = document.getElementById('landTax');
   if (!section) return;
 
   const propSelect = section.querySelector('.inputLandTaxPropertySelect');
-  const fromSelect = section.querySelector('.inputLandTaxFromYearSelect');
-  const toSelect = section.querySelector('.inputLandTaxToYearSelect');
+  const startYearSelect = section.querySelector('.inputLandTaxStartYearSelect');
+  const durationSelect = section.querySelector('.inputLandTaxDurationSelect');
   const feeInput = section.querySelector('.inputLandTaxFeeVal');
   const singleAmountInput = section.querySelector('.inputLandTaxSingleAmountVal');
 
   if (!propSelect) return;
 
   const selectedProp = propSelect.value;
-  const fromY = parseInt(fromSelect ? fromSelect.value : new Date().getFullYear(), 10) || new Date().getFullYear();
-  let toY = parseInt(toSelect ? toSelect.value : fromY, 10) || fromY;
-  if (toY < fromY) toY = fromY;
-  const yearsCount = Math.max(1, toY - fromY + 1);
-
-  // Update active status on preset buttons
-  section.querySelectorAll('.landTaxPresetBtn').forEach(btn => {
-    const btnYears = parseInt(btn.innerText, 10);
-    if (btnYears === yearsCount) {
-      btn.classList.add('active');
-    } else {
-      btn.classList.remove('active');
-    }
-  });
+  const fromY = parseInt(startYearSelect ? startYearSelect.value : new Date().getFullYear(), 10) || new Date().getFullYear();
+  const yearsCount = parseInt(durationSelect ? durationSelect.value : 1, 10) || 1;
+  const toY = fromY + (yearsCount - 1);
 
   // Load / Save property rate defaults and calculate base total
   let key = 'matuail';
@@ -5902,7 +5831,7 @@ function updateLandTaxCalculation() {
     fyPill.innerText = `${rangeStr} (${yearsCount} ${yearsCount === 1 ? 'Year' : 'Years'})`;
   }
   if (duePill) duePill.innerText = `Next Due: ${dueFormatted}`;
-  if (baseText) baseText.innerText = baseAmount.toLocaleString();
+  if (baseText) baseText.innerText = `৳ ${baseAmount.toLocaleString()}`;
   if (feeTextSpan && feeValText) {
     if (fee > 0) {
       feeTextSpan.style.display = 'inline';
@@ -5911,7 +5840,7 @@ function updateLandTaxCalculation() {
       feeTextSpan.style.display = 'none';
     }
   }
-  if (totalText) totalText.innerText = totalAmount.toLocaleString();
+  if (totalText) totalText.innerText = `৳ ${totalAmount.toLocaleString()}`;
 }
 
 // Rendering UI dynamically
@@ -6324,8 +6253,8 @@ function renderBillPages() {
           <div class="sectionTitle" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
             <span>Record Land Development Tax Payment</span>
           </div>
-          <div class="formGrid landTaxGrid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap:14px;">
-            <div class="inputCard" style="grid-column: span 1;">
+          <div class="formGrid landTaxGrid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:14px;">
+            <div class="inputCard">
               <div class="inputLabel">Select Property</div>
               <select class="inputLandTaxPropertySelect bnFont" onchange="onLandTaxPropertyChange()"
                 style="width:100%; height:40px; background:#0b1730; color:white; border:1px solid var(--border); border-radius:12px; padding:0 10px; font-size:1.05rem; font-weight:700;">
@@ -6335,32 +6264,36 @@ function renderBillPages() {
               </select>
             </div>
             
-            <div class="inputCard landTaxSinglePropContainer" style="grid-column: span 1;">
+            <div class="inputCard landTaxSinglePropContainer">
               <div class="inputLabel">Tax Amount per Year (৳)</div>
               <input type="number" class="inputLandTaxSingleAmountVal" value="${savedMatuail}" placeholder="1500"
                 oninput="updateLandTaxCalculation()"
                 style="width:100%; height:40px; background:transparent; border:none; color:white; font-size:1.8rem; font-weight:800; font-family:var(--font-amount); font-feature-settings:'tnum' 1; outline:none;">
             </div>
 
-            <div class="inputCard" style="min-width:240px;">
+            <div class="inputCard">
               <div class="inputLabel">Fiscal Year (Apr 1 - Mar 31)</div>
-              <div style="display:flex; align-items:center; gap:8px;">
-                <select class="inputLandTaxFromYearSelect" onchange="onLandTaxYearRangeChange()"
-                  style="flex:1; height:40px; background:#0b1730; color:white; border:1px solid var(--border); border-radius:12px; padding:0 8px; font-size:1.05rem; font-weight:700; font-family:var(--font-amount);">
-                  ${yearOptions.map(y => `<option value="${y}" ${y === defaultFromYear ? 'selected' : ''}>${y}</option>`).join('')}
-                </select>
-                <span style="color:var(--muted); font-weight:700; font-size:0.95rem;">to</span>
-                <select class="inputLandTaxToYearSelect" onchange="onLandTaxYearRangeChange()"
-                  style="flex:1; height:40px; background:#0b1730; color:white; border:1px solid var(--border); border-radius:12px; padding:0 8px; font-size:1.05rem; font-weight:700; font-family:var(--font-amount);">
-                  ${yearOptions.map(y => `<option value="${y}" ${y === defaultToYear ? 'selected' : ''}>${y}</option>`).join('')}
-                </select>
-              </div>
-              <div class="landTaxPresetRow" style="display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;">
-                <button type="button" class="landTaxPresetBtn active" onclick="setLandTaxDurationPreset(1)">1 Year</button>
-                <button type="button" class="landTaxPresetBtn" onclick="setLandTaxDurationPreset(2)">2 Years</button>
-                <button type="button" class="landTaxPresetBtn" onclick="setLandTaxDurationPreset(3)">3 Years</button>
-                <button type="button" class="landTaxPresetBtn" onclick="setLandTaxDurationPreset(5)">5 Years</button>
-              </div>
+              <select class="inputLandTaxStartYearSelect" onchange="updateLandTaxCalculation()"
+                style="width:100%; height:40px; background:#0b1730; color:white; border:1px solid var(--border); border-radius:12px; padding:0 10px; font-size:1.05rem; font-weight:700; font-family:var(--font-amount);">
+                ${yearOptions.map(y => `<option value="${y}" ${y === defaultFromYear ? 'selected' : ''}>${y}</option>`).join('')}
+              </select>
+            </div>
+
+            <div class="inputCard">
+              <div class="inputLabel">Duration (Years)</div>
+              <select class="inputLandTaxDurationSelect" onchange="updateLandTaxCalculation()"
+                style="width:100%; height:40px; background:#0b1730; color:white; border:1px solid var(--border); border-radius:12px; padding:0 10px; font-size:1.05rem; font-weight:700; font-family:var(--font-amount);">
+                <option value="1" selected>1 Year</option>
+                <option value="2">2 Years</option>
+                <option value="3">3 Years</option>
+                <option value="4">4 Years</option>
+                <option value="5">5 Years</option>
+                <option value="6">6 Years</option>
+                <option value="7">7 Years</option>
+                <option value="8">8 Years</option>
+                <option value="9">9 Years</option>
+                <option value="10">10 Years</option>
+              </select>
             </div>
 
             <div class="inputCard">
@@ -9123,8 +9056,8 @@ function submitPaymentForm(billId) {
     amountVal = calculatedBase.toString();
   } else if (billId === 'landTax') {
     const propSelect = section.querySelector('.inputLandTaxPropertySelect');
-    const fromSelect = section.querySelector('.inputLandTaxFromYearSelect');
-    const toSelect = section.querySelector('.inputLandTaxToYearSelect');
+    const startYearSelect = section.querySelector('.inputLandTaxStartYearSelect');
+    const durationSelect = section.querySelector('.inputLandTaxDurationSelect');
     const feeInput = section.querySelector('.inputLandTaxFeeVal');
     const dateInput = section.querySelector('.inputDateVal');
     const singleAmountInput = section.querySelector('.inputLandTaxSingleAmountVal');
@@ -9133,10 +9066,9 @@ function submitPaymentForm(billId) {
 
     const selectedProp = propSelect ? propSelect.value : 'মাতুয়াইল - ২০';
     
-    let fromY = parseInt(fromSelect ? fromSelect.value : new Date().getFullYear(), 10) || new Date().getFullYear();
-    let toY = parseInt(toSelect ? toSelect.value : fromY, 10) || fromY;
-    if (toY < fromY) toY = fromY;
-    const yearsCount = Math.max(1, toY - fromY + 1);
+    const fromY = parseInt(startYearSelect ? startYearSelect.value : new Date().getFullYear(), 10) || new Date().getFullYear();
+    const yearsCount = parseInt(durationSelect ? durationSelect.value : 1, 10) || 1;
+    const toY = fromY + (yearsCount - 1);
 
     const monthVal = fromY === toY ? fromY.toString() : `${fromY} to ${toY}`;
     const dateVal = dateInput ? dateInput.value.trim() : '';
