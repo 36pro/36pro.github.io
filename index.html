@@ -6007,7 +6007,7 @@ function updateLandTaxCalculation() {
     fyPill.innerText = `${cycleInfo.displayRange} (${yrCountText})`;
   }
   if (duePill) duePill.innerText = `Next Due: ${cycleInfo.dueLabel}`;
-  if (baseText) baseText.innerText = `৳ ${baseAmount.toLocaleString()}`;
+  if (baseText) baseText.innerText = baseAmount.toLocaleString();
   if (feeTextSpan && feeValText) {
     if (fee > 0) {
       feeTextSpan.style.display = 'inline';
@@ -6016,7 +6016,7 @@ function updateLandTaxCalculation() {
       feeTextSpan.style.display = 'none';
     }
   }
-  if (totalText) totalText.innerText = `৳ ${totalAmount.toLocaleString()}`;
+  if (totalText) totalText.innerText = totalAmount.toLocaleString();
 }
 
 // Rendering UI dynamically
@@ -6369,7 +6369,7 @@ function renderBillPages() {
           </div>
           <div class="formGrid gymGrid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap:14px;">
             <div class="inputCard">
-              <div class="inputLabel">Monthly Fee (৳)</div>
+              <div class="inputLabel">Monthly Fee</div>
               <input type="number" class="inputGymMonthlyRateVal" value="${savedRate}" placeholder="1700"
                 oninput="updateGymCalculation()"
                 style="width:100%; height:40px; background:transparent; border:none; color:white; font-size:1.8rem; font-weight:800; font-family:var(--font-amount); font-feature-settings:'tnum' 1; outline:none;">
@@ -6434,7 +6434,7 @@ function renderBillPages() {
             </div>
             
             <div class="inputCard landTaxSinglePropContainer">
-              <div class="inputLabel">Total Tax Amount (৳)</div>
+              <div class="inputLabel">Total Tax Amount</div>
               <input type="number" class="inputLandTaxSingleAmountVal" value="${savedMatuail}" placeholder="1500"
                 oninput="updateLandTaxCalculation()"
                 style="width:100%; height:40px; background:transparent; border:none; color:white; font-size:1.8rem; font-weight:800; font-family:var(--font-amount); font-feature-settings:'tnum' 1; outline:none;">
@@ -6509,9 +6509,9 @@ function renderBillPages() {
               <span class="landTaxDueDateBadge" style="background:rgba(0,230,118,0.12); color:#00E676; font-size:0.82rem; font-weight:800; padding:3px 8px; border-radius:6px; border:1px solid rgba(0,230,118,0.3);">Next Due: ${defaultCycleInfo.dueLabel}</span>
             </div>
             <div style="display:flex; align-items:baseline; gap:12px; flex-wrap:wrap;">
-              <span style="font-size:0.88rem; color:#94a3b8;">Tax Amount: <strong class="landTaxBaseText" style="color:white; font-family:var(--font-amount); font-size:1.2rem; font-weight:800;">৳ ${parseInt(savedMatuail).toLocaleString()}</strong></span>
+              <span style="font-size:0.88rem; color:#94a3b8;">Tax Amount: <strong class="landTaxBaseText" style="color:white; font-family:var(--font-amount); font-size:1.2rem; font-weight:800;">${parseInt(savedMatuail).toLocaleString()}</strong></span>
               <span class="landTaxFeeText" style="font-size:0.88rem; color:#FF7A00; display:none;">+ <strong class="landTaxFeeValText">0</strong> fee</span>
-              <span style="font-size:0.95rem; color:#00E676;">Total: <strong class="landTaxTotalText" style="font-size:1.35rem; font-family:var(--font-amount); font-weight:900;">৳ ${parseInt(savedMatuail).toLocaleString()}</strong></span>
+              <span style="font-size:0.95rem; color:#00E676;">Total: <strong class="landTaxTotalText" style="font-size:1.35rem; font-family:var(--font-amount); font-weight:900;">${parseInt(savedMatuail).toLocaleString()}</strong></span>
             </div>
           </div>
 
