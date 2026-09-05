@@ -936,6 +936,54 @@ body{
   flex-shrink: 0;
 }
 
+.gymPauseBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #cbd5e1;
+  font-weight: 700;
+  font-size: 0.88rem;
+  letter-spacing: 0.2px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  user-select: none;
+}
+
+.gymPauseBtn:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+}
+
+.gymPauseBtn.paused {
+  background: linear-gradient(135deg, rgba(255, 122, 0, 0.15) 0%, rgba(30, 18, 10, 0.92) 100%);
+  border-color: rgba(255, 122, 0, 0.5);
+  color: #FF7A00;
+  box-shadow: 0 4px 18px rgba(255, 122, 0, 0.22);
+}
+
+.gymPauseBtn.paused:hover {
+  background: linear-gradient(135deg, rgba(255, 122, 0, 0.25) 0%, rgba(45, 25, 12, 0.96) 100%);
+  border-color: #FF7A00;
+  color: #ffffff;
+  box-shadow: 0 8px 24px rgba(255, 122, 0, 0.35);
+}
+
+.gymPauseBtn svg {
+  width: 15px;
+  height: 15px;
+  stroke: currentColor;
+  flex-shrink: 0;
+}
+
 .statsGrid{
   margin-top:18px;
 
@@ -5564,68 +5612,115 @@ function updateMatuailGasCalculation() {
   if (totalText) totalText.innerText = totalAmount.toLocaleString();
 }
 
+function isGymPaused() {
+  return localStorage.getItem('billzy_gym_paused') === 'true';
+}
+
+function setGymPaused(paused) {
+  localStorage.setItem('billzy_gym_paused', paused ? 'true' : 'false');
+  if (typeof currentUser !== 'undefined' && currentUser && typeof db !== 'undefined' && db) {
+    db.collection('users').doc(currentUser.uid).set({
+      gymPaused: Boolean(paused)
+    }, { merge: true }).catch(() => {});
+  }
+}
+
+function toggleGymPause() {
+  const newPaused = !isGymPaused();
+  setGymPaused(newPaused);
+  hydrateAllPages();
+  showToast(newPaused ? "Gym subscription paused 🔒" : "Gym subscription active ▶️");
+}
+
+function gymPauseBtnHtml() {
+  const paused = isGymPaused();
+  if (paused) {
+    return `
+      <button class="gymPauseBtn paused" onclick="toggleGymPause()" title="Resume Gym Subscription">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+        </svg>
+        <span>Subscription Paused (Click to Resume)</span>
+      </button>
+    `;
+  } else {
+    return `
+      <button class="gymPauseBtn" onclick="toggleGymPause()" title="Lock / Pause Gym Subscription">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
+        <span>Lock / Pause Subscription</span>
+      </button>
+    `;
+  }
+}
+
+function getGymNextCycle(duration = 1) {
+  const gymPayments = paymentsData.filter(p => p.billId === 'gym');
+  const lastPayment = gymPayments[0];
+  
+  let startCycleDate = null;
+  if (lastPayment && lastPayment.billMonth) {
+    const parsedEnd = parseBillMonth(lastPayment.billMonth);
+    if (parsedEnd) {
+      // Start of next cycle is on the 20th of the end month of last recorded payment
+      startCycleDate = new Date(parsedEnd.getFullYear(), parsedEnd.getMonth(), 20);
+    }
+  }
+  
+  if (!startCycleDate) {
+    const now = new Date();
+    const startMonth = now.getDate() >= 20 ? now.getMonth() : now.getMonth() - 1;
+    startCycleDate = new Date(now.getFullYear(), startMonth, 20);
+  }
+  
+  const endCycleDate = new Date(startCycleDate.getFullYear(), startCycleDate.getMonth() + duration, 20);
+  const dueDate = new Date(startCycleDate.getFullYear(), startCycleDate.getMonth() + duration, 21);
+  
+  const startFormatted = formatDateFriendly(formatLocalDate(startCycleDate));
+  const endFormatted = formatDateFriendly(formatLocalDate(endCycleDate));
+  const dueFormatted = formatDateFriendly(formatLocalDate(dueDate));
+  
+  return {
+    startDate: startCycleDate,
+    endDate: endCycleDate,
+    dueDate: dueDate,
+    rangeLabel: `${startFormatted} - ${endFormatted}`,
+    dueLabel: dueFormatted
+  };
+}
+
 function updateGymCalculation() {
   const section = document.getElementById('gym');
   if (!section) return;
 
   const rateInput = section.querySelector('.inputGymMonthlyRateVal');
-  const fromSelect = section.querySelector('.inputGymFromMonthSelect');
   const durationSelect = section.querySelector('.inputGymDurationSelect');
-  const feeInput = section.querySelector('.inputGymFeeVal');
 
-  if (!rateInput || !fromSelect || !durationSelect) return;
+  if (!rateInput || !durationSelect) return;
 
   const rate = parseFloat(rateInput.value) || 0;
   if (rate > 0) {
     localStorage.setItem('billzy_gym_rate', rate.toString());
   }
 
-  const fromMonthStr = fromSelect.value;
   const duration = parseInt(durationSelect.value, 10) || 1;
-  const fee = parseFloat(feeInput ? feeInput.value : 0) || 0;
-
-  const fromDate = parseSingleBillMonth(fromMonthStr);
-  
-  let cycleText = fromMonthStr;
-  let dueDateText = '21st';
-  
-  if (fromDate) {
-    const startCycleDate = new Date(fromDate.getFullYear(), fromDate.getMonth(), 20);
-    const endCycleDate = new Date(fromDate.getFullYear(), fromDate.getMonth() + duration, 20);
-    const dueDate = new Date(fromDate.getFullYear(), fromDate.getMonth() + duration, 21);
-
-    const startFormatted = formatDateFriendly(formatLocalDate(startCycleDate));
-    const endFormatted = formatDateFriendly(formatLocalDate(endCycleDate));
-    const dueFormatted = formatDateFriendly(formatLocalDate(dueDate));
-
-    cycleText = `${startFormatted} - ${endFormatted}`;
-    dueDateText = dueFormatted;
-  }
+  const cycleInfo = getGymNextCycle(duration);
 
   const baseAmount = Math.round(rate * duration);
-  const totalAmount = Math.round(baseAmount + fee);
 
   const countPill = section.querySelector('.gymDurationCountPill');
   const cycleLabel = section.querySelector('.gymCycleLabel');
   const duePill = section.querySelector('.gymDueDateBadge');
   const baseText = section.querySelector('.gymBaseText');
-  const feeTextSpan = section.querySelector('.gymFeeText');
-  const feeValText = section.querySelector('.gymFeeValText');
   const totalText = section.querySelector('.gymTotalText');
 
   if (countPill) countPill.innerText = duration === 1 ? '1 Month' : `${duration} Months`;
-  if (cycleLabel) cycleLabel.innerText = cycleText;
-  if (duePill) duePill.innerText = `Next Due: ${dueDateText}`;
+  if (cycleLabel) cycleLabel.innerText = cycleInfo.rangeLabel;
+  if (duePill) duePill.innerText = `Next Due: ${cycleInfo.dueLabel}`;
   if (baseText) baseText.innerText = baseAmount.toLocaleString();
-  if (feeTextSpan && feeValText) {
-    if (fee > 0) {
-      feeTextSpan.style.display = 'inline';
-      feeValText.innerText = fee.toLocaleString();
-    } else {
-      feeTextSpan.style.display = 'none';
-    }
-  }
-  if (totalText) totalText.innerText = totalAmount.toLocaleString();
+  if (totalText) totalText.innerText = baseAmount.toLocaleString();
 }
 
 function onLandTaxPropertyChange() {
@@ -5844,12 +5939,16 @@ function renderBillPages() {
         ['Last FY Paid', lastMonthText, '']
       ];
     } else if (bill.id === 'gym') {
+      const paused = isGymPaused();
       let nextDueText = '-';
       let nextDueClass = '';
       const now = new Date();
       now.setHours(0, 0, 0, 0);
 
-      if (lastPayment) {
+      if (paused) {
+        nextDueText = 'Paused (On Hold)';
+        nextDueClass = 'muted';
+      } else if (lastPayment) {
         let nextDueDate;
         const paidMonthDate = parseBillMonth(lastPayment.billMonth);
         if (paidMonthDate) {
@@ -5876,7 +5975,7 @@ function renderBillPages() {
           nextDueClass = diffDays <= 5 ? 'warning' : 'green';
         }
       } else {
-        nextDueText = 'Immediate';
+        nextDueText = 'Immediate (21st)';
         nextDueClass = 'red';
       }
 
@@ -5885,9 +5984,9 @@ function renderBillPages() {
       const lastMonthText = lastPayment && lastPayment.billMonth ? lastPayment.billMonth : '-';
 
       stats = [
+        ['Subscription Status', paused ? 'Paused 🔒' : 'Active ▶️', paused ? 'warning' : 'green mono'],
         ['Next Gym Due', nextDueText, nextDueClass],
         ['Last Amount', lastAmountText, 'green mono'],
-        ['Last pay date', lastDateText, ''],
         ['Last Cycle Paid', lastMonthText, '']
       ];
     } else { // Postpaid
@@ -5970,10 +6069,12 @@ function renderBillPages() {
     const DESCO_BILL_IDS = ['rupnagarDesco', 'uttaraDesco'];
     const isDescoPage = DESCO_BILL_IDS.includes(bill.id);
     const isUniqueStatsPage = !isDescoPage;
+    const isGym = bill.id === 'gym';
 
-    const actionRowHtml = (portalUrl || isDescoPage || isUniqueStatsPage) ? `
+    const actionRowHtml = (portalUrl || isDescoPage || isUniqueStatsPage || isGym) ? `
       <div class="billActionRow">
         ${portalBtnHtml ? portalBtnHtml : '<div></div>'}
+        ${isGym ? gymPauseBtnHtml() : ''}
         ${isDescoPage ? liveAnalyticsBtnHtml(bill.id) : ''}
         ${isUniqueStatsPage ? uniqueStatsBtnHtml(bill.id) : ''}
       </div>
@@ -6057,53 +6158,39 @@ function renderBillPages() {
         </div>
       `;
     } else if (bill.id === 'gym') {
-      const allMonthOpts = getBillingMonthOptions(18, 12);
-      let defaultFromMonth = currentMonthLabel;
-      if (lastPayment && lastPayment.billMonth) {
-        const parsedLastMonth = parseBillMonth(lastPayment.billMonth);
-        if (parsedLastMonth) {
-          const nextCycleStart = new Date(parsedLastMonth.getFullYear(), parsedLastMonth.getMonth(), 1);
-          const nextCycleStartLabel = `${nextCycleStart.toLocaleString('default', { month: 'long' })} ${nextCycleStart.getFullYear()}`;
-          if (allMonthOpts.includes(nextCycleStartLabel)) {
-            defaultFromMonth = nextCycleStartLabel;
-          }
-        }
-      }
-      
       const savedRate = localStorage.getItem('billzy_gym_rate') || '1700';
-      const fromDateObj = parseSingleBillMonth(defaultFromMonth) || new Date();
-      const defaultStartDate = new Date(fromDateObj.getFullYear(), fromDateObj.getMonth(), 20);
-      const defaultEndDate = new Date(fromDateObj.getFullYear(), fromDateObj.getMonth() + 1, 20);
-      const defaultDueDate = new Date(fromDateObj.getFullYear(), fromDateObj.getMonth() + 1, 21);
-      const defaultRangeLabel = `${formatDateFriendly(formatLocalDate(defaultStartDate))} - ${formatDateFriendly(formatLocalDate(defaultEndDate))}`;
-      const defaultDueLabel = formatDateFriendly(formatLocalDate(defaultDueDate));
+      const defaultCycleInfo = getGymNextCycle(1);
+      const paused = isGymPaused();
+
+      const pauseBannerHtml = paused ? `
+        <div class="gymPausedBanner" style="margin-bottom:14px; background:rgba(255,122,0,0.08); border:1px solid rgba(255,122,0,0.3); border-radius:14px; padding:12px 16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+          <div style="display:flex; align-items:center; gap:8px; color:#FF7A00; font-weight:700; font-size:0.92rem;">
+            <span>🔒 Gym Subscription Paused</span>
+            <span style="color:#94a3b8; font-weight:500; font-size:0.82rem;">(Dues & reminder alerts are silenced)</span>
+          </div>
+          <button onclick="toggleGymPause()" style="background:#FF7A00; color:#020817; border:none; border-radius:8px; padding:6px 14px; font-weight:800; font-size:0.82rem; cursor:pointer;">Resume</button>
+        </div>
+      ` : '';
 
       formSectionHtml = `
+        ${pauseBannerHtml}
         <div class="formSection gymFormSection">
-          <div class="sectionTitle">
-            Record Gym Membership Payment
+          <div class="sectionTitle" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+            <span>Record Gym Membership Payment</span>
+            ${paused ? '<span style="color:#FF7A00; font-size:0.82rem; font-weight:800; background:rgba(255,122,0,0.12); padding:3px 8px; border-radius:6px; border:1px solid rgba(255,122,0,0.3);">PAUSED</span>' : '<span style="color:#00E676; font-size:0.82rem; font-weight:800; background:rgba(0,230,118,0.12); padding:3px 8px; border-radius:6px; border:1px solid rgba(0,230,118,0.3);">ACTIVE</span>'}
           </div>
           <div class="formGrid gymGrid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap:14px;">
             <div class="inputCard">
-              <div class="inputLabel">
-                Monthly Fee
-              </div>
+              <div class="inputLabel">Monthly Fee (৳)</div>
               <input type="number" class="inputGymMonthlyRateVal" value="${savedRate}" placeholder="1700"
                 oninput="updateGymCalculation()"
                 style="width:100%; height:40px; background:transparent; border:none; color:white; font-size:1.8rem; font-weight:800; font-family:var(--font-amount); font-feature-settings:'tnum' 1; outline:none;">
             </div>
             <div class="inputCard">
-              <div class="inputLabel">Cycle Starting Month (20th)</div>
-              <select class="inputGymFromMonthSelect" onchange="updateGymCalculation()"
-                style="width:100%; height:40px; background:#0b1730; color:white; border:1px solid var(--border); border-radius:12px; padding:0 10px; font-size:1.05rem; font-weight:700; font-family:var(--font-amount);">
-                ${allMonthOpts.map(opt => `<option value="${opt}" ${opt === defaultFromMonth ? 'selected' : ''}>${opt} (Starts 20th)</option>`).join('')}
-              </select>
-            </div>
-            <div class="inputCard">
-              <div class="inputLabel">Duration (Months)</div>
+              <div class="inputLabel">Duration</div>
               <select class="inputGymDurationSelect" onchange="updateGymCalculation()"
                 style="width:100%; height:40px; background:#0b1730; color:white; border:1px solid var(--border); border-radius:12px; padding:0 10px; font-size:1.05rem; font-weight:700; font-family:var(--font-amount);">
-                <option value="1" selected>1 Month (20th to 20th)</option>
+                <option value="1" selected>1 Month</option>
                 <option value="2">2 Months</option>
                 <option value="3">3 Months</option>
                 <option value="4">4 Months</option>
@@ -6112,14 +6199,6 @@ function renderBillPages() {
                 <option value="9">9 Months</option>
                 <option value="12">12 Months (1 Year)</option>
               </select>
-            </div>
-            <div class="inputCard">
-              <div class="inputLabel">
-                Fee / Extra Surcharge
-              </div>
-              <input type="number" class="inputGymFeeVal" value="" placeholder="0" 
-                oninput="updateGymCalculation()"
-                style="width:100%; height:40px; background:transparent; border:none; color:#FF7A00; font-size:1.8rem; font-weight:800; font-family:var(--font-amount); font-feature-settings:'tnum' 1; outline:none;">
             </div>
             <div class="inputCard">
               <div class="inputLabel">Date Paid</div>
@@ -6131,12 +6210,11 @@ function renderBillPages() {
           <div class="gymCalcBanner" style="margin-top:14px; background:linear-gradient(180deg, rgba(14,30,60,0.85), rgba(6,16,36,0.95)); border:1px solid var(--border); border-radius:16px; padding:14px 18px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
             <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
               <span class="gymDurationCountPill" style="background:#1d3969; color:#00C2FF; font-family:var(--font-amount); font-size:0.95rem; font-weight:800; padding:5px 12px; border-radius:8px; border:1px solid rgba(0,194,255,0.3);">1 Month</span>
-              <span class="gymCycleLabel" style="color:#f8fafc; font-size:0.95rem; font-weight:700;">${defaultRangeLabel}</span>
-              <span class="gymDueDateBadge" style="background:rgba(255,122,0,0.12); color:#FF7A00; font-size:0.82rem; font-weight:800; padding:3px 8px; border-radius:6px; border:1px solid rgba(255,122,0,0.3);">Next Due: ${defaultDueLabel}</span>
+              <span class="gymCycleLabel" style="color:#f8fafc; font-size:0.95rem; font-weight:700;">${defaultCycleInfo.rangeLabel}</span>
+              <span class="gymDueDateBadge" style="background:rgba(255,122,0,0.12); color:#FF7A00; font-size:0.82rem; font-weight:800; padding:3px 8px; border-radius:6px; border:1px solid rgba(255,122,0,0.3);">Next Due: ${defaultCycleInfo.dueLabel}</span>
             </div>
             <div style="display:flex; align-items:baseline; gap:12px; flex-wrap:wrap;">
-              <span style="font-size:0.88rem; color:#94a3b8;">Main Fee: <strong class="gymBaseText" style="color:white; font-family:var(--font-amount); font-size:1.2rem; font-weight:800;">${parseInt(savedRate).toLocaleString()}</strong></span>
-              <span class="gymFeeText" style="font-size:0.88rem; color:#FF7A00; display:none;">+ <strong class="gymFeeValText">0</strong> fee</span>
+              <span style="font-size:0.88rem; color:#94a3b8;">Monthly Rate: <strong class="gymBaseText" style="color:white; font-family:var(--font-amount); font-size:1.2rem; font-weight:800;">${parseInt(savedRate).toLocaleString()}</strong></span>
               <span style="font-size:0.95rem; color:#00E676;">Total: <strong class="gymTotalText" style="font-size:1.35rem; font-family:var(--font-amount); font-weight:900;">${parseInt(savedRate).toLocaleString()}</strong></span>
             </div>
           </div>
@@ -6426,49 +6504,58 @@ function renderLandingPageCards() {
           <div class="billSub" style="color:${subColor}; font-weight:600; margin-top: 4px;">${subText}</div>
         `;
       } else if (bill.id === 'gym') {
-        let nextDueDate;
-        const paidMonthDate = parseBillMonth(lastPayment.billMonth);
-        if (paidMonthDate) {
-          nextDueDate = new Date(paidMonthDate.getFullYear(), paidMonthDate.getMonth(), 21);
+        if (isGymPaused()) {
+          shortStatus = 'Paused';
+          shortColor = '#94a3b8';
+          statusHtml = `
+            Subscription Paused
+            <div class="billSub" style="color:var(--muted); font-weight:600; margin-top: 4px;">🔒 On Hold (No Dues)</div>
+          `;
         } else {
-          const payDateObj = new Date(lastPayment.payDate);
-          if (payDateObj.getDate() >= 20) {
-            nextDueDate = new Date(payDateObj.getFullYear(), payDateObj.getMonth() + 1, 21);
+          let nextDueDate;
+          const paidMonthDate = parseBillMonth(lastPayment.billMonth);
+          if (paidMonthDate) {
+            nextDueDate = new Date(paidMonthDate.getFullYear(), paidMonthDate.getMonth(), 21);
           } else {
-            nextDueDate = new Date(payDateObj.getFullYear(), payDateObj.getMonth(), 21);
+            const payDateObj = new Date(lastPayment.payDate);
+            if (payDateObj.getDate() >= 20) {
+              nextDueDate = new Date(payDateObj.getFullYear(), payDateObj.getMonth() + 1, 21);
+            } else {
+              nextDueDate = new Date(payDateObj.getFullYear(), payDateObj.getMonth(), 21);
+            }
           }
+          
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          nextDueDate.setHours(0, 0, 0, 0);
+          
+          const diffTime = nextDueDate - today;
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          
+          let subText = '';
+          let subColor = '';
+          if (diffDays < 0) {
+            subText = `Overdue by ${Math.abs(diffDays)} Days`;
+            subColor = '#ff6368'; // Red
+            shortStatus = `Overdue ${Math.abs(diffDays)}d`;
+            shortColor = '#ff6368';
+          } else if (diffDays === 0) {
+            subText = `Due Today (21st)`;
+            subColor = '#ffe663';
+            shortStatus = `Due Today`;
+            shortColor = '#ffe663';
+          } else {
+            subText = `Next Due in ${diffDays} Days (21st)`;
+            subColor = diffDays <= 5 ? '#ffe663' : '#7ee787'; // Yellow or Green
+            shortStatus = `Due in ${diffDays}d`;
+            shortColor = subColor;
+          }
+          
+          statusHtml = `
+            Last Paid <span class="amount-highlight" style="color:var(--accent);">৳ ${parseInt(lastPayment.amount).toLocaleString()}</span>
+            <div class="billSub" style="color:${subColor}; font-weight:600; margin-top: 4px;">${subText}</div>
+          `;
         }
-        
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        nextDueDate.setHours(0, 0, 0, 0);
-        
-        const diffTime = nextDueDate - today;
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        
-        let subText = '';
-        let subColor = '';
-        if (diffDays < 0) {
-          subText = `Overdue by ${Math.abs(diffDays)} Days`;
-          subColor = '#ff6368'; // Red
-          shortStatus = `Overdue ${Math.abs(diffDays)}d`;
-          shortColor = '#ff6368';
-        } else if (diffDays === 0) {
-          subText = `Due Today (21st)`;
-          subColor = '#ffe663';
-          shortStatus = `Due Today`;
-          shortColor = '#ffe663';
-        } else {
-          subText = `Next Due in ${diffDays} Days (21st)`;
-          subColor = diffDays <= 5 ? '#ffe663' : '#7ee787'; // Yellow or Green
-          shortStatus = `Due in ${diffDays}d`;
-          shortColor = subColor;
-        }
-        
-        statusHtml = `
-          Last Paid <span class="amount-highlight" style="color:var(--accent);">৳ ${parseInt(lastPayment.amount).toLocaleString()}</span>
-          <div class="billSub" style="color:${subColor}; font-weight:600; margin-top: 4px;">${subText}</div>
-        `;
       } else if (bill.id === 'inspireBroadband') {
         let expiryDate;
         const paidMonthDate = parseBillMonth(lastPayment.billMonth);
@@ -6516,10 +6603,19 @@ function renderLandingPageCards() {
         `;
       }
     } else {
-      statusHtml = `
-        No Payments Record
-        <div class="billSub" style="color:var(--muted); margin-top: 4px;">-</div>
-      `;
+      if (bill.id === 'gym' && isGymPaused()) {
+        shortStatus = 'Paused';
+        shortColor = '#94a3b8';
+        statusHtml = `
+          Subscription Paused
+          <div class="billSub" style="color:var(--muted); font-weight:600; margin-top: 4px;">🔒 On Hold (No Dues)</div>
+        `;
+      } else {
+        statusHtml = `
+          No Payments Record
+          <div class="billSub" style="color:var(--muted); margin-top: 4px;">-</div>
+        `;
+      }
     }
 
     return {
@@ -6668,18 +6764,46 @@ function renderDashboardPage() {
         statusText = 'Balance-based';
         statusClass = 'statusBalance';
       } else {
-        if (lastPayment) {
-          let nextDueDate;
           if (bill.id === 'gym') {
-            const paidMonthDate = parseBillMonth(lastPayment.billMonth);
-            if (paidMonthDate) {
-              nextDueDate = new Date(paidMonthDate.getFullYear(), paidMonthDate.getMonth(), 21);
+            if (isGymPaused()) {
+              nextDueTop = 'Paused';
+              nextDueSub = 'On hold (silenced)';
+              nextDueClass = 'mutedText';
+              statusText = 'Paused';
+              statusClass = 'statusBalance';
             } else {
-              const payDateObj = new Date(lastPayment.payDate);
-              if (payDateObj.getDate() >= 20) {
-                nextDueDate = new Date(payDateObj.getFullYear(), payDateObj.getMonth() + 1, 21);
+              const paidMonthDate = parseBillMonth(lastPayment.billMonth);
+              if (paidMonthDate) {
+                nextDueDate = new Date(paidMonthDate.getFullYear(), paidMonthDate.getMonth(), 21);
               } else {
-                nextDueDate = new Date(payDateObj.getFullYear(), payDateObj.getMonth(), 21);
+                const payDateObj = new Date(lastPayment.payDate);
+                if (payDateObj.getDate() >= 20) {
+                  nextDueDate = new Date(payDateObj.getFullYear(), payDateObj.getMonth() + 1, 21);
+                } else {
+                  nextDueDate = new Date(payDateObj.getFullYear(), payDateObj.getMonth(), 21);
+                }
+              }
+              const diffTime = nextDueDate - now;
+              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+              
+              nextDueTop = formatDateFriendly(formatLocalDate(nextDueDate));
+              if (diffDays < 0) {
+                nextDueSub = `Overdue by ${Math.abs(diffDays)} days`;
+                nextDueClass = 'dangerText';
+                statusText = 'Overdue';
+                statusClass = 'statusOverdue';
+                overdueCount++;
+              } else if (diffDays <= 5) {
+                nextDueSub = `In ${diffDays} days`;
+                nextDueClass = 'warningText';
+                statusText = 'Due soon';
+                statusClass = 'statusSoon';
+                dueSoonCount++;
+              } else {
+                nextDueSub = `In ${diffDays} days`;
+                nextDueClass = 'successText';
+                statusText = 'Upcoming';
+                statusClass = 'statusUpcoming';
               }
             }
           } else {
@@ -6692,30 +6816,34 @@ function renderDashboardPage() {
               nextDueDate.setMonth(nextDueDate.getMonth() + 1);
               nextDueDate.setDate(1);
             }
+            
+            const diffTime = nextDueDate - now;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            nextDueTop = formatDateFriendly(formatLocalDate(nextDueDate));
+            if (diffDays < 0) {
+              nextDueSub = `Overdue by ${Math.abs(diffDays)} days`;
+              nextDueClass = 'dangerText';
+              statusText = 'Overdue';
+              statusClass = 'statusOverdue';
+              overdueCount++;
+            } else if (diffDays <= 5) {
+              nextDueSub = `In ${diffDays} days`;
+              nextDueClass = 'warningText';
+              statusText = 'Due soon';
+              statusClass = 'statusSoon';
+              dueSoonCount++;
+            } else {
+              nextDueSub = `In ${diffDays} days`;
+              nextDueClass = 'successText';
+              statusText = 'Upcoming';
+              statusClass = 'statusUpcoming';
+            }
           }
-          
-          const diffTime = nextDueDate - now;
-          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-          
-          nextDueTop = formatDateFriendly(formatLocalDate(nextDueDate));
-          if (diffDays < 0) {
-            nextDueSub = `Overdue by ${Math.abs(diffDays)} days`;
-            nextDueClass = 'dangerText';
-            statusText = 'Overdue';
-            statusClass = 'statusOverdue';
-            overdueCount++;
-          } else if (diffDays <= 5) {
-            nextDueSub = `In ${diffDays} days`;
-            nextDueClass = 'warningText';
-            statusText = 'Due soon';
-            statusClass = 'statusSoon';
-            dueSoonCount++;
-          } else {
-            nextDueSub = `In ${diffDays} days`;
-            nextDueClass = 'successText';
-            statusText = 'Upcoming';
-            statusClass = 'statusUpcoming';
-          }
+        } else if (bill.id === 'gym' && isGymPaused()) {
+          nextDueTop = 'Paused';
+          statusText = 'Paused';
+          statusClass = 'statusBalance';
         } else {
           nextDueTop = 'Immediate';
           statusText = 'Overdue';
@@ -8835,9 +8963,7 @@ function submitPaymentForm(billId) {
     amountVal = calculatedBase.toString();
   } else if (billId === 'gym') {
     const rateInput = section.querySelector('.inputGymMonthlyRateVal');
-    const fromSelect = section.querySelector('.inputGymFromMonthSelect');
     const durationSelect = section.querySelector('.inputGymDurationSelect');
-    const feeInput = section.querySelector('.inputGymFeeVal');
     const dateInput = section.querySelector('.inputDateVal');
 
     const rate = parseFloat(rateInput ? rateInput.value : 0) || 0;
@@ -8847,21 +8973,12 @@ function submitPaymentForm(billId) {
     }
     localStorage.setItem('billzy_gym_rate', rate.toString());
 
-    const fromMonthStr = fromSelect ? fromSelect.value : '';
     const duration = parseInt(durationSelect ? durationSelect.value : 1, 10) || 1;
     dateVal = dateInput ? dateInput.value.trim() : '';
-    feeVal = feeInput ? feeInput.value.trim() : '';
+    feeVal = '';
 
-    const fromDate = parseSingleBillMonth(fromMonthStr);
-    if (fromDate) {
-      const startCycleDate = new Date(fromDate.getFullYear(), fromDate.getMonth(), 20);
-      const endCycleDate = new Date(fromDate.getFullYear(), fromDate.getMonth() + duration, 20);
-      const startFormatted = formatDateFriendly(formatLocalDate(startCycleDate));
-      const endFormatted = formatDateFriendly(formatLocalDate(endCycleDate));
-      monthVal = `${startFormatted} - ${endFormatted}`;
-    } else {
-      monthVal = fromMonthStr;
-    }
+    const cycleInfo = getGymNextCycle(duration);
+    monthVal = cycleInfo.rangeLabel;
 
     const calculatedBase = Math.round(rate * duration);
     amountVal = calculatedBase.toString();
