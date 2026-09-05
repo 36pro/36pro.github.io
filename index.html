@@ -5951,7 +5951,7 @@ function updateLandTaxCalculation() {
   if (amt > 0) {
     localStorage.setItem('billzy_landtax_rate_' + key, amt.toString());
   }
-  const baseAmount = Math.round(amt * yearsCount);
+  const baseAmount = Math.round(amt);
 
   const fee = parseFloat(feeInput ? feeInput.value : 0) || 0;
   const totalAmount = Math.round(baseAmount + fee);
@@ -6411,7 +6411,7 @@ function renderBillPages() {
             </div>
             
             <div class="inputCard landTaxSinglePropContainer">
-              <div class="inputLabel">Tax Amount per Year (৳)</div>
+              <div class="inputLabel">Total Tax Amount (৳)</div>
               <input type="number" class="inputLandTaxSingleAmountVal" value="${savedMatuail}" placeholder="1500"
                 oninput="updateLandTaxCalculation()"
                 style="width:100%; height:40px; background:transparent; border:none; color:white; font-size:1.8rem; font-weight:800; font-family:var(--font-amount); font-feature-settings:'tnum' 1; outline:none;">
@@ -9254,7 +9254,7 @@ function submitPaymentForm(billId) {
     if (amt > 0) {
       localStorage.setItem('billzy_landtax_rate_' + key, amt.toString());
     }
-    const calculatedBase = Math.round(amt * yearsCount);
+    const calculatedBase = Math.round(amt);
     if (calculatedBase <= 0) {
       alert('Please enter a valid tax amount.');
       return;
