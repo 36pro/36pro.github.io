@@ -4201,7 +4201,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
           <option value="মাতুয়াইল - ২০">মাতুয়াইল - ২০</option>
           <option value="উত্তরখান - ১৯">উত্তরখান - ১৯</option>
           <option value="কেশুরবাগ - ৮১">কেশুরবাগ - ৮১</option>
-          <option value="সকল ৩টি সম্পত্তি">সকল ৩টি সম্পত্তি</option>
         </select>
       </div>
 
@@ -5849,26 +5848,10 @@ function updateLandTaxCalculation() {
   const toSelect = section.querySelector('.inputLandTaxToYearSelect');
   const feeInput = section.querySelector('.inputLandTaxFeeVal');
   const singleAmountInput = section.querySelector('.inputLandTaxSingleAmountVal');
-  const allPropsContainer = section.querySelector('.landTaxAllPropsContainer');
-  const singlePropContainer = section.querySelector('.landTaxSinglePropContainer');
-
-  const matuailInput = section.querySelector('.inputLandTaxRateMatuail');
-  const uttarkhanInput = section.querySelector('.inputLandTaxRateUttarkhan');
-  const keshurbagInput = section.querySelector('.inputLandTaxRateKeshurbag');
 
   if (!propSelect) return;
 
   const selectedProp = propSelect.value;
-  const isAllProps = selectedProp.includes('সকল') || selectedProp.includes('All 3');
-
-  if (isAllProps) {
-    if (singlePropContainer) singlePropContainer.style.display = 'none';
-    if (allPropsContainer) allPropsContainer.style.display = 'grid';
-  } else {
-    if (singlePropContainer) singlePropContainer.style.display = 'block';
-    if (allPropsContainer) allPropsContainer.style.display = 'none';
-  }
-
   const fromY = parseInt(fromSelect ? fromSelect.value : new Date().getFullYear(), 10) || new Date().getFullYear();
   let toY = parseInt(toSelect ? toSelect.value : fromY, 10) || fromY;
   if (toY < fromY) toY = fromY;
@@ -5885,28 +5868,15 @@ function updateLandTaxCalculation() {
   });
 
   // Load / Save property rate defaults and calculate base total
-  let baseAmount = 0;
-  if (isAllProps) {
-    const matuailAmt = parseFloat(matuailInput ? matuailInput.value : 0) || 0;
-    const uttarkhanAmt = parseFloat(uttarkhanInput ? uttarkhanInput.value : 0) || 0;
-    const keshurbagAmt = parseFloat(keshurbagInput ? keshurbagInput.value : 0) || 0;
+  let key = 'matuail';
+  if (selectedProp.includes('উত্তরখান')) key = 'uttarkhan';
+  if (selectedProp.includes('কেশুরবাগ')) key = 'keshurbag';
 
-    if (matuailAmt > 0) localStorage.setItem('billzy_landtax_rate_matuail', matuailAmt.toString());
-    if (uttarkhanAmt > 0) localStorage.setItem('billzy_landtax_rate_uttarkhan', uttarkhanAmt.toString());
-    if (keshurbagAmt > 0) localStorage.setItem('billzy_landtax_rate_keshurbag', keshurbagAmt.toString());
-
-    baseAmount = Math.round((matuailAmt + uttarkhanAmt + keshurbagAmt) * yearsCount);
-  } else {
-    let key = 'matuail';
-    if (selectedProp.includes('উত্তরখান')) key = 'uttarkhan';
-    if (selectedProp.includes('কেশুরবাগ')) key = 'keshurbag';
-
-    const amt = parseFloat(singleAmountInput ? singleAmountInput.value : 0) || 0;
-    if (amt > 0) {
-      localStorage.setItem('billzy_landtax_rate_' + key, amt.toString());
-    }
-    baseAmount = Math.round(amt * yearsCount);
+  const amt = parseFloat(singleAmountInput ? singleAmountInput.value : 0) || 0;
+  if (amt > 0) {
+    localStorage.setItem('billzy_landtax_rate_' + key, amt.toString());
   }
+  const baseAmount = Math.round(amt * yearsCount);
 
   const fee = parseFloat(feeInput ? feeInput.value : 0) || 0;
   const totalAmount = Math.round(baseAmount + fee);
@@ -6362,7 +6332,6 @@ function renderBillPages() {
                 <option value="মাতুয়াইল - ২০" selected>মাতুয়াইল - ২০</option>
                 <option value="উত্তরখান - ১৯">উত্তরখান - ১৯</option>
                 <option value="কেশুরবাগ - ৮১">কেশুরবাগ - ৮১</option>
-                <option value="সকল ৩টি সম্পত্তি">সকল ৩টি সম্পত্তি</option>
               </select>
             </div>
             
@@ -6404,28 +6373,6 @@ function renderBillPages() {
             <div class="inputCard">
               <div class="inputLabel">Date Paid</div>
               <input type="date" class="inputDateVal" value="${localISODate}" onclick="try { this.showPicker(); } catch(e) {}" style="width:100%; height:40px; background:transparent; border:none; color:white; font-size:1.4rem; font-weight:800; font-family:var(--font-amount); font-feature-settings:'tnum' 1; outline:none; cursor:pointer;">
-            </div>
-          </div>
-
-          <!-- Multi-Property 3-Amount Breakdown Sub-grid (shown when "সকল ৩টি সম্পত্তি" is selected) -->
-          <div class="landTaxAllPropsContainer" style="display:none; margin-top:14px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap:12px; background:rgba(0,194,255,0.03); border:1px solid rgba(0,194,255,0.15); border-radius:14px; padding:12px 14px;">
-            <div class="inputCard" style="background:#0b1730;">
-              <div class="inputLabel bnFont" style="color:#00C2FF;">মাতুয়াইল - ২০ (৳/yr)</div>
-              <input type="number" class="inputLandTaxRateMatuail" value="${savedMatuail}" placeholder="1500"
-                oninput="updateLandTaxCalculation()"
-                style="width:100%; height:36px; background:transparent; border:none; color:white; font-size:1.5rem; font-weight:800; font-family:var(--font-amount); outline:none;">
-            </div>
-            <div class="inputCard" style="background:#0b1730;">
-              <div class="inputLabel bnFont" style="color:#00C2FF;">উত্তরখান - ১৯ (৳/yr)</div>
-              <input type="number" class="inputLandTaxRateUttarkhan" value="${savedUttarkhan}" placeholder="2000"
-                oninput="updateLandTaxCalculation()"
-                style="width:100%; height:36px; background:transparent; border:none; color:white; font-size:1.5rem; font-weight:800; font-family:var(--font-amount); outline:none;">
-            </div>
-            <div class="inputCard" style="background:#0b1730;">
-              <div class="inputLabel bnFont" style="color:#00C2FF;">কেশুরবাগ - ৮১ (৳/yr)</div>
-              <input type="number" class="inputLandTaxRateKeshurbag" value="${savedKeshurbag}" placeholder="850"
-                oninput="updateLandTaxCalculation()"
-                style="width:100%; height:36px; background:transparent; border:none; color:white; font-size:1.5rem; font-weight:800; font-family:var(--font-amount); outline:none;">
             </div>
           </div>
 
@@ -9185,7 +9132,6 @@ function submitPaymentForm(billId) {
     const receiptLocInput = section.querySelector('.inputLandTaxReceiptLocation');
 
     const selectedProp = propSelect ? propSelect.value : 'মাতুয়াইল - ২০';
-    const isAllProps = selectedProp.includes('সকল') || selectedProp.includes('All 3');
     
     let fromY = parseInt(fromSelect ? fromSelect.value : new Date().getFullYear(), 10) || new Date().getFullYear();
     let toY = parseInt(toSelect ? toSelect.value : fromY, 10) || fromY;
@@ -9203,106 +9149,47 @@ function submitPaymentForm(billId) {
       return;
     }
 
-    if (isAllProps) {
-      const matuailAmt = parseFloat(section.querySelector('.inputLandTaxRateMatuail')?.value || 0) || 0;
-      const uttarkhanAmt = parseFloat(section.querySelector('.inputLandTaxRateUttarkhan')?.value || 0) || 0;
-      const keshurbagAmt = parseFloat(section.querySelector('.inputLandTaxRateKeshurbag')?.value || 0) || 0;
+    let key = 'matuail';
+    if (selectedProp.includes('উত্তরখান')) key = 'uttarkhan';
+    if (selectedProp.includes('কেশুরবাগ')) key = 'keshurbag';
 
-      if (matuailAmt > 0) localStorage.setItem('billzy_landtax_rate_matuail', matuailAmt.toString());
-      if (uttarkhanAmt > 0) localStorage.setItem('billzy_landtax_rate_uttarkhan', uttarkhanAmt.toString());
-      if (keshurbagAmt > 0) localStorage.setItem('billzy_landtax_rate_keshurbag', keshurbagAmt.toString());
-
-      const matuailTotal = Math.round(matuailAmt * yearsCount);
-      const uttarkhanTotal = Math.round(uttarkhanAmt * yearsCount);
-      const keshurbagTotal = Math.round(keshurbagAmt * yearsCount);
-      const calculatedBase = matuailTotal + uttarkhanTotal + keshurbagTotal;
-
-      if (calculatedBase <= 0) {
-        alert('Please enter valid tax amounts for the properties.');
-        return;
-      }
-
-      const isCloudSynced = Boolean(typeof currentUser !== 'undefined' && currentUser && typeof db !== 'undefined' && db);
-
-      // Trigger reward modal for total
-      showPaymentSuccessModal({
-        billName: 'Land Tax (সকল ৩টি সম্পত্তি)',
-        amount: calculatedBase.toString(),
-        fee: feeVal,
-        date: dateVal,
-        month: monthVal,
-        isOffline: !isCloudSynced
-      });
-
-      // Reset inputs immediately
-      if (section.querySelector('.inputLandTaxFeeVal')) section.querySelector('.inputLandTaxFeeVal').value = '';
-      if (section.querySelector('.inputLandTaxReceiptName')) section.querySelector('.inputLandTaxReceiptName').value = '';
-      if (section.querySelector('.inputLandTaxReceiptLocation')) section.querySelector('.inputLandTaxReceiptLocation').value = '';
-      updateLandTaxCalculation();
-
-      // Save 3 separate records for each property in database
-      const propEntries = [
-        { prop: 'মাতুয়াইল - ২০', amt: matuailTotal, fee: feeVal },
-        { prop: 'উত্তরখান - ১৯', amt: uttarkhanTotal, fee: '' },
-        { prop: 'কেশুরবাগ - ৮১', amt: keshurbagTotal, fee: '' }
-      ];
-
-      propEntries.forEach(item => {
-        if (item.amt > 0) {
-          savePaymentRecord('landTax', item.amt.toString(), dateVal, monthVal, item.fee, {
-            property: item.prop,
-            receiptFileName: receiptName,
-            receiptLocation: receiptLoc,
-            note: item.prop
-          }).catch(err => {
-            console.error("Save payment error for " + item.prop + ":", err);
-          });
-        }
-      });
-      return;
-    } else {
-      let key = 'matuail';
-      if (selectedProp.includes('উত্তরখান')) key = 'uttarkhan';
-      if (selectedProp.includes('কেশুরবাগ')) key = 'keshurbag';
-
-      const amt = parseFloat(singleAmountInput ? singleAmountInput.value : 0) || 0;
-      if (amt > 0) {
-        localStorage.setItem('billzy_landtax_rate_' + key, amt.toString());
-      }
-      const calculatedBase = Math.round(amt * yearsCount);
-      if (calculatedBase <= 0) {
-        alert('Please enter a valid tax amount.');
-        return;
-      }
-
-      const isCloudSynced = Boolean(typeof currentUser !== 'undefined' && currentUser && typeof db !== 'undefined' && db);
-
-      showPaymentSuccessModal({
-        billName: `Land Tax (${selectedProp})`,
-        amount: calculatedBase.toString(),
-        fee: feeVal,
-        date: dateVal,
-        month: monthVal,
-        isOffline: !isCloudSynced
-      });
-
-      // Reset inputs immediately
-      if (section.querySelector('.inputLandTaxFeeVal')) section.querySelector('.inputLandTaxFeeVal').value = '';
-      if (section.querySelector('.inputLandTaxReceiptName')) section.querySelector('.inputLandTaxReceiptName').value = '';
-      if (section.querySelector('.inputLandTaxReceiptLocation')) section.querySelector('.inputLandTaxReceiptLocation').value = '';
-      updateLandTaxCalculation();
-
-      savePaymentRecord('landTax', calculatedBase.toString(), dateVal, monthVal, feeVal, {
-        property: selectedProp,
-        receiptFileName: receiptName,
-        receiptLocation: receiptLoc,
-        note: selectedProp
-      }).catch(err => {
-        console.error("Save payment error:", err);
-        showPaymentErrorModal(err.message || 'Failed to record payment');
-      });
+    const amt = parseFloat(singleAmountInput ? singleAmountInput.value : 0) || 0;
+    if (amt > 0) {
+      localStorage.setItem('billzy_landtax_rate_' + key, amt.toString());
+    }
+    const calculatedBase = Math.round(amt * yearsCount);
+    if (calculatedBase <= 0) {
+      alert('Please enter a valid tax amount.');
       return;
     }
+
+    const isCloudSynced = Boolean(typeof currentUser !== 'undefined' && currentUser && typeof db !== 'undefined' && db);
+
+    showPaymentSuccessModal({
+      billName: `Land Tax (${selectedProp})`,
+      amount: calculatedBase.toString(),
+      fee: feeVal,
+      date: dateVal,
+      month: monthVal,
+      isOffline: !isCloudSynced
+    });
+
+    // Reset inputs immediately
+    if (section.querySelector('.inputLandTaxFeeVal')) section.querySelector('.inputLandTaxFeeVal').value = '';
+    if (section.querySelector('.inputLandTaxReceiptName')) section.querySelector('.inputLandTaxReceiptName').value = '';
+    if (section.querySelector('.inputLandTaxReceiptLocation')) section.querySelector('.inputLandTaxReceiptLocation').value = '';
+    updateLandTaxCalculation();
+
+    savePaymentRecord('landTax', calculatedBase.toString(), dateVal, monthVal, feeVal, {
+      property: selectedProp,
+      receiptFileName: receiptName,
+      receiptLocation: receiptLoc,
+      note: selectedProp
+    }).catch(err => {
+      console.error("Save payment error:", err);
+      showPaymentErrorModal(err.message || 'Failed to record payment');
+    });
+    return;
   } else {
     amountVal = section.querySelector('.inputAmountVal') ? section.querySelector('.inputAmountVal').value.trim() : '';
     feeVal = section.querySelector('.inputFeeVal') ? section.querySelector('.inputFeeVal').value.trim() : '';
