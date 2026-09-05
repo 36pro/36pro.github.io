@@ -4050,12 +4050,12 @@ input[type="date"]::-webkit-calendar-picker-indicator {
       </div>
       
       <div class="formField">
-        <label>Main Amount Paid (৳)</label>
+        <label>Main Amount Paid</label>
         <input type="number" id="editAmount" placeholder="">
       </div>
       
       <div class="formField">
-        <label>Fee / Gateway Surcharge (৳)</label>
+        <label>Fee / Gateway Surcharge</label>
         <input type="number" id="editFee" placeholder="0 (Optional fee)">
       </div>
       
@@ -5330,7 +5330,7 @@ function updateMatuailGasCalculation() {
 
   if (countPill) countPill.innerText = monthCount === 1 ? '1 Month' : `${monthCount} Months`;
   if (rangeLabel) rangeLabel.innerText = rangeStr;
-  if (baseText) baseText.innerText = `৳ ${baseAmount.toLocaleString()}`;
+  if (baseText) baseText.innerText = baseAmount.toLocaleString();
   if (feeTextSpan && feeValText) {
     if (fee > 0) {
       feeTextSpan.style.display = 'inline';
@@ -5339,7 +5339,7 @@ function updateMatuailGasCalculation() {
       feeTextSpan.style.display = 'none';
     }
   }
-  if (totalText) totalText.innerText = `৳ ${totalAmount.toLocaleString()}`;
+  if (totalText) totalText.innerText = totalAmount.toLocaleString();
 }
 
 // Rendering UI dynamically
@@ -5517,15 +5517,13 @@ function renderBillPages() {
 
       formSectionHtml = `
         <div class="formSection matuailFormSection">
-          <div class="sectionTitle" style="display:flex; align-items:center; justify-content:space-between;">
-            <span>Record Gas Payment</span>
-            <span class="multiMonthBadge" style="font-size:0.75rem; font-weight:700; color:#00C2FF; background:rgba(0,194,255,0.12); border:1px solid rgba(0,194,255,0.3); border-radius:999px; padding:3px 10px; text-transform:uppercase; letter-spacing:0.5px;">Multi-Month Ready</span>
+          <div class="sectionTitle">
+            Record Gas Payment
           </div>
           <div class="formGrid matuailGrid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap:14px;">
             <div class="inputCard">
-              <div class="inputLabel" style="display:flex; justify-content:space-between;">
-                <span>Monthly Rate (৳)</span>
-                <span style="color:#00E676; font-size:0.75rem;">Fixed / Mo</span>
+              <div class="inputLabel">
+                Monthly Rate
               </div>
               <input type="number" class="inputMonthlyRateVal" value="${savedRate}" placeholder="1080"
                 oninput="updateMatuailGasCalculation()"
@@ -5546,9 +5544,8 @@ function renderBillPages() {
               </select>
             </div>
             <div class="inputCard">
-              <div class="inputLabel" style="display:flex; justify-content:space-between;">
-                <span>Surcharge / Late Fee (৳)</span>
-                <span style="color:#FF7A00; font-size:0.75rem;">Optional</span>
+              <div class="inputLabel">
+                Surcharge / Late Fee
               </div>
               <input type="number" class="inputFeeVal" value="" placeholder="0" 
                 oninput="updateMatuailGasCalculation()"
@@ -5567,9 +5564,9 @@ function renderBillPages() {
               <span class="matuailRangeLabel" style="color:#f8fafc; font-size:0.95rem; font-weight:700;">${defaultFromMonth}</span>
             </div>
             <div style="display:flex; align-items:baseline; gap:12px; flex-wrap:wrap;">
-              <span style="font-size:0.88rem; color:#94a3b8;">Main Amount: <strong class="matuailBaseText" style="color:white; font-family:var(--font-amount); font-size:1.2rem; font-weight:800;">৳ ${parseInt(savedRate).toLocaleString()}</strong></span>
-              <span class="matuailFeeText" style="font-size:0.88rem; color:#FF7A00; display:none;">+ ৳ <strong class="matuailFeeValText">0</strong> fee</span>
-              <span style="font-size:0.95rem; color:#00E676;">Total: <strong class="matuailTotalText" style="font-size:1.35rem; font-family:var(--font-amount); font-weight:900;">৳ ${parseInt(savedRate).toLocaleString()}</strong></span>
+              <span style="font-size:0.88rem; color:#94a3b8;">Main Amount: <strong class="matuailBaseText" style="color:white; font-family:var(--font-amount); font-size:1.2rem; font-weight:800;">${parseInt(savedRate).toLocaleString()}</strong></span>
+              <span class="matuailFeeText" style="font-size:0.88rem; color:#FF7A00; display:none;">+ <strong class="matuailFeeValText">0</strong> fee</span>
+              <span style="font-size:0.95rem; color:#00E676;">Total: <strong class="matuailTotalText" style="font-size:1.35rem; font-family:var(--font-amount); font-weight:900;">${parseInt(savedRate).toLocaleString()}</strong></span>
             </div>
           </div>
 
@@ -5582,13 +5579,13 @@ function renderBillPages() {
           <div class="sectionTitle">Record Payment</div>
           <div class="formGrid fourCol">
             <div class="inputCard">
-              <div class="inputLabel">Main Amount (৳)</div>
+              <div class="inputLabel">Main Amount</div>
               <input type="number" class="inputAmountVal" value="" placeholder="" 
                 ${['rupnagarDesco', 'uttaraDesco', 'rupnagarGas'].includes(bill.id) ? `onblur="handleAmountAutoSplit('${bill.id}', this)" oninput="handleAmountAutoSplitQuick('${bill.id}', this)"` : ''}
                 style="width:100%; height:40px; background:transparent; border:none; color:white; font-size:1.8rem; font-weight:800; font-family:var(--font-amount); outline:none;">
             </div>
             <div class="inputCard">
-              <div class="inputLabel">Fee / Surcharge (৳)</div>
+              <div class="inputLabel">Fee / Surcharge</div>
               <input type="number" class="inputFeeVal" value="" placeholder="0" 
                 style="width:100%; height:40px; background:transparent; border:none; color:#FF7A00; font-size:1.8rem; font-weight:800; font-family:var(--font-amount); outline:none;">
             </div>
