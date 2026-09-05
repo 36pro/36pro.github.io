@@ -5306,7 +5306,7 @@ function openEditModal(uid) {
   const receiptPreviewBtn = document.getElementById('editReceiptPreviewBtn');
   
   if (p.billId === 'landTax') {
-    if (monthLabel) monthLabel.innerText = 'Fiscal Year (Apr 1 - Mar 31)';
+    if (monthLabel) monthLabel.innerText = 'FY (Apr 1 - Mar 31)';
     monthContainer.classList.remove('hidden');
     const fyOpts = [];
     const yrList = getLandTaxYearList(7, 6);
@@ -6418,7 +6418,7 @@ function renderBillPages() {
             </div>
 
             <div class="inputCard">
-              <div class="inputLabel">Fiscal Year (Apr 1 - Mar 31)</div>
+              <div class="inputLabel">FY (Apr 1 - Mar 31)</div>
               <select class="inputLandTaxStartYearSelect" onchange="updateLandTaxCalculation()"
                 style="width:100%; height:40px; background:#0b1730; color:white; border:1px solid var(--border); border-radius:12px; padding:0 10px; font-size:1.05rem; font-weight:700; font-family:var(--font-amount);">
                 ${yearOptions.map(y => `<option value="${y}" ${y === defaultFromYear ? 'selected' : ''}>${y}</option>`).join('')}
