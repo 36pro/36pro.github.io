@@ -6349,9 +6349,9 @@ function renderBillPages() {
         if (lastPayment && lastPayment.billMonth) {
           const gasDueInfo = getMatuailGasDueInfo(lastPayment);
           lastMonthVal = `
-            <div style="display:flex; flex-direction:column; gap:3px; line-height:1.2;">
+            <div style="display:flex; flex-direction:column; gap:4px; line-height:1.2; width:100%;">
               <span style="font-size:1.18rem; font-weight:800; color:#f8fafc; letter-spacing:-0.2px;">${gasDueInfo.paidTill}</span>
-              <span style="font-size:0.85rem; font-weight:700; color:${gasDueInfo.dueColor}; font-family:var(--font-amount);">
+              <span style="font-size:1.05rem; font-weight:800; color:${gasDueInfo.dueColor}; font-family:var(--font-amount); text-align:right; align-self:flex-end; width:100%; letter-spacing:-0.2px;">
                 ${gasDueInfo.dueText}
               </span>
             </div>
