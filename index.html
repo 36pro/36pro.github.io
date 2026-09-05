@@ -17,6 +17,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&family=Outfit:wght@600;700;800;900&family=Plus+Jakarta+Sans:ital,wght@0,600;0,700;0,800;0,900;1,800&family=Tiro+Bangla:ital@0;1&display=swap" rel="stylesheet">
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- jsQR Code Reader Library -->
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <!-- Firebase App, Auth, Firestore (Compat SDK) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -4180,14 +4182,25 @@ input[type="date"]::-webkit-calendar-picker-indicator {
         </select>
       </div>
 
-      <div id="editReceiptNameContainer" class="formField hidden">
-        <label>Receipt File Name</label>
-        <input type="text" id="editReceiptName" placeholder="e.g. dakhila_matuail_2026.pdf" style="width:100%; height:44px; background:#0b1730; color:white; border:1px solid var(--border); border-radius:12px; padding:0 10px; font-size:.95rem;">
-      </div>
-
-      <div id="editReceiptLocContainer" class="formField hidden">
-        <label>Storage Location</label>
-        <input type="text" id="editReceiptLoc" placeholder="e.g. Google Drive / Documents / Land Tax" style="width:100%; height:44px; background:#0b1730; color:white; border:1px solid var(--border); border-radius:12px; padding:0 10px; font-size:.95rem;">
+      <div id="editReceiptUrlContainer" class="formField hidden">
+        <label style="display:flex; align-items:center; justify-content:space-between;">
+          <span>Receipt Link / QR Code</span>
+          <span id="editQrScanStatus" style="font-size:0.75rem; font-weight:700; color:#00E676; display:none;"></span>
+        </label>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <input type="text" id="editReceiptUrl" placeholder="Paste link or QR Code image (Ctrl+V)..." 
+            onpaste="handleQrPaste(event, this, 'editQrScanStatus', 'editReceiptPreviewBtn')"
+            oninput="handleReceiptUrlInput(this, 'editReceiptPreviewBtn')"
+            style="flex:1; height:44px; background:#0b1730; color:white; border:1px solid var(--border); border-radius:12px; padding:0 10px; font-size:.95rem;">
+          <a id="editReceiptPreviewBtn" href="#" target="_blank" rel="noopener noreferrer" style="display:none; align-items:center; gap:4px; padding:0 12px; height:44px; background:rgba(0,230,118,0.15); border:1px solid rgba(0,230,118,0.3); border-radius:12px; color:#00E676; font-size:0.85rem; font-weight:700; text-decoration:none; white-space:nowrap;">
+            <span>View</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+          </a>
+          <label for="editReceiptQrFile" style="cursor:pointer; display:flex; align-items:center; justify-content:center; width:44px; height:44px; background:rgba(0,194,255,0.1); border:1px solid rgba(0,194,255,0.3); border-radius:12px; color:#00C2FF;" title="Upload or Scan QR Code">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+          </label>
+          <input type="file" id="editReceiptQrFile" accept="image/*" style="display:none;" onchange="handleQrFileInput(this, 'editReceiptUrl', 'editQrScanStatus', 'editReceiptPreviewBtn')">
+        </div>
       </div>
     </div>
     <div class="modalFooter">
@@ -5047,6 +5060,7 @@ async function savePaymentRecord(billId, amount, payDate, billMonth, fee = '', e
     savedAt: new Date().toISOString(),
     timestamp: new Date(payDate).getTime() || Date.now(),
     property: extra.property || '',
+    receiptUrl: extra.receiptUrl || '',
     receiptFileName: extra.receiptFileName || '',
     receiptLocation: extra.receiptLocation || '',
     note: extra.note || (extra.property ? extra.property : '')
@@ -5075,6 +5089,147 @@ async function savePaymentRecord(billId, amount, payDate, billMonth, fee = '', e
     }
   } else {
     saveToLocalStorage(newRecord);
+  }
+}
+
+// QR Code Decoder from Blob/File/Image
+async function decodeQrCode(fileOrBlob) {
+  if (!fileOrBlob) return null;
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(fileOrBlob);
+    img.onload = async () => {
+      URL.revokeObjectURL(url);
+      try {
+        if ('BarcodeDetector' in window) {
+          try {
+            const detector = new BarcodeDetector({ formats: ['qr_code'] });
+            const barcodes = await detector.detect(img);
+            if (barcodes && barcodes.length > 0 && barcodes[0].rawValue) {
+              return resolve(barcodes[0].rawValue.trim());
+            }
+          } catch (e) {
+            console.warn('BarcodeDetector error, falling back to jsQR:', e);
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth || img.width;
+        canvas.height = img.naturalHeight || img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+        if (typeof jsQR !== 'undefined') {
+          const code = jsQR(imgData.data, imgData.width, imgData.height, {
+            inversionAttempts: 'attemptBoth'
+          }) || jsQR(imgData.data, imgData.width, imgData.height, {
+            inversionAttempts: 'dontInvert'
+          });
+          if (code && code.data) {
+            return resolve(code.data.trim());
+          }
+        }
+        resolve(null);
+      } catch (err) {
+        console.error('QR decode error:', err);
+        resolve(null);
+      }
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(null);
+    };
+    img.src = url;
+  });
+}
+
+async function handleQrPaste(e, inputEl, statusId, previewBtnId) {
+  const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
+  if (!items) return;
+
+  for (let i = 0; i < items.length; i++) {
+    if (items[i].type.indexOf('image') !== -1) {
+      e.preventDefault();
+      const blob = items[i].getAsFile();
+      if (!blob) return;
+
+      const statusEl = statusId ? document.getElementById(statusId) : null;
+      if (statusEl) {
+        statusEl.style.display = 'inline-block';
+        statusEl.style.color = '#00C2FF';
+        statusEl.innerText = '🔍 Scanning QR code...';
+      }
+
+      const qrText = await decodeQrCode(blob);
+      if (qrText) {
+        inputEl.value = qrText.trim();
+        inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+        if (previewBtnId) {
+          handleReceiptUrlInput(inputEl, previewBtnId);
+        }
+        if (statusEl) {
+          statusEl.style.color = '#00E676';
+          statusEl.innerHTML = '✓ QR Code Extracted';
+          setTimeout(() => { if (statusEl) statusEl.style.display = 'none'; }, 3500);
+        }
+      } else {
+        if (statusEl) {
+          statusEl.style.color = '#FF7A00';
+          statusEl.innerText = '⚠️ No QR code found in pasted image';
+          setTimeout(() => { if (statusEl) statusEl.style.display = 'none'; }, 3500);
+        }
+      }
+      return;
+    }
+  }
+}
+
+async function handleQrFileInput(fileInput, targetSelectorOrId, statusId, previewBtnId) {
+  const file = fileInput.files?.[0];
+  if (!file) return;
+
+  const inputEl = targetSelectorOrId.startsWith('.') ? document.querySelector(targetSelectorOrId) : document.getElementById(targetSelectorOrId);
+  const statusEl = statusId ? document.getElementById(statusId) : null;
+
+  if (statusEl) {
+    statusEl.style.display = 'inline-block';
+    statusEl.style.color = '#00C2FF';
+    statusEl.innerText = '🔍 Scanning QR code...';
+  }
+
+  const qrText = await decodeQrCode(file);
+  fileInput.value = '';
+
+  if (qrText && inputEl) {
+    inputEl.value = qrText.trim();
+    inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+    if (previewBtnId) {
+      handleReceiptUrlInput(inputEl, previewBtnId);
+    }
+    if (statusEl) {
+      statusEl.style.color = '#00E676';
+      statusEl.innerHTML = '✓ QR Code Extracted';
+      setTimeout(() => { if (statusEl) statusEl.style.display = 'none'; }, 3500);
+    }
+  } else {
+    if (statusEl) {
+      statusEl.style.color = '#FF7A00';
+      statusEl.innerText = '⚠️ No QR code found in uploaded image';
+      setTimeout(() => { if (statusEl) statusEl.style.display = 'none'; }, 3500);
+    }
+  }
+}
+
+function handleReceiptUrlInput(inputEl, previewBtnId) {
+  const val = inputEl.value.trim();
+  const previewBtn = document.getElementById(previewBtnId);
+  if (!previewBtn) return;
+  if (val && (val.startsWith('http://') || val.startsWith('https://') || (val.includes('.') && !val.includes(' ')))) {
+    previewBtn.href = (val.startsWith('http://') || val.startsWith('https://')) ? val : `https://${val}`;
+    previewBtn.style.display = 'inline-flex';
+  } else {
+    previewBtn.style.display = 'none';
   }
 }
 
@@ -5146,10 +5301,9 @@ function openEditModal(uid) {
   const monthLabel = document.getElementById('editMonthLabel');
   const propContainer = document.getElementById('editPropertyContainer');
   const propSelect = document.getElementById('editProperty');
-  const receiptNameContainer = document.getElementById('editReceiptNameContainer');
-  const receiptNameInput = document.getElementById('editReceiptName');
-  const receiptLocContainer = document.getElementById('editReceiptLocContainer');
-  const receiptLocInput = document.getElementById('editReceiptLoc');
+  const receiptUrlContainer = document.getElementById('editReceiptUrlContainer');
+  const receiptUrlInput = document.getElementById('editReceiptUrl');
+  const receiptPreviewBtn = document.getElementById('editReceiptPreviewBtn');
   
   if (p.billId === 'landTax') {
     if (monthLabel) monthLabel.innerText = 'Fiscal Year (Apr 1 - Mar 31)';
@@ -5174,11 +5328,9 @@ function openEditModal(uid) {
     propContainer.classList.remove('hidden');
     if (p.property) propSelect.value = p.property;
 
-    receiptNameContainer.classList.remove('hidden');
-    receiptNameInput.value = p.receiptFileName || '';
-
-    receiptLocContainer.classList.remove('hidden');
-    receiptLocInput.value = p.receiptLocation || '';
+    receiptUrlContainer.classList.remove('hidden');
+    receiptUrlInput.value = p.receiptUrl || p.receiptFileName || '';
+    handleReceiptUrlInput(receiptUrlInput, 'editReceiptPreviewBtn');
   } else if (p.billType === 'postpaid' || p.billId === 'inspireBroadband' || p.billId === 'gym' || p.billId === 'matuailGas') {
     if (monthLabel) monthLabel.innerText = 'Bill Month';
     monthContainer.classList.remove('hidden');
@@ -5191,20 +5343,17 @@ function openEditModal(uid) {
     ).join('');
 
     propContainer.classList.add('hidden');
-    if (p.receiptFileName || p.receiptLocation) {
-      receiptNameContainer.classList.remove('hidden');
-      receiptNameInput.value = p.receiptFileName || '';
-      receiptLocContainer.classList.remove('hidden');
-      receiptLocInput.value = p.receiptLocation || '';
+    if (p.receiptUrl || p.receiptFileName || p.receiptLocation) {
+      receiptUrlContainer.classList.remove('hidden');
+      receiptUrlInput.value = p.receiptUrl || p.receiptFileName || '';
+      handleReceiptUrlInput(receiptUrlInput, 'editReceiptPreviewBtn');
     } else {
-      receiptNameContainer.classList.add('hidden');
-      receiptLocContainer.classList.add('hidden');
+      receiptUrlContainer.classList.add('hidden');
     }
   } else {
     monthContainer.classList.add('hidden');
     propContainer.classList.add('hidden');
-    receiptNameContainer.classList.add('hidden');
-    receiptLocContainer.classList.add('hidden');
+    receiptUrlContainer.classList.add('hidden');
   }
   
   document.getElementById('editModal').classList.remove('hidden');
@@ -5249,15 +5398,12 @@ async function saveEditedRecord() {
   if (record.billId === 'landTax') {
     record.billMonth = monthVal ? monthVal.trim() : '';
     record.property = document.getElementById('editProperty').value;
-    record.receiptFileName = document.getElementById('editReceiptName').value.trim();
-    record.receiptLocation = document.getElementById('editReceiptLoc').value.trim();
+    record.receiptUrl = document.getElementById('editReceiptUrl').value.trim();
     record.note = record.property;
   } else {
     record.billMonth = (record.billType === 'postpaid' || record.billId === 'inspireBroadband' || record.billId === 'gym' || record.billId === 'matuailGas') ? monthVal : '';
-    const rName = document.getElementById('editReceiptName')?.value.trim();
-    const rLoc = document.getElementById('editReceiptLoc')?.value.trim();
-    if (rName !== undefined) record.receiptFileName = rName;
-    if (rLoc !== undefined) record.receiptLocation = rLoc;
+    const rUrl = document.getElementById('editReceiptUrl')?.value.trim();
+    if (rUrl !== undefined) record.receiptUrl = rUrl;
   }
   
   const saveBtn = document.querySelector('#editModal .saveModalBtn');
@@ -6309,17 +6455,32 @@ function renderBillPages() {
             </div>
           </div>
 
-          <!-- Optional Receipt Archive Section -->
-          <div class="landTaxReceiptRow" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap:14px; margin-top:14px;">
-            <div class="inputCard">
-              <div class="inputLabel">Receipt File Name <span style="color:var(--muted); font-size:0.75rem;">(Optional)</span></div>
-              <input type="text" class="inputLandTaxReceiptName" placeholder="e.g. dakhila_matuail_2026.pdf" 
-                style="width:100%; height:38px; background:transparent; border:none; color:#f8fafc; font-size:0.95rem; font-weight:600; outline:none;">
-            </div>
-            <div class="inputCard">
-              <div class="inputLabel">Storage Location <span style="color:var(--muted); font-size:0.75rem;">(Optional)</span></div>
-              <input type="text" class="inputLandTaxReceiptLocation" placeholder="e.g. Google Drive / Documents / Land Tax" 
-                style="width:100%; height:38px; background:transparent; border:none; color:#f8fafc; font-size:0.95rem; font-weight:600; outline:none;">
+          <!-- Optional Receipt / QR Code Scanner -->
+          <div class="landTaxReceiptRow" style="margin-top:14px;">
+            <div class="inputCard" id="landTaxReceiptCard" style="display:flex; flex-direction:column; gap:6px; background:rgba(0,194,255,0.03); border:1px solid rgba(0,194,255,0.18); border-radius:14px; padding:12px 14px;">
+              <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+                <div class="inputLabel" style="margin:0; display:flex; align-items:center; gap:6px; color:#00C2FF;">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                  <span>Receipt Link / QR Code Scanner</span>
+                  <span style="color:var(--muted); font-size:0.75rem; font-weight:500;">(Optional)</span>
+                </div>
+                <div id="landTaxQrScanStatus" style="font-size:0.75rem; font-weight:700; color:#00E676; display:none;"></div>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px; width:100%; margin-top:2px;">
+                <input type="text" class="inputLandTaxReceiptUrl" placeholder="Paste Receipt link or paste QR code image (Ctrl+V)..." 
+                  onpaste="handleQrPaste(event, this, 'landTaxQrScanStatus', 'landTaxReceiptPreviewBtn')"
+                  oninput="handleReceiptUrlInput(this, 'landTaxReceiptPreviewBtn')"
+                  style="flex:1; height:38px; background:transparent; border:none; color:#f8fafc; font-size:0.95rem; font-weight:600; outline:none;">
+                <a id="landTaxReceiptPreviewBtn" href="#" target="_blank" rel="noopener noreferrer" style="display:none; align-items:center; gap:4px; padding:5px 10px; background:rgba(0,230,118,0.15); border:1px solid rgba(0,230,118,0.3); border-radius:8px; color:#00E676; font-size:0.78rem; font-weight:700; text-decoration:none; white-space:nowrap;">
+                  <span>View</span>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                </a>
+                <label for="landTaxQrFileInput" style="cursor:pointer; display:flex; align-items:center; gap:4px; padding:6px 12px; background:rgba(0,194,255,0.1); border:1px solid rgba(0,194,255,0.3); border-radius:8px; color:#00C2FF; font-size:0.78rem; font-weight:700; white-space:nowrap;" title="Upload or Scan QR Code image">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                  <span>Upload QR</span>
+                </label>
+                <input type="file" id="landTaxQrFileInput" accept="image/*" style="display:none;" onchange="handleQrFileInput(this, '.inputLandTaxReceiptUrl', 'landTaxQrScanStatus', 'landTaxReceiptPreviewBtn')">
+              </div>
             </div>
           </div>
 
@@ -7193,9 +7354,15 @@ function renderDatabasePage() {
     let noteHtml = '-';
     if (p.property) {
       noteHtml = `<span class="bnFont" style="color:#00C2FF; font-weight:700;">${p.property}</span>`;
-      if (p.receiptFileName) {
+      if (p.receiptUrl) {
+        const href = p.receiptUrl.startsWith('http') ? p.receiptUrl : `https://${p.receiptUrl}`;
+        noteHtml += `<div style="margin-top:3px;"><a href="${href}" target="_blank" rel="noopener noreferrer" style="display:inline-flex; align-items:center; gap:4px; font-size:0.75rem; color:#00E676; text-decoration:none; font-weight:700; background:rgba(0,230,118,0.1); border:1px solid rgba(0,230,118,0.25); border-radius:6px; padding:2px 6px;">🔗 Receipt ↗</a></div>`;
+      } else if (p.receiptFileName) {
         noteHtml += `<div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;">📁 ${p.receiptFileName}${p.receiptLocation ? ` (${p.receiptLocation})` : ''}</div>`;
       }
+    } else if (p.receiptUrl) {
+      const href = p.receiptUrl.startsWith('http') ? p.receiptUrl : `https://${p.receiptUrl}`;
+      noteHtml = `<a href="${href}" target="_blank" rel="noopener noreferrer" style="display:inline-flex; align-items:center; gap:4px; font-size:0.75rem; color:#00E676; text-decoration:none; font-weight:700; background:rgba(0,230,118,0.1); border:1px solid rgba(0,230,118,0.25); border-radius:6px; padding:2px 6px;">🔗 Receipt ↗</a>`;
     } else if (p.receiptFileName) {
       noteHtml = `<div style="font-size:0.75rem; color:#94a3b8;">📁 ${p.receiptFileName}${p.receiptLocation ? ` (${p.receiptLocation})` : ''}</div>`;
     } else if (p.note) {
@@ -9061,8 +9228,7 @@ function submitPaymentForm(billId) {
     const feeInput = section.querySelector('.inputLandTaxFeeVal');
     const dateInput = section.querySelector('.inputDateVal');
     const singleAmountInput = section.querySelector('.inputLandTaxSingleAmountVal');
-    const receiptNameInput = section.querySelector('.inputLandTaxReceiptName');
-    const receiptLocInput = section.querySelector('.inputLandTaxReceiptLocation');
+    const receiptUrlInput = section.querySelector('.inputLandTaxReceiptUrl');
 
     const selectedProp = propSelect ? propSelect.value : 'মাতুয়াইল - ২০';
     
@@ -9073,8 +9239,7 @@ function submitPaymentForm(billId) {
     const monthVal = fromY === toY ? fromY.toString() : `${fromY} to ${toY}`;
     const dateVal = dateInput ? dateInput.value.trim() : '';
     const feeVal = feeInput ? feeInput.value.trim() : '';
-    const receiptName = receiptNameInput ? receiptNameInput.value.trim() : '';
-    const receiptLoc = receiptLocInput ? receiptLocInput.value.trim() : '';
+    const receiptUrl = receiptUrlInput ? receiptUrlInput.value.trim() : '';
 
     if (!dateVal) {
       alert('Please select a valid payment date.');
@@ -9108,14 +9273,17 @@ function submitPaymentForm(billId) {
 
     // Reset inputs immediately
     if (section.querySelector('.inputLandTaxFeeVal')) section.querySelector('.inputLandTaxFeeVal').value = '';
-    if (section.querySelector('.inputLandTaxReceiptName')) section.querySelector('.inputLandTaxReceiptName').value = '';
-    if (section.querySelector('.inputLandTaxReceiptLocation')) section.querySelector('.inputLandTaxReceiptLocation').value = '';
+    if (section.querySelector('.inputLandTaxReceiptUrl')) {
+      section.querySelector('.inputLandTaxReceiptUrl').value = '';
+      const previewBtn = document.getElementById('landTaxReceiptPreviewBtn');
+      if (previewBtn) previewBtn.style.display = 'none';
+    }
     updateLandTaxCalculation();
 
     savePaymentRecord('landTax', calculatedBase.toString(), dateVal, monthVal, feeVal, {
       property: selectedProp,
-      receiptFileName: receiptName,
-      receiptLocation: receiptLoc,
+      receiptUrl: receiptUrl,
+      receiptFileName: receiptUrl,
       note: selectedProp
     }).catch(err => {
       console.error("Save payment error:", err);
@@ -9269,7 +9437,7 @@ function exportCsv() {
   };
 
   let csv = '\uFEFF';
-  csv += 'Transaction ID,Date Paid,Utility Name,Category,Account / Meter No,Billing Type,Billing Month,Main Amount (BDT),Fee (BDT),Total Paid (BDT),Property / Note,Receipt File,Storage Location,Created At (UTC)\n';
+  csv += 'Transaction ID,Date Paid,Utility Name,Category,Account / Meter No,Billing Type,Billing Month,Main Amount (BDT),Fee (BDT),Total Paid (BDT),Property / Note,Receipt Link / File,Created At (UTC)\n';
   
   let totalAmount = 0;
   let totalFees = 0;
@@ -9290,10 +9458,9 @@ function exportCsv() {
     const cleanUid = (p.uid || '').replace(/"/g, '""');
     const cleanName = (p.billName || '').replace(/<br>/g, ' ').replace(/"/g, '""');
     const cleanProp = (p.property || p.note || '').replace(/"/g, '""');
-    const cleanReceipt = (p.receiptFileName || '').replace(/"/g, '""');
-    const cleanLoc = (p.receiptLocation || '').replace(/"/g, '""');
+    const cleanReceipt = (p.receiptUrl || p.receiptFileName || '').replace(/"/g, '""');
     
-    csv += `"${cleanUid}","${p.payDate}","${cleanName}","${cat}","${meter}","${bType}","${bMonth}",${Math.round(amt)},${Math.round(fee)},${Math.round(total)},"${cleanProp}","${cleanReceipt}","${cleanLoc}","${createdAt}"\n`;
+    csv += `"${cleanUid}","${p.payDate}","${cleanName}","${cat}","${meter}","${bType}","${bMonth}",${Math.round(amt)},${Math.round(fee)},${Math.round(total)},"${cleanProp}","${cleanReceipt}","${createdAt}"\n`;
   });
 
   const todayStr = new Date().toISOString().split('T')[0];
