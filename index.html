@@ -5313,11 +5313,6 @@ function openEditModal(uid) {
     yrList.slice().reverse().forEach(y => {
       fyOpts.push(`${y}`);
     });
-    [2, 3, 5].forEach(dur => {
-      yrList.slice().reverse().forEach(y => {
-        fyOpts.push(`${y} to ${y + dur - 1}`);
-      });
-    });
     if (p.billMonth && !fyOpts.includes(p.billMonth)) {
       fyOpts.unshift(p.billMonth);
     }
@@ -5931,7 +5926,6 @@ function updateLandTaxCalculation() {
 
   const propSelect = section.querySelector('.inputLandTaxPropertySelect');
   const startYearSelect = section.querySelector('.inputLandTaxStartYearSelect');
-  const durationSelect = section.querySelector('.inputLandTaxDurationSelect');
   const feeInput = section.querySelector('.inputLandTaxFeeVal');
   const singleAmountInput = section.querySelector('.inputLandTaxSingleAmountVal');
 
@@ -5939,8 +5933,6 @@ function updateLandTaxCalculation() {
 
   const selectedProp = propSelect.value;
   const fromY = parseInt(startYearSelect ? startYearSelect.value : new Date().getFullYear(), 10) || new Date().getFullYear();
-  const yearsCount = parseInt(durationSelect ? durationSelect.value : 1, 10) || 1;
-  const toY = fromY + (yearsCount - 1);
 
   // Load / Save property rate defaults and calculate base total
   let key = 'matuail';
@@ -5956,8 +5948,8 @@ function updateLandTaxCalculation() {
   const fee = parseFloat(feeInput ? feeInput.value : 0) || 0;
   const totalAmount = Math.round(baseAmount + fee);
 
-  // Next due date: April 1st of (toY + 1)
-  const dueYear = toY + 1;
+  // Next due date: April 1st of (fromY + 1)
+  const dueYear = fromY + 1;
   const dueDate = new Date(dueYear, 3, 1);
   const dueFormatted = formatDateFriendly(formatLocalDate(dueDate));
 
@@ -5973,8 +5965,7 @@ function updateLandTaxCalculation() {
     propBadge.innerHTML = `<span class="bnFont">${selectedProp}</span>`;
   }
   if (fyPill) {
-    const rangeStr = fromY === toY ? `${fromY}` : `${fromY} to ${toY}`;
-    fyPill.innerText = `${rangeStr} (${yearsCount} ${yearsCount === 1 ? 'Year' : 'Years'})`;
+    fyPill.innerText = `FY ${fromY}`;
   }
   if (duePill) duePill.innerText = `Next Due: ${dueFormatted}`;
   if (baseText) baseText.innerText = `৳ ${baseAmount.toLocaleString()}`;
@@ -6418,35 +6409,18 @@ function renderBillPages() {
             </div>
 
             <div class="inputCard">
+              <div class="inputLabel">Surcharge / Penalty Fee</div>
+              <input type="number" class="inputLandTaxFeeVal" value="" placeholder="0" 
+                oninput="updateLandTaxCalculation()"
+                style="width:100%; height:40px; background:transparent; border:none; color:#FF7A00; font-size:1.8rem; font-weight:800; font-family:var(--font-amount); font-feature-settings:'tnum' 1; outline:none;">
+            </div>
+
+            <div class="inputCard">
               <div class="inputLabel">FY (Apr 1 - Mar 31)</div>
               <select class="inputLandTaxStartYearSelect" onchange="updateLandTaxCalculation()"
                 style="width:100%; height:40px; background:#0b1730; color:white; border:1px solid var(--border); border-radius:12px; padding:0 10px; font-size:1.05rem; font-weight:700; font-family:var(--font-amount);">
                 ${yearOptions.map(y => `<option value="${y}" ${y === defaultFromYear ? 'selected' : ''}>${y}</option>`).join('')}
               </select>
-            </div>
-
-            <div class="inputCard">
-              <div class="inputLabel">Duration (Years)</div>
-              <select class="inputLandTaxDurationSelect" onchange="updateLandTaxCalculation()"
-                style="width:100%; height:40px; background:#0b1730; color:white; border:1px solid var(--border); border-radius:12px; padding:0 10px; font-size:1.05rem; font-weight:700; font-family:var(--font-amount);">
-                <option value="1" selected>1 Year</option>
-                <option value="2">2 Years</option>
-                <option value="3">3 Years</option>
-                <option value="4">4 Years</option>
-                <option value="5">5 Years</option>
-                <option value="6">6 Years</option>
-                <option value="7">7 Years</option>
-                <option value="8">8 Years</option>
-                <option value="9">9 Years</option>
-                <option value="10">10 Years</option>
-              </select>
-            </div>
-
-            <div class="inputCard">
-              <div class="inputLabel">Surcharge / Penalty Fee</div>
-              <input type="number" class="inputLandTaxFeeVal" value="" placeholder="0" 
-                oninput="updateLandTaxCalculation()"
-                style="width:100%; height:40px; background:transparent; border:none; color:#FF7A00; font-size:1.8rem; font-weight:800; font-family:var(--font-amount); font-feature-settings:'tnum' 1; outline:none;">
             </div>
 
             <div class="inputCard">
@@ -9224,7 +9198,6 @@ function submitPaymentForm(billId) {
   } else if (billId === 'landTax') {
     const propSelect = section.querySelector('.inputLandTaxPropertySelect');
     const startYearSelect = section.querySelector('.inputLandTaxStartYearSelect');
-    const durationSelect = section.querySelector('.inputLandTaxDurationSelect');
     const feeInput = section.querySelector('.inputLandTaxFeeVal');
     const dateInput = section.querySelector('.inputDateVal');
     const singleAmountInput = section.querySelector('.inputLandTaxSingleAmountVal');
@@ -9233,10 +9206,7 @@ function submitPaymentForm(billId) {
     const selectedProp = propSelect ? propSelect.value : 'মাতুয়াইল - ২০';
     
     const fromY = parseInt(startYearSelect ? startYearSelect.value : new Date().getFullYear(), 10) || new Date().getFullYear();
-    const yearsCount = parseInt(durationSelect ? durationSelect.value : 1, 10) || 1;
-    const toY = fromY + (yearsCount - 1);
-
-    const monthVal = fromY === toY ? fromY.toString() : `${fromY} to ${toY}`;
+    const monthVal = fromY.toString();
     const dateVal = dateInput ? dateInput.value.trim() : '';
     const feeVal = feeInput ? feeInput.value.trim() : '';
     const receiptUrl = receiptUrlInput ? receiptUrlInput.value.trim() : '';
