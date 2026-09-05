@@ -6742,6 +6742,105 @@ function renderDashboardPage() {
   const now = new Date();
   
   billPages.forEach(bill => {
+    if (bill.id === 'landTax') {
+      const properties = ['মাতুয়াইল - ২০', 'উত্তরখান - ১৯', 'কেশুরবাগ - ৮১'];
+      properties.forEach(prop => {
+        const propPayments = paymentsData.filter(p => p.billId === 'landTax' && (p.property === prop || p.property === 'সকল ৩টি সম্পত্তি' || (p.note && p.note.includes(prop))));
+        const lastPropPayment = propPayments[0];
+
+        let lastPayTop = 'Never';
+        let lastPaySub = '-';
+        let lastPayClass = 'mutedText';
+
+        if (lastPropPayment) {
+          const days = Math.floor((now - new Date(lastPropPayment.payDate)) / (1000 * 60 * 60 * 24));
+          lastPayTop = days === 0 ? 'Today' : `${days} days ago`;
+          lastPaySub = formatDateFriendlyShort(lastPropPayment.payDate);
+
+          if (days <= 5) lastPayClass = 'successText';
+          else if (days <= 15) lastPayClass = 'warningText';
+          else lastPayClass = 'dangerText';
+        }
+
+        let nextDueTop = '-';
+        let nextDueSub = '';
+        let nextDueClass = '';
+        let statusText = 'Upcoming';
+        let statusClass = 'statusUpcoming';
+
+        if (lastPropPayment) {
+          const paidFYDate = parseBillMonth(lastPropPayment.billMonth);
+          if (paidFYDate) {
+            const nextDueDate = new Date(paidFYDate.getFullYear() + 1, 3, 1);
+            nextDueTop = formatDateFriendly(formatLocalDate(nextDueDate));
+            const diffTime = nextDueDate - now;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            if (diffDays < 0) {
+              nextDueSub = `Overdue by ${Math.abs(diffDays)} days`;
+              nextDueClass = 'dangerText';
+              statusText = 'Overdue';
+              statusClass = 'statusOverdue';
+              overdueCount++;
+            } else if (diffDays <= 30) {
+              nextDueSub = `In ${diffDays} days`;
+              nextDueClass = 'warningText';
+              statusText = 'Due soon';
+              statusClass = 'statusSoon';
+              dueSoonCount++;
+            } else {
+              nextDueSub = `In ${diffDays} days`;
+              nextDueClass = 'successText';
+              statusText = 'Upcoming';
+              statusClass = 'statusUpcoming';
+            }
+          } else {
+            nextDueTop = 'Immediate (1 Apr)';
+            statusText = 'Overdue';
+            statusClass = 'statusOverdue';
+            overdueCount++;
+          }
+        } else {
+          nextDueTop = 'Immediate (1 Apr)';
+          statusText = 'Overdue';
+          statusClass = 'statusOverdue';
+          overdueCount++;
+        }
+
+        rowsHtml += `
+          <div class="tableRow">
+            <div class="billCell">
+              <div class="billMiniIcon">${getBillIconHtml(bill, 'billMiniIcon')}</div>
+              <div>
+                <div class="billMain bnFont" style="font-size:1.02rem; font-weight:700;">${prop}</div>
+                <div class="billCompany">Land Tax</div>
+              </div>
+            </div>
+            <div>
+              <div class="typePill typePostpaid">
+                Postpaid
+              </div>
+            </div>
+            <div class="paymentInfo">
+              <div class="paymentTop ${lastPayClass}">${lastPayTop}</div>
+              <div class="paymentSub">${lastPaySub}</div>
+            </div>
+            <div class="paymentInfo">
+              <div class="paymentTop ${nextDueClass}">${nextDueTop}</div>
+              <div class="paymentSub">${nextDueSub}</div>
+            </div>
+            <div>
+              <div class="statusPill ${statusClass}">${statusText}</div>
+            </div>
+            <div>
+              <button class="payBtn" onclick="openPage('landTax')">Pay now</button>
+            </div>
+          </div>
+        `;
+      });
+      return;
+    }
+
     const billPayments = paymentsData.filter(p => p.billId === bill.id);
     const lastPayment = billPayments[0];
     
@@ -6858,46 +6957,7 @@ function renderDashboardPage() {
         overdueCount++;
       }
     } else { // Postpaid
-      if (bill.id === 'landTax') {
-        if (lastPayment) {
-          const paidFYDate = parseBillMonth(lastPayment.billMonth);
-          if (paidFYDate) {
-            const nextDueDate = new Date(paidFYDate.getFullYear() + 1, 3, 1);
-            nextDueTop = formatDateFriendly(formatLocalDate(nextDueDate));
-            const diffTime = nextDueDate - now;
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            
-            if (diffDays < 0) {
-              nextDueSub = `Overdue by ${Math.abs(diffDays)} days`;
-              nextDueClass = 'dangerText';
-              statusText = 'Overdue';
-              statusClass = 'statusOverdue';
-              overdueCount++;
-            } else if (diffDays <= 30) {
-              nextDueSub = `In ${diffDays} days`;
-              nextDueClass = 'warningText';
-              statusText = 'Due soon';
-              statusClass = 'statusSoon';
-              dueSoonCount++;
-            } else {
-              nextDueSub = `In ${diffDays} days`;
-              nextDueClass = 'successText';
-              statusText = 'Upcoming';
-              statusClass = 'statusUpcoming';
-            }
-          } else {
-            nextDueTop = 'Immediate (1 Apr)';
-            statusText = 'Overdue';
-            statusClass = 'statusOverdue';
-            overdueCount++;
-          }
-        } else {
-          nextDueTop = 'Immediate (1 Apr)';
-          statusText = 'Overdue';
-          statusClass = 'statusOverdue';
-          overdueCount++;
-        }
-      } else if (lastPayment) {
+      if (lastPayment) {
         const paidMonthDate = parseBillMonth(lastPayment.billMonth);
         if (paidMonthDate) {
           // Postpaid monthly due logic (e.g. WASA, Palli Bidyut, Titas Gas).
@@ -6940,8 +7000,7 @@ function renderDashboardPage() {
       }
     }
     
-    const company = bill.id === 'landTax' ? 'Land Revenue' :
-                    bill.id === 'gym' ? 'Fitness Center' :
+    const company = bill.id === 'gym' ? 'Fitness Center' :
                     bill.id.includes('Desco') || bill.id.includes('desco') ? 'DESCO' :
                     bill.id.includes('Gas') || bill.id.includes('gas') ? 'Gas Utility' :
                     bill.id.includes('Water') ? 'WASA' :
@@ -7105,12 +7164,17 @@ function renderDatabasePage() {
   `;
   
   const filtered = paymentsData.filter(p => {
-    const matchesSearch = p.billName.toLowerCase().includes(searchVal) || 
+    const sLower = searchVal.toLowerCase();
+    const matchesSearch = p.billName.toLowerCase().includes(sLower) || 
+                          (p.property && p.property.toLowerCase().includes(sLower)) ||
                           p.payDate.includes(searchVal) || 
                           p.amount.includes(searchVal) ||
-                          (p.billMonth && p.billMonth.toLowerCase().includes(searchVal));
+                          (p.billMonth && p.billMonth.toLowerCase().includes(sLower));
                           
-    const matchesBill = billFilter === 'All Bills' || p.billName.replace('<br>', ' ').toLowerCase() === billFilter.replace('<br>', ' ').toLowerCase();
+    const matchesBill = billFilter === 'All Bills' || 
+                        p.billName.replace(/<br>/gi, ' ').toLowerCase() === billFilter.replace(/<br>/gi, ' ').toLowerCase() ||
+                        (p.property && (p.property === billFilter || p.property.includes(billFilter))) ||
+                        (billFilter === 'Land Tax' && p.billId === 'landTax');
     const matchesType = typeFilter === 'All Types' || p.billType.toLowerCase() === typeFilter.toLowerCase();
     const matchesMonth = !monthFilter || p.payDate.startsWith(monthFilter);
     
@@ -7143,6 +7207,14 @@ function renderDatabasePage() {
     } else if (p.note) {
       noteHtml = p.note;
     }
+
+    const isLandTaxProp = p.billId === 'landTax' && p.property;
+    const desktopBillLabel = isLandTaxProp
+      ? `Land Tax • <span class="bnFont" style="color:#00C2FF; font-weight:700;">${p.property}</span>`
+      : p.billName.replace(/<br>/gi, ' ');
+    const mobileBillLabel = isLandTaxProp
+      ? `<span class="bnFont" style="font-weight:700; color:#00C2FF;">${p.property}</span>`
+      : getShortBillName(p.billName);
     
     rowsHtml += `
       <div class="dbRow">
@@ -7154,8 +7226,8 @@ function renderDatabasePage() {
           </span>
         </div>
         <div class="colBill">
-          <span class="desktopOnly">${p.billName.replace(/<br>/gi, ' ')}</span>
-          <span class="mobileOnly">${getShortBillName(p.billName)}</span>
+          <span class="desktopOnly">${desktopBillLabel}</span>
+          <span class="mobileOnly">${mobileBillLabel}</span>
         </div>
         <div class="colType" style="text-transform: capitalize;">${p.billType}</div>
         <div class="amountCell colAmount">
@@ -8999,8 +9071,18 @@ function submitPaymentForm(billId) {
 
     const selectedProp = propSelect ? propSelect.value : 'মাতুয়াইল - ২০';
     const isAllProps = selectedProp.includes('সকল') || selectedProp.includes('All 3');
+    const fyFull = fySelect ? fySelect.value : '';
+    const monthVal = fyFull.split('(')[0].trim() || fyFull;
+    const dateVal = dateInput ? dateInput.value.trim() : '';
+    const feeVal = feeInput ? feeInput.value.trim() : '';
+    const receiptName = receiptNameInput ? receiptNameInput.value.trim() : '';
+    const receiptLoc = receiptLocInput ? receiptLocInput.value.trim() : '';
 
-    let calculatedBase = 0;
+    if (!dateVal) {
+      alert('Please select a valid payment date.');
+      return;
+    }
+
     if (isAllProps) {
       const matuailAmt = parseFloat(section.querySelector('.inputLandTaxRateMatuail')?.value || 0) || 0;
       const uttarkhanAmt = parseFloat(section.querySelector('.inputLandTaxRateUttarkhan')?.value || 0) || 0;
@@ -9010,7 +9092,50 @@ function submitPaymentForm(billId) {
       if (uttarkhanAmt > 0) localStorage.setItem('billzy_landtax_rate_uttarkhan', uttarkhanAmt.toString());
       if (keshurbagAmt > 0) localStorage.setItem('billzy_landtax_rate_keshurbag', keshurbagAmt.toString());
 
-      calculatedBase = Math.round(matuailAmt + uttarkhanAmt + keshurbagAmt);
+      const calculatedBase = Math.round(matuailAmt + uttarkhanAmt + keshurbagAmt);
+      if (calculatedBase <= 0) {
+        alert('Please enter valid tax amounts for the properties.');
+        return;
+      }
+
+      const isCloudSynced = Boolean(typeof currentUser !== 'undefined' && currentUser && typeof db !== 'undefined' && db);
+
+      // Trigger reward modal for total
+      showPaymentSuccessModal({
+        billName: 'Land Tax (সকল ৩টি সম্পত্তি)',
+        amount: calculatedBase.toString(),
+        fee: feeVal,
+        date: dateVal,
+        month: monthVal,
+        isOffline: !isCloudSynced
+      });
+
+      // Reset inputs immediately
+      if (section.querySelector('.inputLandTaxFeeVal')) section.querySelector('.inputLandTaxFeeVal').value = '';
+      if (section.querySelector('.inputLandTaxReceiptName')) section.querySelector('.inputLandTaxReceiptName').value = '';
+      if (section.querySelector('.inputLandTaxReceiptLocation')) section.querySelector('.inputLandTaxReceiptLocation').value = '';
+      updateLandTaxCalculation();
+
+      // Save 3 separate records for each property in database
+      const propEntries = [
+        { prop: 'মাতুয়াইল - ২০', amt: matuailAmt, fee: feeVal },
+        { prop: 'উত্তরখান - ১৯', amt: uttarkhanAmt, fee: '' },
+        { prop: 'কেশুরবাগ - ৮১', amt: keshurbagAmt, fee: '' }
+      ];
+
+      propEntries.forEach(item => {
+        if (item.amt > 0) {
+          savePaymentRecord('landTax', item.amt.toString(), dateVal, monthVal, item.fee, {
+            property: item.prop,
+            receiptFileName: receiptName,
+            receiptLocation: receiptLoc,
+            note: item.prop
+          }).catch(err => {
+            console.error("Save payment error for " + item.prop + ":", err);
+          });
+        }
+      });
+      return;
     } else {
       let key = 'matuail';
       if (selectedProp.includes('উত্তরখান')) key = 'uttarkhan';
@@ -9020,26 +9145,40 @@ function submitPaymentForm(billId) {
       if (amt > 0) {
         localStorage.setItem('billzy_landtax_rate_' + key, amt.toString());
       }
-      calculatedBase = Math.round(amt);
-    }
+      const calculatedBase = Math.round(amt);
+      if (calculatedBase <= 0) {
+        alert('Please enter a valid tax amount.');
+        return;
+      }
 
-    if (calculatedBase <= 0) {
-      alert('Please enter a valid tax amount.');
+      const isCloudSynced = Boolean(typeof currentUser !== 'undefined' && currentUser && typeof db !== 'undefined' && db);
+
+      showPaymentSuccessModal({
+        billName: `Land Tax (${selectedProp})`,
+        amount: calculatedBase.toString(),
+        fee: feeVal,
+        date: dateVal,
+        month: monthVal,
+        isOffline: !isCloudSynced
+      });
+
+      // Reset inputs immediately
+      if (section.querySelector('.inputLandTaxFeeVal')) section.querySelector('.inputLandTaxFeeVal').value = '';
+      if (section.querySelector('.inputLandTaxReceiptName')) section.querySelector('.inputLandTaxReceiptName').value = '';
+      if (section.querySelector('.inputLandTaxReceiptLocation')) section.querySelector('.inputLandTaxReceiptLocation').value = '';
+      updateLandTaxCalculation();
+
+      savePaymentRecord('landTax', calculatedBase.toString(), dateVal, monthVal, feeVal, {
+        property: selectedProp,
+        receiptFileName: receiptName,
+        receiptLocation: receiptLoc,
+        note: selectedProp
+      }).catch(err => {
+        console.error("Save payment error:", err);
+        showPaymentErrorModal(err.message || 'Failed to record payment');
+      });
       return;
     }
-
-    amountVal = calculatedBase.toString();
-    const fyFull = fySelect ? fySelect.value : '';
-    monthVal = fyFull.split('(')[0].trim() || fyFull;
-    dateVal = dateInput ? dateInput.value.trim() : '';
-    feeVal = feeInput ? feeInput.value.trim() : '';
-
-    var extraData = {
-      property: selectedProp,
-      receiptFileName: receiptNameInput ? receiptNameInput.value.trim() : '',
-      receiptLocation: receiptLocInput ? receiptLocInput.value.trim() : '',
-      note: selectedProp
-    };
   } else {
     amountVal = section.querySelector('.inputAmountVal') ? section.querySelector('.inputAmountVal').value.trim() : '';
     feeVal = section.querySelector('.inputFeeVal') ? section.querySelector('.inputFeeVal').value.trim() : '';
@@ -9093,11 +9232,6 @@ function submitPaymentForm(billId) {
   } else if (billId === 'gym') {
     if (section.querySelector('.inputGymFeeVal')) section.querySelector('.inputGymFeeVal').value = '';
     updateGymCalculation();
-  } else if (billId === 'landTax') {
-    if (section.querySelector('.inputLandTaxFeeVal')) section.querySelector('.inputLandTaxFeeVal').value = '';
-    if (section.querySelector('.inputLandTaxReceiptName')) section.querySelector('.inputLandTaxReceiptName').value = '';
-    if (section.querySelector('.inputLandTaxReceiptLocation')) section.querySelector('.inputLandTaxReceiptLocation').value = '';
-    updateLandTaxCalculation();
   } else {
     if (section.querySelector('.inputAmountVal')) section.querySelector('.inputAmountVal').value = '';
     if (section.querySelector('.inputFeeVal')) section.querySelector('.inputFeeVal').value = '';
@@ -11681,6 +11815,9 @@ placeholder="Search payments..."
 <option>Inspire Broadband</option>
 <option>Gym</option>
 <option>Land Tax</option>
+<option value="মাতুয়াইল - ২০">মাতুয়াইল - ২০</option>
+<option value="উত্তরখান - ১৯">উত্তরখান - ১৯</option>
+<option value="কেশুরবাগ - ৮১">কেশুরবাগ - ৮১</option>
 </select>
 
 <select class="filterSelect">
