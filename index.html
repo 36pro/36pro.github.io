@@ -4172,22 +4172,22 @@ input[type="date"]::-webkit-calendar-picker-indicator {
       </div>
 
       <div id="editPropertyContainer" class="formField hidden">
-        <label>Property (মৌজা / সম্পত্তি)</label>
+        <label>Property</label>
         <select id="editProperty" class="bnFont" style="width:100%; height:44px; background:#0b1730; color:white; border:1px solid var(--border); border-radius:12px; padding:0 10px; font-size:1rem; font-weight:700;">
           <option value="মাতুয়াইল - ২০">মাতুয়াইল - ২০</option>
           <option value="উত্তরখান - ১৯">উত্তরখান - ১৯</option>
           <option value="কেশুরবাগ - ৮১">কেশুরবাগ - ৮১</option>
-          <option value="সকল ৩টি সম্পত্তি (All 3 Properties)">সকল ৩টি সম্পত্তি (All 3 Properties)</option>
+          <option value="সকল ৩টি সম্পত্তি">সকল ৩টি সম্পত্তি</option>
         </select>
       </div>
 
       <div id="editReceiptNameContainer" class="formField hidden">
-        <label>Receipt File Name (দাখিলা ফাইল নাম)</label>
+        <label>Receipt File Name</label>
         <input type="text" id="editReceiptName" placeholder="e.g. dakhila_matuail_2026.pdf" style="width:100%; height:44px; background:#0b1730; color:white; border:1px solid var(--border); border-radius:12px; padding:0 10px; font-size:.95rem;">
       </div>
 
       <div id="editReceiptLocContainer" class="formField hidden">
-        <label>Storage Location (সংরক্ষণের স্থান / ফোল্ডার)</label>
+        <label>Storage Location</label>
         <input type="text" id="editReceiptLoc" placeholder="e.g. Google Drive / Documents / Land Tax" style="width:100%; height:44px; background:#0b1730; color:white; border:1px solid var(--border); border-radius:12px; padding:0 10px; font-size:.95rem;">
       </div>
     </div>
@@ -4773,7 +4773,7 @@ icon:'',
 name:'Land<br>Tax',
 account:'LT-9921',
 type:'Postpaid',
-portal:'',
+portal:'Open Land Tax Portal ↗',
 stats:[
 ['Next Bill Due in','-',''],
 ['Last Amount','-','green mono'],
@@ -5153,7 +5153,7 @@ function openEditModal(uid) {
   const receiptLocInput = document.getElementById('editReceiptLoc');
   
   if (p.billId === 'landTax') {
-    if (monthLabel) monthLabel.innerText = 'Bangladeshi Fiscal Year (অর্থবছর)';
+    if (monthLabel) monthLabel.innerText = 'Bangladeshi Fiscal Year';
     monthContainer.classList.remove('hidden');
     const fyOpts = getFiscalYearOptions(6, 4);
     if (p.billMonth && !fyOpts.some(opt => opt.startsWith(p.billMonth))) {
@@ -5336,6 +5336,7 @@ function getPortalUrl(billId) {
   if (billId === 'rupnagarDesco' || billId === 'uttaraDesco') return 'https://prepaid.desco.org.bd/customer/#/customer-info';
   if (billId === 'uttaraWater') return 'https://123.49.33.108/index.php?type_name=member&page_name=acc_index&panel_index=1';
   if (billId === 'inspireBroadband') return 'https://portal.inspire.com.bd/account';
+  if (billId === 'landTax') return 'https://portal.ldtax.gov.bd/citizen/holding';
   if (billId.includes('Gas') || billId.includes('gas')) return 'https://www.titasgas.org.bd/';
   if (billId.includes('Water')) return 'https://dwasa.org.bd/';
   if (billId.includes('Palli')) return 'http://www.reb.gov.bd/';
@@ -6243,17 +6244,16 @@ function renderBillPages() {
         <div class="formSection landTaxFormSection">
           <div class="sectionTitle" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
             <span>Record Land Development Tax Payment</span>
-            <span class="bnFont" style="font-size:0.95rem; font-weight:700; color:#00C2FF;">ভূমি উন্নয়ন কর পরিশোধ</span>
           </div>
           <div class="formGrid landTaxGrid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap:14px;">
             <div class="inputCard" style="grid-column: span 1;">
-              <div class="inputLabel">Select Property (মৌজা / সম্পত্তি)</div>
+              <div class="inputLabel">Select Property</div>
               <select class="inputLandTaxPropertySelect bnFont" onchange="onLandTaxPropertyChange()"
                 style="width:100%; height:40px; background:#0b1730; color:white; border:1px solid var(--border); border-radius:12px; padding:0 10px; font-size:1.05rem; font-weight:700;">
                 <option value="মাতুয়াইল - ২০" selected>মাতুয়াইল - ২০</option>
                 <option value="উত্তরখান - ১৯">উত্তরখান - ১৯</option>
                 <option value="কেশুরবাগ - ৮১">কেশুরবাগ - ৮১</option>
-                <option value="সকল ৩টি সম্পত্তি (All 3 Properties)">সকল ৩টি সম্পত্তি (All 3 Properties)</option>
+                <option value="সকল ৩টি সম্পত্তি">সকল ৩টি সম্পত্তি</option>
               </select>
             </div>
             
@@ -6265,7 +6265,7 @@ function renderBillPages() {
             </div>
 
             <div class="inputCard">
-              <div class="inputLabel">Bangladeshi Fiscal Year (অর্থবছর)</div>
+              <div class="inputLabel">Bangladeshi Fiscal Year</div>
               <select class="inputLandTaxFiscalYearSelect" onchange="updateLandTaxCalculation()"
                 style="width:100%; height:40px; background:#0b1730; color:white; border:1px solid var(--border); border-radius:12px; padding:0 10px; font-size:1.02rem; font-weight:700; font-family:var(--font-amount);">
                 ${fyOptions.map(opt => `<option value="${opt}" ${opt === defaultFY ? 'selected' : ''}>${opt}</option>`).join('')}
@@ -6285,7 +6285,7 @@ function renderBillPages() {
             </div>
           </div>
 
-          <!-- Multi-Property 3-Amount Breakdown Sub-grid (shown when "All 3 Properties" is selected) -->
+          <!-- Multi-Property 3-Amount Breakdown Sub-grid (shown when "সকল ৩টি সম্পত্তি" is selected) -->
           <div class="landTaxAllPropsContainer" style="display:none; margin-top:14px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap:12px; background:rgba(0,194,255,0.03); border:1px solid rgba(0,194,255,0.15); border-radius:14px; padding:12px 14px;">
             <div class="inputCard" style="background:#0b1730;">
               <div class="inputLabel bnFont" style="color:#00C2FF;">মাতুয়াইল - ২০ (৳)</div>
@@ -6310,12 +6310,12 @@ function renderBillPages() {
           <!-- Optional Receipt Archive Section -->
           <div class="landTaxReceiptRow" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap:14px; margin-top:14px;">
             <div class="inputCard">
-              <div class="inputLabel">Receipt File Name (দাখিলা ফাইল নাম) <span style="color:var(--muted); font-size:0.75rem;">(Optional)</span></div>
+              <div class="inputLabel">Receipt File Name <span style="color:var(--muted); font-size:0.75rem;">(Optional)</span></div>
               <input type="text" class="inputLandTaxReceiptName" placeholder="e.g. dakhila_matuail_2026.pdf" 
                 style="width:100%; height:38px; background:transparent; border:none; color:#f8fafc; font-size:0.95rem; font-weight:600; outline:none;">
             </div>
             <div class="inputCard">
-              <div class="inputLabel">Storage Location (সংরক্ষণের স্থান / ফোল্ডার) <span style="color:var(--muted); font-size:0.75rem;">(Optional)</span></div>
+              <div class="inputLabel">Storage Location <span style="color:var(--muted); font-size:0.75rem;">(Optional)</span></div>
               <input type="text" class="inputLandTaxReceiptLocation" placeholder="e.g. Google Drive / Documents / Land Tax 2026" 
                 style="width:100%; height:38px; background:transparent; border:none; color:#f8fafc; font-size:0.95rem; font-weight:600; outline:none;">
             </div>
@@ -6684,7 +6684,6 @@ function renderLandingPageCards() {
           <div style="text-align:left;">
             <div style="font-size:0.92rem; font-weight:800; color:#ffffff; line-height:1.2; display:flex; align-items:center; gap:5px;">
               <span>Land Tax</span>
-              <span class="bnFont" style="font-size:0.8rem; color:#00C2FF; font-weight:600;">(ভূমি কর)</span>
             </div>
             <div style="font-size:0.72rem; color:${landTaxInfo.shortColor}; font-weight:600;">${landTaxInfo.shortStatus}</div>
           </div>
@@ -6763,60 +6762,26 @@ function renderDashboardPage() {
         nextDueTop = 'Balance-based';
         statusText = 'Balance-based';
         statusClass = 'statusBalance';
-      } else {
-          if (bill.id === 'gym') {
-            if (isGymPaused()) {
-              nextDueTop = 'Paused';
-              nextDueSub = 'On hold (silenced)';
-              nextDueClass = 'mutedText';
-              statusText = 'Paused';
-              statusClass = 'statusBalance';
-            } else {
-              const paidMonthDate = parseBillMonth(lastPayment.billMonth);
-              if (paidMonthDate) {
-                nextDueDate = new Date(paidMonthDate.getFullYear(), paidMonthDate.getMonth(), 21);
-              } else {
-                const payDateObj = new Date(lastPayment.payDate);
-                if (payDateObj.getDate() >= 20) {
-                  nextDueDate = new Date(payDateObj.getFullYear(), payDateObj.getMonth() + 1, 21);
-                } else {
-                  nextDueDate = new Date(payDateObj.getFullYear(), payDateObj.getMonth(), 21);
-                }
-              }
-              const diffTime = nextDueDate - now;
-              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-              
-              nextDueTop = formatDateFriendly(formatLocalDate(nextDueDate));
-              if (diffDays < 0) {
-                nextDueSub = `Overdue by ${Math.abs(diffDays)} days`;
-                nextDueClass = 'dangerText';
-                statusText = 'Overdue';
-                statusClass = 'statusOverdue';
-                overdueCount++;
-              } else if (diffDays <= 5) {
-                nextDueSub = `In ${diffDays} days`;
-                nextDueClass = 'warningText';
-                statusText = 'Due soon';
-                statusClass = 'statusSoon';
-                dueSoonCount++;
-              } else {
-                nextDueSub = `In ${diffDays} days`;
-                nextDueClass = 'successText';
-                statusText = 'Upcoming';
-                statusClass = 'statusUpcoming';
-              }
-            }
+      } else if (lastPayment) {
+        if (bill.id === 'gym') {
+          if (isGymPaused()) {
+            nextDueTop = 'Paused';
+            nextDueSub = 'On hold (silenced)';
+            nextDueClass = 'mutedText';
+            statusText = 'Paused';
+            statusClass = 'statusBalance';
           } else {
-            // Prepaid monthly subscription logic (e.g. Inspire Broadband).
             const paidMonthDate = parseBillMonth(lastPayment.billMonth);
             if (paidMonthDate) {
-              nextDueDate = new Date(paidMonthDate.getFullYear(), paidMonthDate.getMonth() + 1, 1);
+              nextDueDate = new Date(paidMonthDate.getFullYear(), paidMonthDate.getMonth(), 21);
             } else {
-              nextDueDate = new Date(lastPayment.payDate);
-              nextDueDate.setMonth(nextDueDate.getMonth() + 1);
-              nextDueDate.setDate(1);
+              const payDateObj = new Date(lastPayment.payDate);
+              if (payDateObj.getDate() >= 20) {
+                nextDueDate = new Date(payDateObj.getFullYear(), payDateObj.getMonth() + 1, 21);
+              } else {
+                nextDueDate = new Date(payDateObj.getFullYear(), payDateObj.getMonth(), 21);
+              }
             }
-            
             const diffTime = nextDueDate - now;
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             
@@ -6840,16 +6805,49 @@ function renderDashboardPage() {
               statusClass = 'statusUpcoming';
             }
           }
-        } else if (bill.id === 'gym' && isGymPaused()) {
-          nextDueTop = 'Paused';
-          statusText = 'Paused';
-          statusClass = 'statusBalance';
         } else {
-          nextDueTop = 'Immediate';
-          statusText = 'Overdue';
-          statusClass = 'statusOverdue';
-          overdueCount++;
+          // Prepaid monthly subscription logic (e.g. Inspire Broadband).
+          const paidMonthDate = parseBillMonth(lastPayment.billMonth);
+          if (paidMonthDate) {
+            nextDueDate = new Date(paidMonthDate.getFullYear(), paidMonthDate.getMonth() + 1, 1);
+          } else {
+            nextDueDate = new Date(lastPayment.payDate);
+            nextDueDate.setMonth(nextDueDate.getMonth() + 1);
+            nextDueDate.setDate(1);
+          }
+          
+          const diffTime = nextDueDate - now;
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          
+          nextDueTop = formatDateFriendly(formatLocalDate(nextDueDate));
+          if (diffDays < 0) {
+            nextDueSub = `Overdue by ${Math.abs(diffDays)} days`;
+            nextDueClass = 'dangerText';
+            statusText = 'Overdue';
+            statusClass = 'statusOverdue';
+            overdueCount++;
+          } else if (diffDays <= 5) {
+            nextDueSub = `In ${diffDays} days`;
+            nextDueClass = 'warningText';
+            statusText = 'Due soon';
+            statusClass = 'statusSoon';
+            dueSoonCount++;
+          } else {
+            nextDueSub = `In ${diffDays} days`;
+            nextDueClass = 'successText';
+            statusText = 'Upcoming';
+            statusClass = 'statusUpcoming';
+          }
         }
+      } else if (bill.id === 'gym' && isGymPaused()) {
+        nextDueTop = 'Paused';
+        statusText = 'Paused';
+        statusClass = 'statusBalance';
+      } else {
+        nextDueTop = 'Immediate';
+        statusText = 'Overdue';
+        statusClass = 'statusOverdue';
+        overdueCount++;
       }
     } else { // Postpaid
       if (bill.id === 'landTax') {
@@ -6934,7 +6932,7 @@ function renderDashboardPage() {
       }
     }
     
-    const company = bill.id === 'landTax' ? 'Land Revenue (ভূমি রাজস্ব)' :
+    const company = bill.id === 'landTax' ? 'Land Revenue' :
                     bill.id === 'gym' ? 'Fitness Center' :
                     bill.id.includes('Desco') || bill.id.includes('desco') ? 'DESCO' :
                     bill.id.includes('Gas') || bill.id.includes('gas') ? 'Gas Utility' :
