@@ -5153,7 +5153,7 @@ function openEditModal(uid) {
   const receiptLocInput = document.getElementById('editReceiptLoc');
   
   if (p.billId === 'landTax') {
-    if (monthLabel) monthLabel.innerText = 'Bangladeshi Fiscal Year';
+    if (monthLabel) monthLabel.innerText = 'Fiscal Year';
     monthContainer.classList.remove('hidden');
     const fyOpts = getFiscalYearOptions(6, 4);
     if (p.billMonth && !fyOpts.some(opt => opt.startsWith(p.billMonth))) {
@@ -5459,11 +5459,16 @@ function parseSingleBillMonth(billMonthStr) {
 function parseBillMonth(billMonthStr) {
   if (!billMonthStr) return null;
   const cleanStr = billMonthStr.replace(/\s+/g, ' ').trim();
-  if (cleanStr.toUpperCase().includes('FY') || /\d{4}-\d{2,4}/.test(cleanStr)) {
-    const match = cleanStr.match(/(\d{4})/);
-    if (match) {
-      const year = parseInt(match[1], 10);
-      return new Date(year, 6, 1); // 1st July of Fiscal Year
+  if (cleanStr.toUpperCase().includes('FY') || /\d{2,4}-\d{2,4}/.test(cleanStr)) {
+    const match4 = cleanStr.match(/(\d{4})/);
+    if (match4) {
+      const year = parseInt(match4[1], 10);
+      return new Date(year, 3, 1); // 1st April of Fiscal Year
+    }
+    const match2 = cleanStr.match(/FY\s*(\d{2})/i) || cleanStr.match(/(\d{2})-\d{2}/);
+    if (match2) {
+      const year = parseInt('20' + match2[1], 10);
+      return new Date(year, 3, 1); // 1st April of Fiscal Year
     }
   }
   if (cleanStr.includes(' - ')) {
@@ -5520,12 +5525,13 @@ function getBillingMonthOptions(pastCount = 18, futureCount = 12) {
 function getFiscalYearOptions(pastCount = 5, futureCount = 3) {
   const now = new Date();
   const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth(); // 0-indexed: July is 6
-  const baseFY = currentMonth >= 6 ? currentYear : currentYear - 1;
+  const currentMonth = now.getMonth(); // 0-indexed: April is 3
+  const baseFY = currentMonth >= 3 ? currentYear : currentYear - 1;
   const list = [];
   for (let y = baseFY + futureCount; y >= baseFY - pastCount; y--) {
+    const startShort = y.toString().slice(2);
     const nextYShort = (y + 1).toString().slice(2);
-    list.push(`FY ${y}-${nextYShort} (${y} - ${y + 1})`);
+    list.push(`FY ${startShort}-${nextYShort} (Apr 1 - Mar 31)`);
   }
   return list;
 }
@@ -5797,14 +5803,15 @@ function updateLandTaxCalculation() {
   const fee = parseFloat(feeInput ? feeInput.value : 0) || 0;
   const totalAmount = Math.round(baseAmount + fee);
 
-  // Fiscal year next due date (July 1st of startYear + 1)
+  // Fiscal year next due date (April 1st of startYear + 1)
   const fyStr = fySelect.value;
-  const match = fyStr.match(/(\d{4})/);
+  const match = fyStr.match(/(\d{4})/) || fyStr.match(/FY\s*(\d{2})/i);
   let dueYear = new Date().getFullYear() + 1;
   if (match) {
-    dueYear = parseInt(match[1], 10) + 1;
+    const startY = match[1].length === 4 ? parseInt(match[1], 10) : parseInt('20' + match[1], 10);
+    dueYear = startY + 1;
   }
-  const dueDate = new Date(dueYear, 6, 1);
+  const dueDate = new Date(dueYear, 3, 1);
   const dueFormatted = formatDateFriendly(formatLocalDate(dueDate));
 
   const propBadge = section.querySelector('.landTaxPropBadge');
@@ -5818,7 +5825,7 @@ function updateLandTaxCalculation() {
   if (propBadge) {
     propBadge.innerHTML = `<span class="bnFont">${selectedProp}</span>`;
   }
-  if (fyPill) fyPill.innerText = fyStr.split(' ')[0] || fyStr;
+  if (fyPill) fyPill.innerText = fyStr.split('(')[0].trim() || fyStr;
   if (duePill) duePill.innerText = `Next Due: ${dueFormatted}`;
   if (baseText) baseText.innerText = baseAmount.toLocaleString();
   if (feeTextSpan && feeValText) {
@@ -5906,7 +5913,7 @@ function renderBillPages() {
       if (lastPayment) {
         const paidFYDate = parseBillMonth(lastPayment.billMonth);
         if (paidFYDate) {
-          const nextFYDueDate = new Date(paidFYDate.getFullYear() + 1, 6, 1);
+          const nextFYDueDate = new Date(paidFYDate.getFullYear() + 1, 3, 1);
           nextFYDueDate.setHours(0, 0, 0, 0);
           const diffTime = nextFYDueDate - now;
           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -5918,11 +5925,11 @@ function renderBillPages() {
             nextDueClass = diffDays <= 30 ? 'warning' : 'green';
           }
         } else {
-          nextDueText = 'Immediate (1 Jul)';
+          nextDueText = 'Immediate (1 Apr)';
           nextDueClass = 'red';
         }
       } else {
-        nextDueText = 'Immediate (1 Jul)';
+        nextDueText = 'Immediate (1 Apr)';
         nextDueClass = 'red';
       }
       
@@ -6225,20 +6232,21 @@ function renderBillPages() {
       `;
     } else if (bill.id === 'landTax') {
       const fyOptions = getFiscalYearOptions(6, 4);
-      let defaultFY = fyOptions[4] || 'FY 2026-27 (2026 - 2027)';
+      let defaultFY = fyOptions[4] || 'FY 26-27 (Apr 1 - Mar 31)';
       const curYear = localDate.getFullYear();
       const curMonth = localDate.getMonth();
-      const currentFYStart = curMonth >= 6 ? curYear : curYear - 1;
-      const matchingFY = fyOptions.find(opt => opt.includes(`FY ${currentFYStart}-`));
+      const currentFYStart = curMonth >= 3 ? curYear : curYear - 1;
+      const currentFYShort = currentFYStart.toString().slice(2);
+      const matchingFY = fyOptions.find(opt => opt.includes(`FY ${currentFYShort}-`));
       if (matchingFY) defaultFY = matchingFY;
       
       const savedMatuail = localStorage.getItem('billzy_landtax_rate_matuail') || '1500';
       const savedUttarkhan = localStorage.getItem('billzy_landtax_rate_uttarkhan') || '2000';
       const savedKeshurbag = localStorage.getItem('billzy_landtax_rate_keshurbag') || '850';
 
-      const matchYear = defaultFY.match(/(\d{4})/);
-      const startYear = matchYear ? parseInt(matchYear[1], 10) : curYear;
-      const nextDueFormatted = formatDateFriendly(formatLocalDate(new Date(startYear + 1, 6, 1)));
+      const matchYear = defaultFY.match(/(\d{4})/) || defaultFY.match(/FY\s*(\d{2})/i);
+      const startYear = matchYear ? (matchYear[1].length === 4 ? parseInt(matchYear[1], 10) : parseInt('20' + matchYear[1], 10)) : curYear;
+      const nextDueFormatted = formatDateFriendly(formatLocalDate(new Date(startYear + 1, 3, 1)));
 
       formSectionHtml = `
         <div class="formSection landTaxFormSection">
@@ -6265,7 +6273,7 @@ function renderBillPages() {
             </div>
 
             <div class="inputCard">
-              <div class="inputLabel">Bangladeshi Fiscal Year</div>
+              <div class="inputLabel">Fiscal Year</div>
               <select class="inputLandTaxFiscalYearSelect" onchange="updateLandTaxCalculation()"
                 style="width:100%; height:40px; background:#0b1730; color:white; border:1px solid var(--border); border-radius:12px; padding:0 10px; font-size:1.02rem; font-weight:700; font-family:var(--font-amount);">
                 ${fyOptions.map(opt => `<option value="${opt}" ${opt === defaultFY ? 'selected' : ''}>${opt}</option>`).join('')}
@@ -6327,7 +6335,7 @@ function renderBillPages() {
               <span class="landTaxPropBadge" style="background:#1d3969; color:#FF7A00; font-size:0.95rem; font-weight:800; padding:5px 12px; border-radius:8px; border:1px solid rgba(255,122,0,0.3);">
                 <span class="bnFont">মাতুয়াইল - ২০</span>
               </span>
-              <span class="landTaxFyPill" style="color:#f8fafc; font-size:0.95rem; font-weight:700;">${defaultFY.split(' ')[0]}</span>
+              <span class="landTaxFyPill" style="color:#f8fafc; font-size:0.95rem; font-weight:700;">${defaultFY.split('(')[0].trim()}</span>
               <span class="landTaxDueDateBadge" style="background:rgba(0,230,118,0.12); color:#00E676; font-size:0.82rem; font-weight:800; padding:3px 8px; border-radius:6px; border:1px solid rgba(0,230,118,0.3);">Next Due: ${nextDueFormatted}</span>
             </div>
             <div style="display:flex; align-items:baseline; gap:12px; flex-wrap:wrap;">
@@ -6449,7 +6457,7 @@ function renderLandingPageCards() {
           const today = new Date();
           today.setHours(0, 0, 0, 0);
 
-          const nextFYDueDate = new Date(paidFYDate.getFullYear() + 1, 6, 1);
+          const nextFYDueDate = new Date(paidFYDate.getFullYear() + 1, 3, 1);
           nextFYDueDate.setHours(0, 0, 0, 0);
 
           const diffTime = nextFYDueDate - today;
@@ -6463,7 +6471,7 @@ function renderLandingPageCards() {
             shortStatus = `Overdue ${overdueDays}d`;
             shortColor = '#ff6368';
           } else {
-            subText = `Paid for ${lastPayment.billMonth}${propSuffix} • Due in ${diffDays}d (1 Jul)`;
+            subText = `Paid for ${lastPayment.billMonth}${propSuffix} • Due in ${diffDays}d (1 Apr)`;
             subColor = diffDays <= 30 ? '#ffe663' : '#7ee787';
             shortStatus = lastPayment.billMonth || 'Paid';
             shortColor = subColor;
@@ -6854,7 +6862,7 @@ function renderDashboardPage() {
         if (lastPayment) {
           const paidFYDate = parseBillMonth(lastPayment.billMonth);
           if (paidFYDate) {
-            const nextDueDate = new Date(paidFYDate.getFullYear() + 1, 6, 1);
+            const nextDueDate = new Date(paidFYDate.getFullYear() + 1, 3, 1);
             nextDueTop = formatDateFriendly(formatLocalDate(nextDueDate));
             const diffTime = nextDueDate - now;
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -6878,13 +6886,13 @@ function renderDashboardPage() {
               statusClass = 'statusUpcoming';
             }
           } else {
-            nextDueTop = 'Immediate (1 Jul)';
+            nextDueTop = 'Immediate (1 Apr)';
             statusText = 'Overdue';
             statusClass = 'statusOverdue';
             overdueCount++;
           }
         } else {
-          nextDueTop = 'Immediate (1 Jul)';
+          nextDueTop = 'Immediate (1 Apr)';
           statusText = 'Overdue';
           statusClass = 'statusOverdue';
           overdueCount++;
@@ -9022,7 +9030,7 @@ function submitPaymentForm(billId) {
 
     amountVal = calculatedBase.toString();
     const fyFull = fySelect ? fySelect.value : '';
-    monthVal = fyFull.split(' ')[0] || fyFull;
+    monthVal = fyFull.split('(')[0].trim() || fyFull;
     dateVal = dateInput ? dateInput.value.trim() : '';
     feeVal = feeInput ? feeInput.value.trim() : '';
 
