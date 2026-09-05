@@ -7254,6 +7254,40 @@ function formatShortMonth(monthStr) {
   return formatShortSingleMonth(clean);
 }
 
+// Helper: Format Land Tax Fiscal Year into exact Month Range (e.g. "Apr 2026 - Mar 2027" or "Apr 2025 - Mar 2028")
+function formatLandTaxDisplayMonth(billMonthStr, isMobile = false) {
+  if (!billMonthStr || billMonthStr === '-' || billMonthStr === 'N/A') return '-';
+  const clean = billMonthStr.trim();
+  
+  const monthNames = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+  if (monthNames.some(m => clean.toLowerCase().includes(m)) && (clean.includes('-') || clean.includes('('))) {
+    const match2 = clean.match(/FY\s*(\d{2})-(\d{2})/i);
+    if (match2) {
+      const y1 = parseInt('20' + match2[1], 10);
+      const y2 = parseInt('20' + match2[2], 10);
+      return isMobile ? `Apr ${match2[1]} - Mar ${match2[2]}` : `Apr ${y1} - Mar ${y2}`;
+    }
+    return isMobile ? formatShortMonth(clean) : clean;
+  }
+
+  const fourDigitYears = clean.match(/\b\d{4}\b/g);
+  if (fourDigitYears && fourDigitYears.length > 0) {
+    const startY = parseInt(fourDigitYears[0], 10);
+    const endY = parseInt(fourDigitYears[fourDigitYears.length - 1], 10);
+    const finalEndYear = endY + 1;
+    
+    if (isMobile) {
+      const sShort = startY.toString().slice(-2);
+      const eShort = finalEndYear.toString().slice(-2);
+      return `Apr ${sShort} - Mar ${eShort}`;
+    } else {
+      return `Apr ${startY} - Mar ${finalEndYear}`;
+    }
+  }
+
+  return isMobile ? formatShortMonth(clean) : clean;
+}
+
 function formatShortSingleMonth(clean) {
   if (!clean) return '';
   const parts = clean.trim().split(/\s+/);
@@ -7391,6 +7425,10 @@ function renderDatabasePage() {
     const mobileBillLabel = isLandTaxProp
       ? `<span class="bnFont" style="font-weight:700; color:#00C2FF;">${p.property}</span>`
       : getShortBillName(p.billName);
+
+    const isLandTax = p.billId === 'landTax';
+    const desktopMonth = isLandTax ? formatLandTaxDisplayMonth(p.billMonth, false) : (p.billMonth || '-');
+    const mobileMonth = isLandTax ? formatLandTaxDisplayMonth(p.billMonth, true) : formatShortMonth(p.billMonth);
     
     rowsHtml += `
       <div class="dbRow">
@@ -7411,8 +7449,8 @@ function renderDatabasePage() {
           ${feeTagHtml}
         </div>
         <div class="colMonth">
-          <span class="desktopOnly">${p.billMonth || '-'}</span>
-          <span class="mobileOnly">${formatShortMonth(p.billMonth)}</span>
+          <span class="desktopOnly">${desktopMonth}</span>
+          <span class="mobileOnly">${mobileMonth}</span>
         </div>
         <div class="noteMuted colNote">${noteHtml}</div>
         <div class="actionsCell colActions">
@@ -9464,7 +9502,7 @@ function exportCsv() {
     
     const cat = p.utilityCategory ? (p.utilityCategory.charAt(0).toUpperCase() + p.utilityCategory.slice(1)) : (categoryMap[p.billId] || 'Utility');
     const meter = meterMap[p.billId] || '-';
-    const bMonth = p.billMonth || '-';
+    const bMonth = p.billId === 'landTax' ? formatLandTaxDisplayMonth(p.billMonth, false) : (p.billMonth || '-');
     const bType = p.billType ? (p.billType.charAt(0).toUpperCase() + p.billType.slice(1)) : 'Prepaid';
     const createdAt = p.savedAt || (p.timestamp ? new Date(p.timestamp).toISOString() : '-');
     
