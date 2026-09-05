@@ -1534,6 +1534,30 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   color:var(--accent2);
 }
 
+.landTaxPresetBtn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #94a3b8;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+.landTaxPresetBtn:hover {
+  background: rgba(0, 194, 255, 0.15);
+  border-color: rgba(0, 194, 255, 0.4);
+  color: #00C2FF;
+}
+.landTaxPresetBtn.active {
+  background: rgba(0, 194, 255, 0.25);
+  border-color: #00C2FF;
+  color: #00C2FF;
+  box-shadow: 0 0 10px rgba(0, 194, 255, 0.2);
+}
+
 .paymentInfo{
   display:flex;
   flex-direction:column;
@@ -4772,7 +4796,7 @@ id:'landTax',
 icon:'',
 name:'Land<br>Tax',
 account:'LT-9921',
-type:'Postpaid',
+type:'Prepaid',
 portal:'Open Land Tax Portal ↗',
 stats:[
 ['Next Bill Due in','-',''],
@@ -4780,7 +4804,7 @@ stats:[
 ['Last pay date','-',''],
 ['Last Payment Made for','-','']
 ],
-form:'postpaid'
+form:'prepaid'
 }
 
 ];
@@ -5153,14 +5177,23 @@ function openEditModal(uid) {
   const receiptLocInput = document.getElementById('editReceiptLoc');
   
   if (p.billId === 'landTax') {
-    if (monthLabel) monthLabel.innerText = 'Fiscal Year';
+    if (monthLabel) monthLabel.innerText = 'Fiscal Year (Apr 1 - Mar 31)';
     monthContainer.classList.remove('hidden');
-    const fyOpts = getFiscalYearOptions(6, 4);
-    if (p.billMonth && !fyOpts.some(opt => opt.startsWith(p.billMonth))) {
+    const fyOpts = [];
+    const yrList = getLandTaxYearList(7, 6);
+    yrList.slice().reverse().forEach(y => {
+      fyOpts.push(`${y}`);
+    });
+    [2, 3, 5].forEach(dur => {
+      yrList.slice().reverse().forEach(y => {
+        fyOpts.push(`${y} to ${y + dur - 1}`);
+      });
+    });
+    if (p.billMonth && !fyOpts.includes(p.billMonth)) {
       fyOpts.unshift(p.billMonth);
     }
     monthSelect.innerHTML = fyOpts.map(opt => 
-      `<option value="${opt}" ${(p.billMonth && opt.startsWith(p.billMonth)) ? 'selected' : ''}>${opt}</option>`
+      `<option value="${opt}" ${(p.billMonth && (p.billMonth === opt || opt.startsWith(p.billMonth))) ? 'selected' : ''}>${opt}</option>`
     ).join('');
 
     propContainer.classList.remove('hidden');
@@ -5239,7 +5272,7 @@ async function saveEditedRecord() {
   record.payDate = dateVal;
 
   if (record.billId === 'landTax') {
-    record.billMonth = monthVal ? (monthVal.split(' ')[0] || monthVal) : '';
+    record.billMonth = monthVal ? monthVal.trim() : '';
     record.property = document.getElementById('editProperty').value;
     record.receiptFileName = document.getElementById('editReceiptName').value.trim();
     record.receiptLocation = document.getElementById('editReceiptLoc').value.trim();
@@ -5471,6 +5504,17 @@ function parseBillMonth(billMonthStr) {
       return new Date(year, 3, 1); // 1st April of Fiscal Year
     }
   }
+
+  // Handle year strings & ranges like "2025 to 2027", "2025 - 2027", "2026"
+  const fourDigitYears = cleanStr.match(/\b\d{4}\b/g);
+  const monthNames = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december", "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+  const hasMonthName = monthNames.some(m => cleanStr.toLowerCase().includes(m));
+
+  if (!hasMonthName && fourDigitYears && fourDigitYears.length > 0) {
+    const endYear = parseInt(fourDigitYears[fourDigitYears.length - 1], 10);
+    return new Date(endYear, 3, 1);
+  }
+
   if (cleanStr.includes(' - ')) {
     const parts = cleanStr.split(' - ');
     return parseSingleBillMonth(parts[1]) || parseSingleBillMonth(parts[0]);
@@ -5532,6 +5576,18 @@ function getFiscalYearOptions(pastCount = 5, futureCount = 3) {
     const startShort = y.toString().slice(2);
     const nextYShort = (y + 1).toString().slice(2);
     list.push(`FY ${startShort}-${nextYShort} (Apr 1 - Mar 31)`);
+  }
+  return list;
+}
+
+function getLandTaxYearList(pastCount = 7, futureCount = 6) {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+  const baseFY = currentMonth >= 3 ? currentYear : currentYear - 1;
+  const list = [];
+  for (let y = baseFY - pastCount; y <= baseFY + futureCount; y++) {
+    list.push(y);
   }
   return list;
 }
@@ -5748,12 +5804,49 @@ function onLandTaxPropertyChange() {
   updateLandTaxCalculation();
 }
 
+function onLandTaxYearRangeChange() {
+  const section = document.getElementById('landTax');
+  if (!section) return;
+  const fromSelect = section.querySelector('.inputLandTaxFromYearSelect');
+  const toSelect = section.querySelector('.inputLandTaxToYearSelect');
+  if (!fromSelect || !toSelect) return;
+
+  const fromY = parseInt(fromSelect.value, 10);
+  let toY = parseInt(toSelect.value, 10);
+
+  if (toY < fromY) {
+    toSelect.value = fromY.toString();
+  }
+  updateLandTaxCalculation();
+}
+
+function setLandTaxDurationPreset(years) {
+  const section = document.getElementById('landTax');
+  if (!section) return;
+  const fromSelect = section.querySelector('.inputLandTaxFromYearSelect');
+  const toSelect = section.querySelector('.inputLandTaxToYearSelect');
+  if (!fromSelect || !toSelect) return;
+
+  const fromY = parseInt(fromSelect.value, 10) || new Date().getFullYear();
+  const targetToY = fromY + (years - 1);
+
+  if (!Array.from(toSelect.options).some(o => parseInt(o.value, 10) === targetToY)) {
+    const opt = document.createElement('option');
+    opt.value = targetToY.toString();
+    opt.innerText = targetToY.toString();
+    toSelect.appendChild(opt);
+  }
+  toSelect.value = targetToY.toString();
+  updateLandTaxCalculation();
+}
+
 function updateLandTaxCalculation() {
   const section = document.getElementById('landTax');
   if (!section) return;
 
   const propSelect = section.querySelector('.inputLandTaxPropertySelect');
-  const fySelect = section.querySelector('.inputLandTaxFiscalYearSelect');
+  const fromSelect = section.querySelector('.inputLandTaxFromYearSelect');
+  const toSelect = section.querySelector('.inputLandTaxToYearSelect');
   const feeInput = section.querySelector('.inputLandTaxFeeVal');
   const singleAmountInput = section.querySelector('.inputLandTaxSingleAmountVal');
   const allPropsContainer = section.querySelector('.landTaxAllPropsContainer');
@@ -5763,7 +5856,7 @@ function updateLandTaxCalculation() {
   const uttarkhanInput = section.querySelector('.inputLandTaxRateUttarkhan');
   const keshurbagInput = section.querySelector('.inputLandTaxRateKeshurbag');
 
-  if (!propSelect || !fySelect) return;
+  if (!propSelect) return;
 
   const selectedProp = propSelect.value;
   const isAllProps = selectedProp.includes('সকল') || selectedProp.includes('All 3');
@@ -5776,7 +5869,22 @@ function updateLandTaxCalculation() {
     if (allPropsContainer) allPropsContainer.style.display = 'none';
   }
 
-  // Load / Save property rate defaults
+  const fromY = parseInt(fromSelect ? fromSelect.value : new Date().getFullYear(), 10) || new Date().getFullYear();
+  let toY = parseInt(toSelect ? toSelect.value : fromY, 10) || fromY;
+  if (toY < fromY) toY = fromY;
+  const yearsCount = Math.max(1, toY - fromY + 1);
+
+  // Update active status on preset buttons
+  section.querySelectorAll('.landTaxPresetBtn').forEach(btn => {
+    const btnYears = parseInt(btn.innerText, 10);
+    if (btnYears === yearsCount) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+
+  // Load / Save property rate defaults and calculate base total
   let baseAmount = 0;
   if (isAllProps) {
     const matuailAmt = parseFloat(matuailInput ? matuailInput.value : 0) || 0;
@@ -5787,7 +5895,7 @@ function updateLandTaxCalculation() {
     if (uttarkhanAmt > 0) localStorage.setItem('billzy_landtax_rate_uttarkhan', uttarkhanAmt.toString());
     if (keshurbagAmt > 0) localStorage.setItem('billzy_landtax_rate_keshurbag', keshurbagAmt.toString());
 
-    baseAmount = Math.round(matuailAmt + uttarkhanAmt + keshurbagAmt);
+    baseAmount = Math.round((matuailAmt + uttarkhanAmt + keshurbagAmt) * yearsCount);
   } else {
     let key = 'matuail';
     if (selectedProp.includes('উত্তরখান')) key = 'uttarkhan';
@@ -5797,20 +5905,14 @@ function updateLandTaxCalculation() {
     if (amt > 0) {
       localStorage.setItem('billzy_landtax_rate_' + key, amt.toString());
     }
-    baseAmount = Math.round(amt);
+    baseAmount = Math.round(amt * yearsCount);
   }
 
   const fee = parseFloat(feeInput ? feeInput.value : 0) || 0;
   const totalAmount = Math.round(baseAmount + fee);
 
-  // Fiscal year next due date (April 1st of startYear + 1)
-  const fyStr = fySelect.value;
-  const match = fyStr.match(/(\d{4})/) || fyStr.match(/FY\s*(\d{2})/i);
-  let dueYear = new Date().getFullYear() + 1;
-  if (match) {
-    const startY = match[1].length === 4 ? parseInt(match[1], 10) : parseInt('20' + match[1], 10);
-    dueYear = startY + 1;
-  }
+  // Next due date: April 1st of (toY + 1)
+  const dueYear = toY + 1;
   const dueDate = new Date(dueYear, 3, 1);
   const dueFormatted = formatDateFriendly(formatLocalDate(dueDate));
 
@@ -5825,7 +5927,10 @@ function updateLandTaxCalculation() {
   if (propBadge) {
     propBadge.innerHTML = `<span class="bnFont">${selectedProp}</span>`;
   }
-  if (fyPill) fyPill.innerText = fyStr.split('(')[0].trim() || fyStr;
+  if (fyPill) {
+    const rangeStr = fromY === toY ? `${fromY}` : `${fromY} to ${toY}`;
+    fyPill.innerText = `${rangeStr} (${yearsCount} ${yearsCount === 1 ? 'Year' : 'Years'})`;
+  }
   if (duePill) duePill.innerText = `Next Due: ${dueFormatted}`;
   if (baseText) baseText.innerText = baseAmount.toLocaleString();
   if (feeTextSpan && feeValText) {
@@ -6231,22 +6336,18 @@ function renderBillPages() {
         </div>
       `;
     } else if (bill.id === 'landTax') {
-      const fyOptions = getFiscalYearOptions(6, 4);
-      let defaultFY = fyOptions[4] || 'FY 26-27 (Apr 1 - Mar 31)';
+      const yearOptions = getLandTaxYearList(7, 6);
       const curYear = localDate.getFullYear();
       const curMonth = localDate.getMonth();
       const currentFYStart = curMonth >= 3 ? curYear : curYear - 1;
-      const currentFYShort = currentFYStart.toString().slice(2);
-      const matchingFY = fyOptions.find(opt => opt.includes(`FY ${currentFYShort}-`));
-      if (matchingFY) defaultFY = matchingFY;
+      const defaultFromYear = currentFYStart;
+      const defaultToYear = currentFYStart;
       
       const savedMatuail = localStorage.getItem('billzy_landtax_rate_matuail') || '1500';
       const savedUttarkhan = localStorage.getItem('billzy_landtax_rate_uttarkhan') || '2000';
       const savedKeshurbag = localStorage.getItem('billzy_landtax_rate_keshurbag') || '850';
 
-      const matchYear = defaultFY.match(/(\d{4})/) || defaultFY.match(/FY\s*(\d{2})/i);
-      const startYear = matchYear ? (matchYear[1].length === 4 ? parseInt(matchYear[1], 10) : parseInt('20' + matchYear[1], 10)) : curYear;
-      const nextDueFormatted = formatDateFriendly(formatLocalDate(new Date(startYear + 1, 3, 1)));
+      const nextDueFormatted = formatDateFriendly(formatLocalDate(new Date(defaultToYear + 1, 3, 1)));
 
       formSectionHtml = `
         <div class="formSection landTaxFormSection">
@@ -6266,18 +6367,31 @@ function renderBillPages() {
             </div>
             
             <div class="inputCard landTaxSinglePropContainer" style="grid-column: span 1;">
-              <div class="inputLabel">Tax Amount (৳)</div>
+              <div class="inputLabel">Tax Amount per Year (৳)</div>
               <input type="number" class="inputLandTaxSingleAmountVal" value="${savedMatuail}" placeholder="1500"
                 oninput="updateLandTaxCalculation()"
                 style="width:100%; height:40px; background:transparent; border:none; color:white; font-size:1.8rem; font-weight:800; font-family:var(--font-amount); font-feature-settings:'tnum' 1; outline:none;">
             </div>
 
-            <div class="inputCard">
-              <div class="inputLabel">Fiscal Year</div>
-              <select class="inputLandTaxFiscalYearSelect" onchange="updateLandTaxCalculation()"
-                style="width:100%; height:40px; background:#0b1730; color:white; border:1px solid var(--border); border-radius:12px; padding:0 10px; font-size:1.02rem; font-weight:700; font-family:var(--font-amount);">
-                ${fyOptions.map(opt => `<option value="${opt}" ${opt === defaultFY ? 'selected' : ''}>${opt}</option>`).join('')}
-              </select>
+            <div class="inputCard" style="min-width:240px;">
+              <div class="inputLabel">Fiscal Year (Apr 1 - Mar 31)</div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <select class="inputLandTaxFromYearSelect" onchange="onLandTaxYearRangeChange()"
+                  style="flex:1; height:40px; background:#0b1730; color:white; border:1px solid var(--border); border-radius:12px; padding:0 8px; font-size:1.05rem; font-weight:700; font-family:var(--font-amount);">
+                  ${yearOptions.map(y => `<option value="${y}" ${y === defaultFromYear ? 'selected' : ''}>${y}</option>`).join('')}
+                </select>
+                <span style="color:var(--muted); font-weight:700; font-size:0.95rem;">to</span>
+                <select class="inputLandTaxToYearSelect" onchange="onLandTaxYearRangeChange()"
+                  style="flex:1; height:40px; background:#0b1730; color:white; border:1px solid var(--border); border-radius:12px; padding:0 8px; font-size:1.05rem; font-weight:700; font-family:var(--font-amount);">
+                  ${yearOptions.map(y => `<option value="${y}" ${y === defaultToYear ? 'selected' : ''}>${y}</option>`).join('')}
+                </select>
+              </div>
+              <div class="landTaxPresetRow" style="display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;">
+                <button type="button" class="landTaxPresetBtn active" onclick="setLandTaxDurationPreset(1)">1 Year</button>
+                <button type="button" class="landTaxPresetBtn" onclick="setLandTaxDurationPreset(2)">2 Years</button>
+                <button type="button" class="landTaxPresetBtn" onclick="setLandTaxDurationPreset(3)">3 Years</button>
+                <button type="button" class="landTaxPresetBtn" onclick="setLandTaxDurationPreset(5)">5 Years</button>
+              </div>
             </div>
 
             <div class="inputCard">
@@ -6296,19 +6410,19 @@ function renderBillPages() {
           <!-- Multi-Property 3-Amount Breakdown Sub-grid (shown when "সকল ৩টি সম্পত্তি" is selected) -->
           <div class="landTaxAllPropsContainer" style="display:none; margin-top:14px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap:12px; background:rgba(0,194,255,0.03); border:1px solid rgba(0,194,255,0.15); border-radius:14px; padding:12px 14px;">
             <div class="inputCard" style="background:#0b1730;">
-              <div class="inputLabel bnFont" style="color:#00C2FF;">মাতুয়াইল - ২০ (৳)</div>
+              <div class="inputLabel bnFont" style="color:#00C2FF;">মাতুয়াইল - ২০ (৳/yr)</div>
               <input type="number" class="inputLandTaxRateMatuail" value="${savedMatuail}" placeholder="1500"
                 oninput="updateLandTaxCalculation()"
                 style="width:100%; height:36px; background:transparent; border:none; color:white; font-size:1.5rem; font-weight:800; font-family:var(--font-amount); outline:none;">
             </div>
             <div class="inputCard" style="background:#0b1730;">
-              <div class="inputLabel bnFont" style="color:#00C2FF;">উত্তরখান - ১৯ (৳)</div>
+              <div class="inputLabel bnFont" style="color:#00C2FF;">উত্তরখান - ১৯ (৳/yr)</div>
               <input type="number" class="inputLandTaxRateUttarkhan" value="${savedUttarkhan}" placeholder="2000"
                 oninput="updateLandTaxCalculation()"
                 style="width:100%; height:36px; background:transparent; border:none; color:white; font-size:1.5rem; font-weight:800; font-family:var(--font-amount); outline:none;">
             </div>
             <div class="inputCard" style="background:#0b1730;">
-              <div class="inputLabel bnFont" style="color:#00C2FF;">কেশুরবাগ - ৮১ (৳)</div>
+              <div class="inputLabel bnFont" style="color:#00C2FF;">কেশুরবাগ - ৮১ (৳/yr)</div>
               <input type="number" class="inputLandTaxRateKeshurbag" value="${savedKeshurbag}" placeholder="850"
                 oninput="updateLandTaxCalculation()"
                 style="width:100%; height:36px; background:transparent; border:none; color:white; font-size:1.5rem; font-weight:800; font-family:var(--font-amount); outline:none;">
@@ -6324,7 +6438,7 @@ function renderBillPages() {
             </div>
             <div class="inputCard">
               <div class="inputLabel">Storage Location <span style="color:var(--muted); font-size:0.75rem;">(Optional)</span></div>
-              <input type="text" class="inputLandTaxReceiptLocation" placeholder="e.g. Google Drive / Documents / Land Tax 2026" 
+              <input type="text" class="inputLandTaxReceiptLocation" placeholder="e.g. Google Drive / Documents / Land Tax" 
                 style="width:100%; height:38px; background:transparent; border:none; color:#f8fafc; font-size:0.95rem; font-weight:600; outline:none;">
             </div>
           </div>
@@ -6335,13 +6449,13 @@ function renderBillPages() {
               <span class="landTaxPropBadge" style="background:#1d3969; color:#FF7A00; font-size:0.95rem; font-weight:800; padding:5px 12px; border-radius:8px; border:1px solid rgba(255,122,0,0.3);">
                 <span class="bnFont">মাতুয়াইল - ২০</span>
               </span>
-              <span class="landTaxFyPill" style="color:#f8fafc; font-size:0.95rem; font-weight:700;">${defaultFY.split('(')[0].trim()}</span>
+              <span class="landTaxFyPill" style="color:#f8fafc; font-size:0.95rem; font-weight:700;">${defaultFromYear} (1 Year)</span>
               <span class="landTaxDueDateBadge" style="background:rgba(0,230,118,0.12); color:#00E676; font-size:0.82rem; font-weight:800; padding:3px 8px; border-radius:6px; border:1px solid rgba(0,230,118,0.3);">Next Due: ${nextDueFormatted}</span>
             </div>
             <div style="display:flex; align-items:baseline; gap:12px; flex-wrap:wrap;">
-              <span style="font-size:0.88rem; color:#94a3b8;">Tax Amount: <strong class="landTaxBaseText" style="color:white; font-family:var(--font-amount); font-size:1.2rem; font-weight:800;">${parseInt(savedMatuail).toLocaleString()}</strong></span>
+              <span style="font-size:0.88rem; color:#94a3b8;">Tax Amount: <strong class="landTaxBaseText" style="color:white; font-family:var(--font-amount); font-size:1.2rem; font-weight:800;">৳ ${parseInt(savedMatuail).toLocaleString()}</strong></span>
               <span class="landTaxFeeText" style="font-size:0.88rem; color:#FF7A00; display:none;">+ <strong class="landTaxFeeValText">0</strong> fee</span>
-              <span style="font-size:0.95rem; color:#00E676;">Total: <strong class="landTaxTotalText" style="font-size:1.35rem; font-family:var(--font-amount); font-weight:900;">${parseInt(savedMatuail).toLocaleString()}</strong></span>
+              <span style="font-size:0.95rem; color:#00E676;">Total: <strong class="landTaxTotalText" style="font-size:1.35rem; font-family:var(--font-amount); font-weight:900;">৳ ${parseInt(savedMatuail).toLocaleString()}</strong></span>
             </div>
           </div>
 
@@ -6817,8 +6931,8 @@ function renderDashboardPage() {
               </div>
             </div>
             <div>
-              <div class="typePill typePostpaid">
-                Postpaid
+              <div class="typePill typePrepaid">
+                Prepaid
               </div>
             </div>
             <div class="paymentInfo">
@@ -9062,7 +9176,8 @@ function submitPaymentForm(billId) {
     amountVal = calculatedBase.toString();
   } else if (billId === 'landTax') {
     const propSelect = section.querySelector('.inputLandTaxPropertySelect');
-    const fySelect = section.querySelector('.inputLandTaxFiscalYearSelect');
+    const fromSelect = section.querySelector('.inputLandTaxFromYearSelect');
+    const toSelect = section.querySelector('.inputLandTaxToYearSelect');
     const feeInput = section.querySelector('.inputLandTaxFeeVal');
     const dateInput = section.querySelector('.inputDateVal');
     const singleAmountInput = section.querySelector('.inputLandTaxSingleAmountVal');
@@ -9071,8 +9186,13 @@ function submitPaymentForm(billId) {
 
     const selectedProp = propSelect ? propSelect.value : 'মাতুয়াইল - ২০';
     const isAllProps = selectedProp.includes('সকল') || selectedProp.includes('All 3');
-    const fyFull = fySelect ? fySelect.value : '';
-    const monthVal = fyFull.split('(')[0].trim() || fyFull;
+    
+    let fromY = parseInt(fromSelect ? fromSelect.value : new Date().getFullYear(), 10) || new Date().getFullYear();
+    let toY = parseInt(toSelect ? toSelect.value : fromY, 10) || fromY;
+    if (toY < fromY) toY = fromY;
+    const yearsCount = Math.max(1, toY - fromY + 1);
+
+    const monthVal = fromY === toY ? fromY.toString() : `${fromY} to ${toY}`;
     const dateVal = dateInput ? dateInput.value.trim() : '';
     const feeVal = feeInput ? feeInput.value.trim() : '';
     const receiptName = receiptNameInput ? receiptNameInput.value.trim() : '';
@@ -9092,7 +9212,11 @@ function submitPaymentForm(billId) {
       if (uttarkhanAmt > 0) localStorage.setItem('billzy_landtax_rate_uttarkhan', uttarkhanAmt.toString());
       if (keshurbagAmt > 0) localStorage.setItem('billzy_landtax_rate_keshurbag', keshurbagAmt.toString());
 
-      const calculatedBase = Math.round(matuailAmt + uttarkhanAmt + keshurbagAmt);
+      const matuailTotal = Math.round(matuailAmt * yearsCount);
+      const uttarkhanTotal = Math.round(uttarkhanAmt * yearsCount);
+      const keshurbagTotal = Math.round(keshurbagAmt * yearsCount);
+      const calculatedBase = matuailTotal + uttarkhanTotal + keshurbagTotal;
+
       if (calculatedBase <= 0) {
         alert('Please enter valid tax amounts for the properties.');
         return;
@@ -9118,9 +9242,9 @@ function submitPaymentForm(billId) {
 
       // Save 3 separate records for each property in database
       const propEntries = [
-        { prop: 'মাতুয়াইল - ২০', amt: matuailAmt, fee: feeVal },
-        { prop: 'উত্তরখান - ১৯', amt: uttarkhanAmt, fee: '' },
-        { prop: 'কেশুরবাগ - ৮১', amt: keshurbagAmt, fee: '' }
+        { prop: 'মাতুয়াইল - ২০', amt: matuailTotal, fee: feeVal },
+        { prop: 'উত্তরখান - ১৯', amt: uttarkhanTotal, fee: '' },
+        { prop: 'কেশুরবাগ - ৮১', amt: keshurbagTotal, fee: '' }
       ];
 
       propEntries.forEach(item => {
@@ -9145,7 +9269,7 @@ function submitPaymentForm(billId) {
       if (amt > 0) {
         localStorage.setItem('billzy_landtax_rate_' + key, amt.toString());
       }
-      const calculatedBase = Math.round(amt);
+      const calculatedBase = Math.round(amt * yearsCount);
       if (calculatedBase <= 0) {
         alert('Please enter a valid tax amount.');
         return;
