@@ -5835,6 +5835,85 @@ function updateMatuailGasCalculation() {
   if (totalText) totalText.innerText = totalAmount.toLocaleString();
 }
 
+// Helper: Calculate Matuail Gas "Paid till <Month>" and Current Due amount with delay fine
+function getMatuailGasDueInfo(lastPayment) {
+  const rate = parseFloat(localStorage.getItem('billzy_matuail_rate') || 1080) || 1080;
+  
+  if (!lastPayment || !lastPayment.billMonth) {
+    return {
+      paidTill: 'No Records',
+      dueText: 'No Dues',
+      dueColor: 'var(--muted)',
+      totalDue: 0
+    };
+  }
+
+  const rawMonthStr = lastPayment.billMonth.trim();
+  let endMonthStr = rawMonthStr;
+  if (rawMonthStr.includes(' - ')) {
+    endMonthStr = rawMonthStr.split(' - ')[1].trim();
+  } else if (rawMonthStr.includes(' to ')) {
+    endMonthStr = rawMonthStr.split(' to ')[1].trim();
+  }
+
+  const endMonthDate = parseSingleBillMonth(endMonthStr);
+  const shortEnd = formatShortSingleMonth(endMonthStr);
+  const paidTill = `Paid till ${shortEnd}`;
+
+  if (!endMonthDate) {
+    return {
+      paidTill: `Paid for ${rawMonthStr}`,
+      dueText: 'Current Due: -',
+      dueColor: '#94a3b8',
+      totalDue: 0
+    };
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Next unpaid month starts on 1st of month following endMonthDate
+  const nextUnpaidStart = new Date(endMonthDate.getFullYear(), endMonthDate.getMonth() + 1, 1);
+  
+  if (today < nextUnpaidStart) {
+    return {
+      paidTill: paidTill,
+      dueText: 'No Dues (Up to date)',
+      dueColor: '#00E676',
+      totalDue: 0
+    };
+  }
+
+  // Days elapsed since start of first unpaid month
+  const diffTime = today - nextUnpaidStart;
+  const diffDays = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1);
+  const monthsFraction = Math.max(0.1, Math.round((diffDays / 30.4375) * 10) / 10);
+  
+  // Whole completed months count (do not fraction the 1080 base rate)
+  const wholeMonths = Math.floor(diffDays / 30.4375);
+  const billedMonths = Math.max(1, wholeMonths);
+  const baseAmount = billedMonths * rate;
+  
+  // If more than 1 month is due (even 1.1 month), add 100 delay fine
+  const fine = monthsFraction > 1.0 ? 100 : 0;
+  const totalDue = baseAmount + fine;
+  
+  const mLabel = monthsFraction === 1 ? '1 month' : `${monthsFraction} months`;
+  const fineLabel = fine > 0 ? ' • incl. 100 fine' : '';
+  const dueText = `Due: ৳ ${totalDue.toLocaleString()} (${mLabel}${fineLabel})`;
+  const dueColor = monthsFraction > 1.0 ? '#ff6368' : (monthsFraction > 0.5 ? '#ffe663' : '#00E676');
+
+  return {
+    paidTill: paidTill,
+    dueText: dueText,
+    dueColor: dueColor,
+    totalDue: totalDue,
+    monthsFraction: monthsFraction,
+    billedMonths: billedMonths,
+    fine: fine
+  };
+}
+
 function isGymPaused() {
   return localStorage.getItem('billzy_gym_paused') === 'true';
 }
@@ -6263,13 +6342,29 @@ function renderBillPages() {
       
       const lastAmountText = lastPayment ? `৳ ${parseFloat(lastPayment.amount).toLocaleString()}` : '-';
       const lastDateText = lastPayment ? formatDateFriendly(lastPayment.payDate) : '-';
-      const lastMonthText = lastPayment && lastPayment.billMonth ? lastPayment.billMonth : '-';
+      let lastMonthTitle = 'Last Payment Made for';
+      let lastMonthVal = lastPayment && lastPayment.billMonth ? lastPayment.billMonth : '-';
+
+      if (bill.id === 'matuailGas') {
+        lastMonthTitle = 'Payment Status & Due';
+        if (lastPayment && lastPayment.billMonth) {
+          const gasDueInfo = getMatuailGasDueInfo(lastPayment);
+          lastMonthVal = `
+            <div style="display:flex; flex-direction:column; gap:3px; line-height:1.2;">
+              <span style="font-size:1.18rem; font-weight:800; color:#f8fafc; letter-spacing:-0.2px;">${gasDueInfo.paidTill}</span>
+              <span style="font-size:0.85rem; font-weight:700; color:${gasDueInfo.dueColor}; font-family:var(--font-amount);">
+                ${gasDueInfo.dueText}
+              </span>
+            </div>
+          `;
+        }
+      }
       
       stats = [
         ['Next Bill Due', nextDueText, nextDueClass],
         ['Last Amount', lastAmountText, 'green mono'],
         ['Last pay date', lastDateText, ''],
-        ['Last Payment Made for', lastMonthText, '']
+        [lastMonthTitle, lastMonthVal, '']
       ];
     }
     
