@@ -54,20 +54,48 @@ async function main() {
   const unpaidPrepaid = [];
   const balanceCheckups = [];
 
+function parseSingleMonth(str) {
+  if (!str) return null;
+  const parts = str.trim().split(' ');
+  if (parts.length < 2) return null;
+  const monthNames = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
+  const mIdx = monthNames.findIndex(m => m.startsWith(parts[0].toLowerCase()));
+  const y = parseInt(parts[1]);
+  if (mIdx === -1 || isNaN(y)) return null;
+  return new Date(y, mIdx, 1);
+}
+
+function isMonthCovered(billMonthStr, targetMonthLabel) {
+  if (!billMonthStr || !targetMonthLabel) return false;
+  const clean = billMonthStr.trim().toLowerCase();
+  const target = targetMonthLabel.trim().toLowerCase();
+  if (clean === target) return true;
+  if (clean.includes(' - ') || clean.includes(' to ')) {
+    const parts = clean.split(/ - | to /);
+    const start = parseSingleMonth(parts[0]);
+    const end = parseSingleMonth(parts[1]);
+    const tgt = parseSingleMonth(target);
+    if (start && end && tgt && tgt >= start && tgt <= end) {
+      return true;
+    }
+  }
+  return false;
+}
+
   // 4. Check payment status for each bill
   bills.forEach(bill => {
     // Filter payments for this specific bill
     const billPayments = payments.filter(p => p.billId === bill.id);
     
     if (bill.type === 'postpaid') {
-      // Postpaid: check if previous month was paid
-      const paid = billPayments.some(p => p.billMonth && p.billMonth.trim().toLowerCase() === lastMonthLabel.toLowerCase());
+      // Postpaid: check if previous month was paid or covered in a multi-month range
+      const paid = billPayments.some(p => isMonthCovered(p.billMonth, lastMonthLabel));
       if (!paid) {
         unpaidPostpaid.push(bill);
       }
     } else if (bill.type === 'prepaid') {
       // Prepaid: check if current month is paid
-      const paid = billPayments.some(p => p.billMonth && p.billMonth.trim().toLowerCase() === currentMonthLabel.toLowerCase());
+      const paid = billPayments.some(p => isMonthCovered(p.billMonth, currentMonthLabel));
       if (!paid) {
         unpaidPrepaid.push(bill);
       }
