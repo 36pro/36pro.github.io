@@ -5898,9 +5898,8 @@ function getMatuailGasDueInfo(lastPayment) {
   const fine = monthsFraction > 1.0 ? 100 : 0;
   const totalDue = baseAmount + fine;
   
-  const mLabel = monthsFraction === 1 ? '1 month' : `${monthsFraction} months`;
-  const fineLabel = fine > 0 ? ' • incl. 100 fine' : '';
-  const dueText = `Due: ৳ ${totalDue.toLocaleString()} (${mLabel}${fineLabel})`;
+  const fineLabel = fine > 0 ? ` +${fine}` : '';
+  const dueText = `${totalDue.toLocaleString()} (${monthsFraction} M${fineLabel})`;
   const dueColor = monthsFraction > 1.0 ? '#ff6368' : (monthsFraction > 0.5 ? '#ffe663' : '#00E676');
 
   return {
