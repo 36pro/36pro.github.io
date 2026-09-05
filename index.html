@@ -342,18 +342,6 @@ body{
   width:100%;
 }
 
-.billGrid .billCard:nth-child(5){
-  grid-column: 4 / span 6;
-}
-
-.billGrid .billCard:nth-child(6){
-  grid-column: 10 / span 6;
-}
-
-.billGrid .billCard:nth-child(7){
-  grid-column: 16 / span 6;
-}
-
 .billCard{
   grid-column: span 6;
   min-height:250px;
@@ -372,6 +360,20 @@ body{
   transition:all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   position:relative;
   overflow:hidden;
+}
+
+.mobileOnlyBillCard {
+  display: none !important;
+}
+
+.desktopOnlyGroupCard {
+  display: flex !important;
+}
+
+.groupedSubItem:hover {
+  background: rgba(0, 194, 255, 0.08) !important;
+  border-color: rgba(0, 194, 255, 0.3) !important;
+  transform: translateY(-1px);
 }
 
 .billCard::before{
@@ -1076,6 +1078,13 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
   .billGrid{
     grid-template-columns:1fr;
+  }
+
+  .mobileOnlyBillCard {
+    display: flex !important;
+  }
+  .desktopOnlyGroupCard {
+    display: none !important;
   }
 
   .statsGrid{
@@ -3221,10 +3230,13 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 12px;
   }
-  .billCard,
-  .billGrid .billCard:nth-child(5),
-  .billGrid .billCard:nth-child(6),
-  .billGrid .billCard:nth-child(7) {
+  .mobileOnlyBillCard {
+    display: flex !important;
+  }
+  .desktopOnlyGroupCard {
+    display: none !important;
+  }
+  .billCard {
     grid-column: auto !important;
     min-height: 185px;
     padding: 16px 10px 14px;
@@ -4482,6 +4494,24 @@ function getBillIconHtml(bill, type) {
   if (filename) {
     return `<img src="assets/${filename}" alt="${bill.name}" style="width:100%; height:100%; object-fit:cover; border-radius:${borderRadius}; display:block;">`;
   }
+  if (bill.id === 'gym') {
+    return `
+      <div style="width:100%; height:100%; border-radius:${borderRadius}; background:linear-gradient(135deg, #00C2FF, #7000FF); display:flex; align-items:center; justify-content:center; box-shadow:0 4px 14px rgba(0,194,255,0.35);">
+        <svg viewBox="0 0 24 24" width="58%" height="58%" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6.5 6.5h11M6.5 17.5h11M4 9.5h2v5H4zM18 9.5h2v5h-2zM2 11h2v2H2zM20 11h2v2h-2zM6 12h12"/>
+        </svg>
+      </div>
+    `;
+  }
+  if (bill.id === 'landTax') {
+    return `
+      <div style="width:100%; height:100%; border-radius:${borderRadius}; background:linear-gradient(135deg, #FF7A00, #FF0055); display:flex; align-items:center; justify-content:center; box-shadow:0 4px 14px rgba(255,122,0,0.35);">
+        <svg viewBox="0 0 24 24" width="58%" height="58%" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 21h18M4 18h16M6 18V9l6-5 6 5v9M9 13h6M12 9v8"/>
+        </svg>
+      </div>
+    `;
+  }
   return bill.icon || '';
 }
 
@@ -4608,6 +4638,40 @@ stats:[
 ['Earlier Bill Duration','-','']
 ],
 form:'prepaid'
+},
+
+{
+id:'gym',
+  utility:'other',
+icon:'',
+name:'Gym',
+account:'GYM-01',
+type:'Prepaid',
+portal:'',
+stats:[
+['Days Since Payment','-',''],
+['Last Amount','-','green mono'],
+['Last pay date','-',''],
+['Earlier Bill Duration','-','']
+],
+form:'prepaid'
+},
+
+{
+id:'landTax',
+  utility:'other',
+icon:'',
+name:'Land<br>Tax',
+account:'LT-9921',
+type:'Postpaid',
+portal:'',
+stats:[
+['Next Bill Due in','-',''],
+['Last Amount','-','green mono'],
+['Last pay date','-',''],
+['Last Payment Made for','-','']
+],
+form:'postpaid'
 }
 
 ];
@@ -5659,18 +5723,23 @@ function renderLandingPageCards() {
     if (days < 25) return '#ff9f63';     // Orange
     return '#ff6368';                    // Red (reddest at 30 days)
   }
-  
-  
-  
-  billPages.forEach(bill => {
+
+  function getBillStatusInfo(bill) {
     const billPayments = paymentsData.filter(p => p.billId === bill.id);
     const lastPayment = billPayments[0];
     
     let statusHtml = '';
+    let shortStatus = 'No Records';
+    let shortColor = 'var(--muted)';
+    let amountStr = '-';
+
     if (lastPayment) {
-      if (bill.id === 'noakhaliPalli' || bill.id === 'uttaraWater' || bill.id === 'matuailGas') {
+      amountStr = `৳ ${parseInt(lastPayment.amount).toLocaleString()}`;
+      if (bill.id === 'noakhaliPalli' || bill.id === 'uttaraWater' || bill.id === 'matuailGas' || bill.id === 'landTax') {
         let subText = `Paid for ${lastPayment.billMonth || 'N/A'}`;
         let subColor = '#7ee787'; // Green
+        shortStatus = lastPayment.billMonth || 'Paid';
+        shortColor = '#7ee787';
         
         const paidMonthDate = parseBillMonth(lastPayment.billMonth);
         if (paidMonthDate) {
@@ -5678,7 +5747,6 @@ function renderLandingPageCards() {
           today.setHours(0, 0, 0, 0);
           
           // Next unpaid month becomes overdue on the 1st of the month after it
-          // e.g. paid June -> unpaid July -> overdue August 1st
           const overdueDate = new Date(paidMonthDate.getFullYear(), paidMonthDate.getMonth() + 2, 1);
           
           if (today >= overdueDate) {
@@ -5687,6 +5755,8 @@ function renderLandingPageCards() {
             const overdueDays = diffDays + 1;
             subText = `Paid for ${lastPayment.billMonth} • Overdue ${overdueDays}d`;
             subColor = '#ff6368'; // Red
+            shortStatus = `Overdue ${overdueDays}d`;
+            shortColor = '#ff6368';
           }
         }
         
@@ -5694,10 +5764,7 @@ function renderLandingPageCards() {
           Last Paid <span class="amount-highlight" style="color:var(--accent);">৳ ${parseInt(lastPayment.amount).toLocaleString()}</span>
           <div class="billSub" style="color:${subColor}; font-weight:600; margin-top: 4px;">${subText}</div>
         `;
-      } else if (bill.id === 'inspireBroadband') {
-        // Inspire Broadband is a prepaid monthly subscription.
-        // If a specific billMonth is recorded (e.g. "September 2026"), it covers through the end of that month,
-        // expiring on the 1st of the subsequent month (e.g. Oct 1st).
+      } else if (bill.id === 'inspireBroadband' || bill.id === 'gym') {
         let expiryDate;
         const paidMonthDate = parseBillMonth(lastPayment.billMonth);
         if (paidMonthDate) {
@@ -5719,9 +5786,13 @@ function renderLandingPageCards() {
         if (diffDays < 0) {
           subText = `Overdue by ${Math.abs(diffDays)} Days`;
           subColor = '#ff6368'; // Red
+          shortStatus = `Overdue ${Math.abs(diffDays)}d`;
+          shortColor = '#ff6368';
         } else {
           subText = `Next Due in ${diffDays} Days`;
           subColor = diffDays <= 5 ? '#ffe663' : '#7ee787'; // Yellow or Green
+          shortStatus = `Due in ${diffDays}d`;
+          shortColor = subColor;
         }
         
         statusHtml = `
@@ -5730,9 +5801,13 @@ function renderLandingPageCards() {
         `;
       } else {
         const days = Math.floor((new Date() - new Date(lastPayment.payDate)) / (1000 * 60 * 60 * 24));
+        const subText = days === 0 ? 'Today' : `${days} Days Ago`;
+        const subColor = getDaysColor(days);
+        shortStatus = subText;
+        shortColor = subColor;
         statusHtml = `
           Last Paid <span class="amount-highlight" style="color:var(--accent);">৳ ${parseInt(lastPayment.amount).toLocaleString()}</span>
-          <div class="billSub" style="color:${getDaysColor(days)}; font-weight:600; margin-top: 4px;">${days === 0 ? 'Today' : `${days} Days Ago`}</div>
+          <div class="billSub" style="color:${subColor}; font-weight:600; margin-top: 4px;">${subText}</div>
         `;
       }
     } else {
@@ -5741,7 +5816,19 @@ function renderLandingPageCards() {
         <div class="billSub" style="color:var(--muted); margin-top: 4px;">-</div>
       `;
     }
-    
+
+    return {
+      statusHtml,
+      shortStatus,
+      shortColor,
+      amountStr
+    };
+  }
+  
+  // 1. Render First 7 standard bills (shown on all devices)
+  const standardBills = billPages.filter(b => b.id !== 'gym' && b.id !== 'landTax');
+  standardBills.forEach(bill => {
+    const info = getBillStatusInfo(bill);
     const card = document.createElement('div');
     card.className = 'billCard';
     card.setAttribute('data-utility', bill.utility || 'electric');
@@ -5749,7 +5836,74 @@ function renderLandingPageCards() {
     card.innerHTML = `
       <div class="billIcon">${getBillIconHtml(bill, 'billIcon')}</div>
       <div class="billName">${bill.name}</div>
-      <div class="billStatus">${statusHtml}</div>
+      <div class="billStatus">${info.statusHtml}</div>
+    `;
+    grid.appendChild(card);
+  });
+
+  // 2. Render Desktop Grouped Card (Only visible on PC/Desktop >= 901px)
+  const gymBill = billPages.find(b => b.id === 'gym') || { id: 'gym', name: 'Gym' };
+  const landTaxBill = billPages.find(b => b.id === 'landTax') || { id: 'landTax', name: 'Land<br>Tax' };
+  
+  const gymInfo = getBillStatusInfo(gymBill);
+  const landTaxInfo = getBillStatusInfo(landTaxBill);
+
+  const desktopGroupCard = document.createElement('div');
+  desktopGroupCard.className = 'billCard desktopOnlyGroupCard';
+  desktopGroupCard.setAttribute('data-utility', 'other');
+  desktopGroupCard.style.cssText = 'padding: 16px 14px; cursor: default; justify-content: space-between;';
+  desktopGroupCard.innerHTML = `
+    <div style="display:flex; align-items:center; justify-content:space-between; width:100%; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:8px; margin-bottom:6px;">
+      <div style="font-size:0.8rem; font-weight:800; color:#00C2FF; letter-spacing:0.5px; text-transform:uppercase; display:flex; align-items:center; gap:6px;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+        <span>Other Bills</span>
+      </div>
+      <span style="font-size:0.68rem; font-weight:700; color:#94a3b8; background:rgba(255,255,255,0.06); padding:2px 7px; border-radius:6px;">2 Items</span>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:8px; width:100%; flex:1; justify-content:center;">
+      <!-- Gym Item -->
+      <div class="groupedSubItem" onclick="openPage('gym')" style="display:flex; align-items:center; justify-content:space-between; padding:8px 10px; border-radius:12px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); cursor:pointer; transition:all 0.2s ease;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="width:34px; height:34px; flex-shrink:0;">${getBillIconHtml(gymBill, 'billMiniIcon')}</div>
+          <div style="text-align:left;">
+            <div style="font-size:0.92rem; font-weight:800; color:#ffffff; line-height:1.2;">Gym</div>
+            <div style="font-size:0.72rem; color:${gymInfo.shortColor}; font-weight:600;">${gymInfo.shortStatus}</div>
+          </div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:0.85rem; font-weight:800; color:var(--accent); font-family:var(--font-amount);">${gymInfo.amountStr}</div>
+        </div>
+      </div>
+
+      <!-- Land Tax Item -->
+      <div class="groupedSubItem" onclick="openPage('landTax')" style="display:flex; align-items:center; justify-content:space-between; padding:8px 10px; border-radius:12px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); cursor:pointer; transition:all 0.2s ease;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="width:34px; height:34px; flex-shrink:0;">${getBillIconHtml(landTaxBill, 'billMiniIcon')}</div>
+          <div style="text-align:left;">
+            <div style="font-size:0.92rem; font-weight:800; color:#ffffff; line-height:1.2;">Land Tax</div>
+            <div style="font-size:0.72rem; color:${landTaxInfo.shortColor}; font-weight:600;">${landTaxInfo.shortStatus}</div>
+          </div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:0.85rem; font-weight:800; color:var(--accent); font-family:var(--font-amount);">${landTaxInfo.amountStr}</div>
+        </div>
+      </div>
+    </div>
+  `;
+  grid.appendChild(desktopGroupCard);
+
+  // 3. Render Mobile Separate Cards (Only visible on Mobile <= 900px)
+  [gymBill, landTaxBill].forEach(bill => {
+    const info = getBillStatusInfo(bill);
+    const card = document.createElement('div');
+    card.className = 'billCard mobileOnlyBillCard';
+    card.setAttribute('data-utility', bill.utility || 'other');
+    card.onclick = () => openPage(bill.id);
+    card.innerHTML = `
+      <div class="billIcon">${getBillIconHtml(bill, 'billIcon')}</div>
+      <div class="billName">${bill.name}</div>
+      <div class="billStatus">${info.statusHtml}</div>
     `;
     grid.appendChild(card);
   });
@@ -6183,7 +6337,9 @@ function renderStatsPage() {
       'Rupnagar Gas': 'R.GAS',
       'Inspire Broadband': 'INSPIRE.B',
       'Noakhali Palli': 'N.PALLI',
-      'Matuail Gas': 'M.GAS'
+      'Matuail Gas': 'M.GAS',
+      'Gym': 'GYM',
+      'Land Tax': 'L.TAX'
     };
     return mapping[fullName.trim()] || fullName;
   };
@@ -8025,7 +8181,9 @@ function exportCsv() {
     uttaraWater: 'WASA-UT-884',
     matuailGas: 'MG-774-12',
     noakhaliPalli: 'NP-5541-09',
-    inspireBroadband: 'ISP-8821'
+    inspireBroadband: 'ISP-8821',
+    gym: 'GYM-01',
+    landTax: 'LT-9921'
   };
   
   const categoryMap = {
@@ -8035,7 +8193,9 @@ function exportCsv() {
     uttaraWater: 'Water Supply',
     rupnagarGas: 'Gas & Thermal',
     matuailGas: 'Gas & Thermal',
-    inspireBroadband: 'Internet / ISP'
+    inspireBroadband: 'Internet / ISP',
+    gym: 'Fitness / Subscription',
+    landTax: 'Tax & Municipal'
   };
 
   let csv = '\uFEFF';
@@ -10523,6 +10683,8 @@ placeholder="Search payments..."
 <option>Matuail Gas</option>
 <option>Noakhali Palli</option>
 <option>Inspire Broadband</option>
+<option>Gym</option>
+<option>Land Tax</option>
 </select>
 
 <select class="filterSelect">
