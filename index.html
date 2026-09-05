@@ -421,6 +421,42 @@ body{
   background:linear-gradient(90deg, transparent, #FF7A00, transparent);
 }
 
+/* Other / Multi-Utility Theme (Desktop Grouped Card & Fallback) */
+.billCard[data-utility="other"]:hover,
+.billCard.desktopOnlyGroupCard:hover{
+  border-color:rgba(0, 194, 255, 0.6);
+  transform:translateY(-6px);
+  box-shadow:0 20px 40px -15px rgba(0,0,0,0.8), 0 0 25px rgba(0, 194, 255, 0.25), 0 0 35px rgba(112, 0, 255, 0.18);
+}
+.billCard[data-utility="other"]::before,
+.billCard[data-utility="other"]:hover::before,
+.billCard.desktopOnlyGroupCard::before,
+.billCard.desktopOnlyGroupCard:hover::before{
+  background:linear-gradient(90deg, transparent, #00C2FF, #7000FF, #FF0055, transparent);
+}
+
+/* Gym Theme (Mobile Card) */
+.billCard[data-utility="gym"]:hover{
+  border-color:rgba(0, 194, 255, 0.6);
+  transform:translateY(-6px);
+  box-shadow:0 20px 40px -15px rgba(0,0,0,0.8), 0 0 25px rgba(0, 194, 255, 0.25), 0 0 35px rgba(112, 0, 255, 0.18);
+}
+.billCard[data-utility="gym"]::before,
+.billCard[data-utility="gym"]:hover::before{
+  background:linear-gradient(90deg, transparent, #00C2FF, #7000FF, transparent);
+}
+
+/* Land Tax Theme (Mobile Card) */
+.billCard[data-utility="tax"]:hover{
+  border-color:rgba(255, 122, 0, 0.6);
+  transform:translateY(-6px);
+  box-shadow:0 20px 40px -15px rgba(0,0,0,0.8), 0 0 25px rgba(255, 122, 0, 0.25), 0 0 35px rgba(255, 0, 85, 0.18);
+}
+.billCard[data-utility="tax"]::before,
+.billCard[data-utility="tax"]:hover::before{
+  background:linear-gradient(90deg, transparent, #FF7A00, #FF0055, transparent);
+}
+
 .billCard:hover{
   transform:translateY(-6px);
   border-color:rgba(0, 194, 255, 0.6);
@@ -4642,7 +4678,7 @@ form:'prepaid'
 
 {
 id:'gym',
-  utility:'other',
+  utility:'gym',
 icon:'',
 name:'Gym',
 account:'GYM-01',
@@ -4659,7 +4695,7 @@ form:'prepaid'
 
 {
 id:'landTax',
-  utility:'other',
+  utility:'tax',
 icon:'',
 name:'Land<br>Tax',
 account:'LT-9921',
@@ -5851,7 +5887,7 @@ function renderLandingPageCards() {
   const desktopGroupCard = document.createElement('div');
   desktopGroupCard.className = 'billCard desktopOnlyGroupCard';
   desktopGroupCard.setAttribute('data-utility', 'other');
-  desktopGroupCard.style.cssText = 'padding: 16px 14px; cursor: default; justify-content: space-between;';
+  desktopGroupCard.style.cssText = 'padding: 16px 14px; justify-content: space-between;';
   desktopGroupCard.innerHTML = `
     <div style="display:flex; align-items:center; justify-content:space-between; width:100%; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:8px; margin-bottom:6px;">
       <div style="font-size:0.8rem; font-weight:800; color:#00C2FF; letter-spacing:0.5px; text-transform:uppercase; display:flex; align-items:center; gap:6px;">
