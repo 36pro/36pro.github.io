@@ -9746,12 +9746,34 @@ function submitPaymentForm(billId) {
     });
 }
 
-function clearDatabaseMonthFilter() {
+function clearDatabaseFilters() {
+  const searchBox = document.querySelector('.searchBox');
+  if (searchBox) {
+    searchBox.value = '';
+  }
+  
+  const filterSelects = document.querySelectorAll('.filterSelect');
+  if (filterSelects && filterSelects.length > 0) {
+    if (filterSelects[0]) {
+      filterSelects[0].selectedIndex = 0;
+      filterSelects[0].value = 'All Bills';
+    }
+    if (filterSelects[1]) {
+      filterSelects[1].selectedIndex = 0;
+      filterSelects[1].value = 'All Types';
+    }
+  }
+  
   const filterMonth = document.querySelector('.filterMonth');
   if (filterMonth) {
     filterMonth.value = '';
   }
+  
   renderDatabasePage();
+}
+
+function clearDatabaseMonthFilter() {
+  clearDatabaseFilters();
 }
 
 function setupDatabaseFilters() {
@@ -9773,7 +9795,7 @@ function setupDatabaseFilters() {
   
   const clearMonthBtn = document.querySelector('.clearMonthBtn');
   if (clearMonthBtn) {
-    clearMonthBtn.onclick = clearDatabaseMonthFilter;
+    clearMonthBtn.onclick = clearDatabaseFilters;
   }
   
   const refreshBtn = document.querySelectorAll('.toolbarBtn')[0];
@@ -12328,7 +12350,7 @@ placeholder="Search payments..."
 
 <div class="monthFilterWrapper">
   <input type="month" class="filterMonth" id="dbFilterMonth" onclick="try { this.showPicker(); } catch(e) {}" title="Filter by Month">
-  <button class="clearMonthBtn" id="dbClearMonthBtn" onclick="clearDatabaseMonthFilter()" title="Reset Month Filter" aria-label="Reset Month Filter">
+  <button class="clearMonthBtn" id="dbClearMonthBtn" onclick="clearDatabaseFilters()" title="Reset All Filters" aria-label="Reset All Filters">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
       <line x1="18" y1="6" x2="6" y2="18"/>
       <line x1="6" y1="6" x2="18" y2="18"/>
