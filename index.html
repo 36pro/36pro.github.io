@@ -6124,32 +6124,28 @@ function updateGymCalculation() {
   const section = document.getElementById('gym');
   if (!section) return;
 
-  const rateInput = section.querySelector('.inputGymMonthlyRateVal');
+  const amountInput = section.querySelector('.inputGymAmountVal') || section.querySelector('.inputGymMonthlyRateVal');
   const durationSelect = section.querySelector('.inputGymDurationSelect');
 
-  if (!rateInput || !durationSelect) return;
+  if (!amountInput || !durationSelect) return;
 
-  const rate = parseFloat(rateInput.value) || 0;
-  if (rate > 0) {
-    localStorage.setItem('billzy_gym_rate', rate.toString());
-  }
-
+  const totalAmount = parseFloat(amountInput.value) || 0;
   const duration = parseInt(durationSelect.value, 10) || 1;
   const cycleInfo = getGymNextCycle(duration);
 
-  const baseAmount = Math.round(rate * duration);
+  const monthlySplit = duration > 0 ? Math.round(totalAmount / duration) : totalAmount;
 
   const countPill = section.querySelector('.gymDurationCountPill');
   const cycleLabel = section.querySelector('.gymCycleLabel');
   const duePill = section.querySelector('.gymDueDateBadge');
-  const baseText = section.querySelector('.gymBaseText');
+  const splitText = section.querySelector('.gymSplitText') || section.querySelector('.gymBaseText');
   const totalText = section.querySelector('.gymTotalText');
 
   if (countPill) countPill.innerText = duration === 1 ? '1 Month' : `${duration} Months`;
   if (cycleLabel) cycleLabel.innerText = cycleInfo.rangeLabel;
   if (duePill) duePill.innerText = `Next Due: ${cycleInfo.dueLabel}`;
-  if (baseText) baseText.innerText = baseAmount.toLocaleString();
-  if (totalText) totalText.innerText = baseAmount.toLocaleString();
+  if (splitText) splitText.innerText = monthlySplit > 0 ? `${monthlySplit.toLocaleString()}/mo` : '-';
+  if (totalText) totalText.innerText = totalAmount > 0 ? totalAmount.toLocaleString() : '0';
 }
 
 function getLandTaxNextCycle(selectedProperty, duration = 1) {
@@ -6638,7 +6634,6 @@ function renderBillPages() {
         </div>
       `;
     } else if (bill.id === 'gym') {
-      const savedRate = localStorage.getItem('billzy_gym_rate') || '1700';
       const defaultCycleInfo = getGymNextCycle(1);
       const paused = isGymPaused();
 
@@ -6661,8 +6656,8 @@ function renderBillPages() {
           </div>
           <div class="formGrid gymGrid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap:14px;">
             <div class="inputCard">
-              <div class="inputLabel">Monthly Fee</div>
-              <input type="number" class="inputGymMonthlyRateVal" value="${savedRate}" placeholder="1700"
+              <div class="inputLabel">Total Amount</div>
+              <input type="number" class="inputGymAmountVal" value="" placeholder="2000"
                 oninput="updateGymCalculation()"
                 style="width:100%; height:40px; background:transparent; border:none; color:white; font-size:1.8rem; font-weight:800; font-family:var(--font-amount); font-feature-settings:'tnum' 1; outline:none;">
             </div>
@@ -6694,8 +6689,8 @@ function renderBillPages() {
               <span class="gymDueDateBadge" style="background:rgba(255,122,0,0.12); color:#FF7A00; font-size:0.82rem; font-weight:800; padding:3px 8px; border-radius:6px; border:1px solid rgba(255,122,0,0.3);">Next Due: ${defaultCycleInfo.dueLabel}</span>
             </div>
             <div style="display:flex; align-items:baseline; gap:12px; flex-wrap:wrap;">
-              <span style="font-size:0.88rem; color:#94a3b8;">Monthly Rate: <strong class="gymBaseText" style="color:white; font-family:var(--font-amount); font-size:1.2rem; font-weight:800;">${parseInt(savedRate).toLocaleString()}</strong></span>
-              <span style="font-size:0.95rem; color:#00E676;">Total: <strong class="gymTotalText" style="font-size:1.35rem; font-family:var(--font-amount); font-weight:900;">${parseInt(savedRate).toLocaleString()}</strong></span>
+              <span style="font-size:0.88rem; color:#94a3b8;">Split: <strong class="gymSplitText gymBaseText" style="color:white; font-family:var(--font-amount); font-size:1.2rem; font-weight:800;">-</strong></span>
+              <span style="font-size:0.95rem; color:#00E676;">Total: <strong class="gymTotalText" style="font-size:1.35rem; font-family:var(--font-amount); font-weight:900;">0</strong></span>
             </div>
           </div>
 
@@ -9569,16 +9564,15 @@ function submitPaymentForm(billId) {
       return;
     }
   } else if (billId === 'gym') {
-    const rateInput = section.querySelector('.inputGymMonthlyRateVal');
+    const amountInput = section.querySelector('.inputGymAmountVal') || section.querySelector('.inputGymMonthlyRateVal');
     const durationSelect = section.querySelector('.inputGymDurationSelect');
     const dateInput = section.querySelector('.inputDateVal');
 
-    const rate = parseFloat(rateInput ? rateInput.value : 0) || 0;
-    if (rate <= 0) {
-      alert('Please enter a valid monthly fee.');
+    const totalAmt = parseFloat(amountInput ? amountInput.value : 0) || 0;
+    if (totalAmt <= 0) {
+      alert('Please enter a valid amount.');
       return;
     }
-    localStorage.setItem('billzy_gym_rate', rate.toString());
 
     const duration = parseInt(durationSelect ? durationSelect.value : 1, 10) || 1;
     dateVal = dateInput ? dateInput.value.trim() : '';
@@ -9593,7 +9587,7 @@ function submitPaymentForm(billId) {
       return;
     }
 
-    const calculatedBase = Math.round(rate * duration);
+    const calculatedBase = Math.round(totalAmt);
     amountVal = calculatedBase.toString();
   } else if (billId === 'landTax') {
     const propSelect = section.querySelector('.inputLandTaxPropertySelect');
@@ -9727,7 +9721,8 @@ function submitPaymentForm(billId) {
     if (section.querySelector('.inputFeeVal')) section.querySelector('.inputFeeVal').value = '';
     updateMatuailGasCalculation();
   } else if (billId === 'gym') {
-    if (section.querySelector('.inputGymFeeVal')) section.querySelector('.inputGymFeeVal').value = '';
+    if (section.querySelector('.inputGymAmountVal')) section.querySelector('.inputGymAmountVal').value = '';
+    if (section.querySelector('.inputGymMonthlyRateVal')) section.querySelector('.inputGymMonthlyRateVal').value = '';
     updateGymCalculation();
   } else {
     if (section.querySelector('.inputAmountVal')) section.querySelector('.inputAmountVal').value = '';
