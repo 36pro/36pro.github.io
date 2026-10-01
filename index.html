@@ -5367,7 +5367,8 @@ function openEditModal(uid) {
   } else if (p.billType === 'postpaid' || p.billId === 'inspireBroadband' || p.billId === 'gym' || p.billId === 'matuailGas') {
     if (monthLabel) monthLabel.innerText = 'Bill Month';
     monthContainer.classList.remove('hidden');
-    const opts = getBillingMonthOptions(18, 12);
+    const anchorDate = parseBillMonth(p.billMonth) || (p.payDate ? new Date(p.payDate) : new Date());
+    const opts = getBillingMonthOptions(anchorDate, 2, 12);
     if (p.billMonth && !opts.includes(p.billMonth)) {
       opts.unshift(p.billMonth);
     }
@@ -5830,11 +5831,22 @@ function checkDuplicatePayment(billId, monthVal, extra = {}, excludeUid = null) 
   return null;
 }
 
-function getBillingMonthOptions(pastCount = 18, futureCount = 12) {
+function getBillingMonthOptions(baseDate = new Date(), pastCount = 2, futureCount = 12) {
+  let anchor = new Date();
+  let past = pastCount;
+  let future = futureCount;
+
+  if (typeof baseDate === 'number') {
+    past = baseDate;
+    future = typeof pastCount === 'number' ? pastCount : 12;
+    anchor = new Date();
+  } else if (baseDate instanceof Date && !isNaN(baseDate.getTime())) {
+    anchor = baseDate;
+  }
+
   const options = [];
-  const now = new Date();
-  for (let i = -pastCount; i <= futureCount; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+  for (let i = -past; i <= future; i++) {
+    const d = new Date(anchor.getFullYear(), anchor.getMonth() + i, 1);
     const monthStr = d.toLocaleString('default', { month: 'long' });
     const yearStr = d.getFullYear();
     options.push(`${monthStr} ${yearStr}`);
@@ -6491,16 +6503,18 @@ function renderBillPages() {
     const lastMonthLabel = `${lastMonthDate.toLocaleString('default', { month: 'long' })} ${lastMonthDate.getFullYear()}`;
     const currentMonthLabel = `${localDate.toLocaleString('default', { month: 'long' })} ${localDate.getFullYear()}`;
     
+    let anchorDate = new Date();
     let defaultMonthLabel = bill.id === 'inspireBroadband' ? currentMonthLabel : lastMonthLabel;
     if (lastPayment && lastPayment.billMonth) {
       const parsedLast = parseBillMonth(lastPayment.billMonth);
       if (parsedLast) {
         const nextUnpaidDate = new Date(parsedLast.getFullYear(), parsedLast.getMonth() + 1, 1);
         defaultMonthLabel = `${nextUnpaidDate.toLocaleString('default', { month: 'long' })} ${nextUnpaidDate.getFullYear()}`;
+        anchorDate = nextUnpaidDate;
       }
     }
 
-    const allBillingMonthOpts = getBillingMonthOptions(18, 12);
+    const allBillingMonthOpts = getBillingMonthOptions(anchorDate, 2, 12);
     if (!allBillingMonthOpts.includes(defaultMonthLabel)) {
       allBillingMonthOpts.push(defaultMonthLabel);
     }
@@ -6547,22 +6561,23 @@ function renderBillPages() {
     
     let formSectionHtml = '';
     if (bill.id === 'matuailGas') {
-      const allMonthOpts = getBillingMonthOptions(18, 12);
+      let anchorDate = new Date();
       let defaultFromMonth = lastMonthLabel;
       let defaultToMonth = lastMonthLabel;
       if (lastPayment && lastPayment.billMonth) {
         const parsedLastMonth = parseBillMonth(lastPayment.billMonth);
         if (parsedLastMonth) {
           const nextUnpaid = new Date(parsedLastMonth.getFullYear(), parsedLastMonth.getMonth() + 1, 1);
+          anchorDate = nextUnpaid;
           const nextUnpaidLabel = `${nextUnpaid.toLocaleString('default', { month: 'long' })} ${nextUnpaid.getFullYear()}`;
-          if (allMonthOpts.includes(nextUnpaidLabel)) {
-            defaultFromMonth = nextUnpaidLabel;
-          }
+          defaultFromMonth = nextUnpaidLabel;
           defaultToMonth = defaultFromMonth;
         }
       }
-      
-      const savedRate = localStorage.getItem('billzy_matuail_rate') || '1080';
+      const allMonthOpts = getBillingMonthOptions(anchorDate, 2, 12);
+      if (!allMonthOpts.includes(defaultFromMonth)) {
+        allMonthOpts.push(defaultFromMonth);
+      }
 
       formSectionHtml = `
         <div class="formSection matuailFormSection">
