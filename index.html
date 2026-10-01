@@ -6446,7 +6446,7 @@ function renderBillPages() {
       const billingMonthDate = new Date(nextDue.getFullYear(), nextDue.getMonth() - 1, 1);
       const billingMonthName = billingMonthDate.toLocaleString('default', { month: 'long' });
       const currentMonthStr = billingMonthName + ' ' + String(billingMonthDate.getFullYear()).substr(-2);
-      const isPaidForCurrentMonth = billPayments.some(p => p.billMonth.toLowerCase() === currentMonthStr.toLowerCase() || p.billMonth.toLowerCase().includes(billingMonthName.toLowerCase()));
+      const isPaidForCurrentMonth = billPayments.some(p => p.billMonth && (p.billMonth.toLowerCase() === currentMonthStr.toLowerCase() || p.billMonth.toLowerCase().includes(billingMonthName.toLowerCase())));
       
       if (isPaidForCurrentMonth) {
         nextDue.setMonth(nextDue.getMonth() + 1);
@@ -6574,6 +6574,7 @@ function renderBillPages() {
       if (!allMonthOpts.includes(defaultFromMonth)) {
         allMonthOpts.push(defaultFromMonth);
       }
+      const savedRate = localStorage.getItem('billzy_matuail_rate') || '1080';
 
       formSectionHtml = `
         <div class="formSection matuailFormSection">
@@ -7673,18 +7674,25 @@ function renderDatabasePage() {
   
   const filtered = paymentsData.filter(p => {
     const sLower = searchVal.toLowerCase();
-    const matchesSearch = p.billName.toLowerCase().includes(sLower) || 
-                          (p.property && p.property.toLowerCase().includes(sLower)) ||
-                          p.payDate.includes(searchVal) || 
-                          p.amount.includes(searchVal) ||
-                          (p.billMonth && p.billMonth.toLowerCase().includes(sLower));
+    const pName = p.billName || '';
+    const pMonth = p.billMonth || '';
+    const pProp = p.property || '';
+    const pDate = p.payDate || '';
+    const pAmt = String(p.amount || '');
+    const pType = (p.billType || 'prepaid').toLowerCase();
+
+    const matchesSearch = pName.toLowerCase().includes(sLower) || 
+                          pProp.toLowerCase().includes(sLower) ||
+                          pDate.includes(searchVal) || 
+                          pAmt.includes(searchVal) ||
+                          pMonth.toLowerCase().includes(sLower);
                           
     const matchesBill = billFilter === 'All Bills' || 
-                        p.billName.replace(/<br>/gi, ' ').toLowerCase() === billFilter.replace(/<br>/gi, ' ').toLowerCase() ||
-                        (p.property && (p.property === billFilter || p.property.includes(billFilter))) ||
+                        pName.replace(/<br>/gi, ' ').toLowerCase() === billFilter.replace(/<br>/gi, ' ').toLowerCase() ||
+                        (pProp && (pProp === billFilter || pProp.includes(billFilter))) ||
                         (billFilter === 'Land Tax' && p.billId === 'landTax');
-    const matchesType = typeFilter === 'All Types' || p.billType.toLowerCase() === typeFilter.toLowerCase();
-    const matchesMonth = !monthFilter || p.payDate.startsWith(monthFilter);
+    const matchesType = typeFilter === 'All Types' || pType === typeFilter.toLowerCase();
+    const matchesMonth = !monthFilter || pDate.startsWith(monthFilter);
     
     return matchesSearch && matchesBill && matchesType && matchesMonth;
   });
@@ -7854,9 +7862,10 @@ function renderStatsPage() {
     
     if (p.hasFee) {
       feeTransactionsCount++;
-      if (p.billId.includes('Desco') || p.billId.includes('Palli')) {
+      const bId = p.billId || '';
+      if (bId.includes('Desco') || bId.includes('Palli')) {
         elecFees += p.fee;
-      } else if (p.billId.includes('Gas')) {
+      } else if (bId.includes('Gas')) {
         gasFees += p.fee;
       } else {
         otherFees += p.fee;
@@ -8533,8 +8542,8 @@ function renderStatsPage() {
       
       const categorySums = { Electricity: 0, Water: 0, Gas: 0, Internet: 0 };
       paymentsData.forEach(p => {
-        const nameLower = p.billName.toLowerCase();
-        const amt = parseFloat(p.amount);
+        const nameLower = (p.billName || '').toLowerCase();
+        const amt = parseFloat(p.amount) || 0;
         if (nameLower.includes('desco') || nameLower.includes('palli') || nameLower.includes('bidyut')) {
           categorySums.Electricity += amt;
         } else if (nameLower.includes('water') || nameLower.includes('wasa')) {
