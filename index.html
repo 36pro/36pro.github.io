@@ -4573,7 +4573,7 @@ function handleRouting() {
     if (targetPage) {
       targetPage.classList.remove('hidden');
       if (billId === 'matuailGas') {
-        updateMatuailGasCalculation();
+        updateMatuailGasCalculation(true);
       }
     } else {
       // Fallback if bill ID doesn't exist
@@ -5935,7 +5935,75 @@ function uniqueStatsBtnHtml(billId) {
   `;
 }
 
-function updateMatuailGasCalculation() {
+// Helper: Get latest recorded payment for a bill by parsed billing month
+function getLatestBillPayment(billId) {
+  const list = paymentsData.filter(p => p.billId === billId);
+  if (list.length === 0) return null;
+  let latest = list[0];
+  let latestDate = null;
+  list.forEach(p => {
+    if (p.billMonth) {
+      const parsed = parseBillMonth(p.billMonth);
+      if (parsed && (!latestDate || parsed > latestDate)) {
+        latestDate = parsed;
+        latest = p;
+      }
+    }
+  });
+  return latest;
+}
+
+// Helper: Calculate Titas Gas tiered late fee per bill
+// 10 taka when due <= 6 months, 20 taka when due > 6 months.
+// Delayed fee applies after 21 of each month.
+function calculateTitasGasDue(fromDate, toDate, paymentDate = new Date()) {
+  if (!fromDate || !toDate || isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
+    return { monthCount: 1, overdueCount: 0, billsAt10: 0, billsAt20: 0, totalFee: 0 };
+  }
+  if (toDate < fromDate) {
+    return { monthCount: 1, overdueCount: 0, billsAt10: 0, billsAt20: 0, totalFee: 0 };
+  }
+
+  const months = [];
+  let curr = new Date(fromDate.getFullYear(), fromDate.getMonth(), 1);
+  const end = new Date(toDate.getFullYear(), toDate.getMonth(), 1);
+  while (curr <= end) {
+    months.push(new Date(curr.getFullYear(), curr.getMonth(), 1));
+    curr = new Date(curr.getFullYear(), curr.getMonth() + 1, 1);
+  }
+
+  let totalFee = 0;
+  let billsAt10 = 0;
+  let billsAt20 = 0;
+  let overdueCount = 0;
+
+  months.forEach(m => {
+    // Due deadline is 21st of that month
+    const dueDeadline = new Date(m.getFullYear(), m.getMonth(), 21, 23, 59, 59, 999);
+    if (paymentDate > dueDeadline) {
+      overdueCount++;
+      // Six months past due deadline
+      const sixMonthsPastDue = new Date(m.getFullYear(), m.getMonth() + 6, 21, 23, 59, 59, 999);
+      if (paymentDate > sixMonthsPastDue) {
+        billsAt20++;
+        totalFee += 20;
+      } else {
+        billsAt10++;
+        totalFee += 10;
+      }
+    }
+  });
+
+  return {
+    monthCount: months.length,
+    overdueCount,
+    billsAt10,
+    billsAt20,
+    totalFee
+  };
+}
+
+function updateMatuailGasCalculation(autoCalculateFee = false) {
   const section = document.getElementById('matuailGas');
   if (!section) return;
 
@@ -5943,6 +6011,7 @@ function updateMatuailGasCalculation() {
   const fromSelect = section.querySelector('.inputFromMonthSelect');
   const toSelect = section.querySelector('.inputToMonthSelect');
   const feeInput = section.querySelector('.inputFeeVal');
+  const dateInput = section.querySelector('.inputDateVal');
 
   if (!rateInput || !fromSelect || !toSelect) return;
 
@@ -5953,10 +6022,16 @@ function updateMatuailGasCalculation() {
 
   const fromMonthStr = fromSelect.value;
   const toMonthStr = toSelect.value;
-  const fee = parseFloat(feeInput ? feeInput.value : 0) || 0;
-
   const fromDate = parseSingleBillMonth(fromMonthStr);
   const toDate = parseSingleBillMonth(toMonthStr);
+
+  let payDate = new Date();
+  if (dateInput && dateInput.value) {
+    const parts = dateInput.value.split('-');
+    if (parts.length === 3) {
+      payDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+    }
+  }
 
   let monthCount = 1;
   let rangeStr = fromMonthStr;
@@ -5968,6 +6043,15 @@ function updateMatuailGasCalculation() {
     } else {
       monthCount = 1;
       rangeStr = fromMonthStr;
+    }
+  }
+
+  let fee = parseFloat(feeInput ? feeInput.value : 0) || 0;
+  if (autoCalculateFee && fromDate && toDate && toDate >= fromDate) {
+    const dueCalc = calculateTitasGasDue(fromDate, toDate, payDate);
+    fee = dueCalc.totalFee;
+    if (feeInput) {
+      feeInput.value = fee > 0 ? fee.toString() : '';
     }
   }
 
@@ -5995,7 +6079,7 @@ function updateMatuailGasCalculation() {
   if (totalText) totalText.innerText = totalAmount.toLocaleString();
 }
 
-// Helper: Calculate Matuail Gas "Paid till <Month>" and Current Due amount with delay fine
+// Helper: Calculate Matuail Gas "Paid till <Month>" and Current Due amount with tiered delay fine
 function getMatuailGasDueInfo(lastPayment) {
   const rate = parseFloat(localStorage.getItem('billzy_matuail_rate') || 1080) || 1080;
   
@@ -6004,7 +6088,9 @@ function getMatuailGasDueInfo(lastPayment) {
       paidTill: 'No Records',
       dueText: 'No Dues',
       dueColor: 'var(--muted)',
-      totalDue: 0
+      totalDue: 0,
+      fee: 0,
+      billedMonths: 0
     };
   }
 
@@ -6025,7 +6111,9 @@ function getMatuailGasDueInfo(lastPayment) {
       paidTill: `Paid for ${rawMonthStr}`,
       dueText: 'Current Due: -',
       dueColor: '#94a3b8',
-      totalDue: 0
+      totalDue: 0,
+      fee: 0,
+      billedMonths: 0
     };
   }
 
@@ -6034,42 +6122,45 @@ function getMatuailGasDueInfo(lastPayment) {
 
   // Next unpaid month starts on 1st of month following endMonthDate
   const nextUnpaidStart = new Date(endMonthDate.getFullYear(), endMonthDate.getMonth() + 1, 1);
+  const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
   
   if (today < nextUnpaidStart) {
     return {
       paidTill: paidTill,
       dueText: 'No Dues (Up to date)',
       dueColor: '#00E676',
-      totalDue: 0
+      totalDue: 0,
+      fee: 0,
+      billedMonths: 0
     };
   }
+
+  const targetEnd = currentMonthStart >= nextUnpaidStart ? currentMonthStart : nextUnpaidStart;
+  const dueCalc = calculateTitasGasDue(nextUnpaidStart, targetEnd, today);
+  const billedMonths = dueCalc.monthCount;
+  const baseAmount = billedMonths * rate;
+  const fine = dueCalc.totalFee;
+  const totalDue = baseAmount + fine;
 
   // Days elapsed since start of first unpaid month
   const diffTime = today - nextUnpaidStart;
   const diffDays = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1);
   const monthsFraction = Math.max(0.1, Math.round((diffDays / 30.4375) * 10) / 10);
-  
-  // Whole completed months count (do not fraction the 1080 base rate)
-  const wholeMonths = Math.floor(diffDays / 30.4375);
-  const billedMonths = Math.max(1, wholeMonths);
-  const baseAmount = billedMonths * rate;
-  
-  // If more than 1 month is due (even 1.1 month), add 100 delay fine
-  const fine = monthsFraction > 1.0 ? 100 : 0;
-  const totalDue = baseAmount + fine;
-  
+
   const fineLabel = fine > 0 ? ` +${fine}` : '';
   const dueText = `${totalDue.toLocaleString()} (${monthsFraction} M${fineLabel})`;
-  const dueColor = monthsFraction > 1.0 ? '#ff6368' : (monthsFraction > 0.5 ? '#ffe663' : '#00E676');
+  const dueColor = dueCalc.overdueCount > 0 ? '#ff6368' : (totalDue > 0 ? '#ffe663' : '#00E676');
 
   return {
     paidTill: paidTill,
     dueText: dueText,
     dueColor: dueColor,
     totalDue: totalDue,
+    fee: fine,
     monthsFraction: monthsFraction,
     billedMonths: billedMonths,
-    fine: fine
+    fine: fine,
+    dueCalc: dueCalc
   };
 }
 
@@ -6476,7 +6567,7 @@ function renderBillPages() {
       // the first day of the next calendar month requirement.
       let dueDay = 15;
       if (bill.id === 'uttaraWater') dueDay = 1;
-      if (bill.id === 'matuailGas') dueDay = 27;
+      if (bill.id === 'matuailGas') dueDay = 21;
       if (bill.id === 'noakhaliPalli') dueDay = 1;
       
       const now = new Date();
@@ -6500,6 +6591,25 @@ function renderBillPages() {
           nextDueClass = diffDays <= 5 ? 'red' : 'warning';
         }
       }
+
+      if (bill.id === 'matuailGas') {
+        const latestGasPayment = getLatestBillPayment('matuailGas') || lastPayment;
+        if (latestGasPayment && latestGasPayment.billMonth) {
+          const parsedLast = parseBillMonth(latestGasPayment.billMonth);
+          if (parsedLast) {
+            const nextUnpaidDate = new Date(parsedLast.getFullYear(), parsedLast.getMonth() + 1, 21);
+            if (now > nextUnpaidDate) {
+              const overdueDays = Math.max(1, Math.floor((now - nextUnpaidDate) / (1000 * 60 * 60 * 24)));
+              nextDueText = `Overdue by ${formatOverdueMonths(overdueDays)}`;
+              nextDueClass = 'red';
+            } else {
+              const diffDays = Math.ceil((nextUnpaidDate - now) / (1000 * 60 * 60 * 24));
+              nextDueText = diffDays === 0 ? 'Due Today (21st)' : `In ${diffDays} days`;
+              nextDueClass = diffDays <= 5 ? 'red' : 'warning';
+            }
+          }
+        }
+      }
       
       const lastAmountText = lastPayment ? `৳ ${parseFloat(lastPayment.amount).toLocaleString()}` : '-';
       const lastDateText = lastPayment ? formatDateFriendly(lastPayment.payDate) : '-';
@@ -6508,8 +6618,9 @@ function renderBillPages() {
 
       if (bill.id === 'matuailGas') {
         lastMonthTitle = 'Payment Status & Due';
-        if (lastPayment && lastPayment.billMonth) {
-          const gasDueInfo = getMatuailGasDueInfo(lastPayment);
+        const latestGasPayment = getLatestBillPayment('matuailGas') || lastPayment;
+        if (latestGasPayment && latestGasPayment.billMonth) {
+          const gasDueInfo = getMatuailGasDueInfo(latestGasPayment);
           lastMonthVal = `
             <div style="display:flex; flex-direction:column; gap:4px; line-height:1.2; width:100%;">
               <span style="font-size:1.18rem; font-weight:800; color:#f8fafc; letter-spacing:-0.2px;">${gasDueInfo.paidTill}</span>
@@ -6595,24 +6706,51 @@ function renderBillPages() {
     
     let formSectionHtml = '';
     if (bill.id === 'matuailGas') {
+      const latestGasPayment = getLatestBillPayment('matuailGas') || lastPayment;
       let anchorDate = new Date();
       let defaultFromMonth = lastMonthLabel;
-      let defaultToMonth = lastMonthLabel;
-      if (lastPayment && lastPayment.billMonth) {
-        const parsedLastMonth = parseBillMonth(lastPayment.billMonth);
+      let defaultToMonth = currentMonthLabel;
+      if (latestGasPayment && latestGasPayment.billMonth) {
+        const parsedLastMonth = parseBillMonth(latestGasPayment.billMonth);
         if (parsedLastMonth) {
           const nextUnpaid = new Date(parsedLastMonth.getFullYear(), parsedLastMonth.getMonth() + 1, 1);
           anchorDate = nextUnpaid;
           const nextUnpaidLabel = `${nextUnpaid.toLocaleString('default', { month: 'long' })} ${nextUnpaid.getFullYear()}`;
           defaultFromMonth = nextUnpaidLabel;
-          defaultToMonth = defaultFromMonth;
+          const currentMonthDate = new Date(localDate.getFullYear(), localDate.getMonth(), 1);
+          if (nextUnpaid > currentMonthDate) {
+            defaultToMonth = defaultFromMonth;
+          } else {
+            defaultToMonth = currentMonthLabel;
+          }
         }
       }
       const allMonthOpts = getBillingMonthOptions(anchorDate, 2, 12);
       if (!allMonthOpts.includes(defaultFromMonth)) {
         allMonthOpts.push(defaultFromMonth);
       }
+      if (!allMonthOpts.includes(defaultToMonth)) {
+        allMonthOpts.push(defaultToMonth);
+      }
+      allMonthOpts.sort((a, b) => {
+        const da = parseSingleBillMonth(a) || new Date(0);
+        const db = parseSingleBillMonth(b) || new Date(0);
+        return da - db;
+      });
+
       const savedRate = localStorage.getItem('billzy_matuail_rate') || '1080';
+      const initialRate = parseFloat(savedRate) || 1080;
+      const fromDateInit = parseSingleBillMonth(defaultFromMonth);
+      const toDateInit = parseSingleBillMonth(defaultToMonth);
+      const todayInit = new Date(localDate.getFullYear(), localDate.getMonth(), localDate.getDate());
+      const initialDueCalc = calculateTitasGasDue(fromDateInit, toDateInit, todayInit);
+      const initialMonthCount = initialDueCalc.monthCount;
+      const initialFee = initialDueCalc.totalFee;
+      const initialBase = Math.round(initialRate * initialMonthCount);
+      const initialTotal = initialBase + initialFee;
+      const initialFeeVal = initialFee > 0 ? initialFee.toString() : '';
+      const initialRangeStr = defaultFromMonth === defaultToMonth ? defaultFromMonth : `${defaultFromMonth} - ${defaultToMonth}`;
+      const initialCountPill = `${initialMonthCount} Month${initialMonthCount > 1 ? 's' : ''}`;
 
       formSectionHtml = `
         <div class="formSection matuailFormSection">
@@ -6625,19 +6763,19 @@ function renderBillPages() {
                 Monthly Rate
               </div>
               <input type="number" class="inputMonthlyRateVal" value="${savedRate}" placeholder="1080"
-                oninput="updateMatuailGasCalculation()"
+                oninput="updateMatuailGasCalculation(false)"
                 style="width:100%; height:40px; background:transparent; border:none; color:white; font-size:1.8rem; font-weight:800; font-family:var(--font-amount); font-feature-settings:'tnum' 1; outline:none;">
             </div>
             <div class="inputCard">
               <div class="inputLabel">From Month</div>
-              <select class="inputFromMonthSelect" onchange="updateMatuailGasCalculation()"
+              <select class="inputFromMonthSelect" onchange="updateMatuailGasCalculation(true)"
                 style="width:100%; height:40px; background:#0b1730; color:white; border:1px solid var(--border); border-radius:12px; padding:0 10px; font-size:1.05rem; font-weight:700; font-family:var(--font-amount);">
                 ${allMonthOpts.map(opt => `<option value="${opt}" ${opt === defaultFromMonth ? 'selected' : ''}>${opt}</option>`).join('')}
               </select>
             </div>
             <div class="inputCard">
               <div class="inputLabel">To Month</div>
-              <select class="inputToMonthSelect" onchange="updateMatuailGasCalculation()"
+              <select class="inputToMonthSelect" onchange="updateMatuailGasCalculation(true)"
                 style="width:100%; height:40px; background:#0b1730; color:white; border:1px solid var(--border); border-radius:12px; padding:0 10px; font-size:1.05rem; font-weight:700; font-family:var(--font-amount);">
                 ${allMonthOpts.map(opt => `<option value="${opt}" ${opt === defaultToMonth ? 'selected' : ''}>${opt}</option>`).join('')}
               </select>
@@ -6646,26 +6784,26 @@ function renderBillPages() {
               <div class="inputLabel">
                 Surcharge / Late Fee
               </div>
-              <input type="number" class="inputFeeVal" value="" placeholder="0" 
-                oninput="updateMatuailGasCalculation()"
+              <input type="number" class="inputFeeVal" value="${initialFeeVal}" placeholder="0" 
+                oninput="updateMatuailGasCalculation(false)"
                 style="width:100%; height:40px; background:transparent; border:none; color:#FF7A00; font-size:1.8rem; font-weight:800; font-family:var(--font-amount); font-feature-settings:'tnum' 1; outline:none;">
             </div>
             <div class="inputCard">
               <div class="inputLabel">Date Paid</div>
-              <input type="date" class="inputDateVal" value="${localISODate}" onclick="try { this.showPicker(); } catch(e) {}" style="width:100%; height:40px; background:transparent; border:none; color:white; font-size:1.4rem; font-weight:800; font-family:var(--font-amount); font-feature-settings:'tnum' 1; outline:none; cursor:pointer;">
+              <input type="date" class="inputDateVal" value="${localISODate}" onchange="updateMatuailGasCalculation(true)" onclick="try { this.showPicker(); } catch(e) {}" style="width:100%; height:40px; background:transparent; border:none; color:white; font-size:1.4rem; font-weight:800; font-family:var(--font-amount); font-feature-settings:'tnum' 1; outline:none; cursor:pointer;">
             </div>
           </div>
 
           <!-- Matuail Live Summary Card -->
           <div class="matuailCalcBanner" style="margin-top:14px; background:linear-gradient(180deg, rgba(14,30,60,0.85), rgba(6,16,36,0.95)); border:1px solid var(--border); border-radius:16px; padding:14px 18px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
             <div style="display:flex; align-items:center; gap:10px;">
-              <span class="matuailMonthCountPill" style="background:#1d3969; color:#00C2FF; font-family:var(--font-amount); font-size:0.95rem; font-weight:800; padding:5px 12px; border-radius:8px; border:1px solid rgba(0,194,255,0.3);">1 Month</span>
-              <span class="matuailRangeLabel" style="color:#f8fafc; font-size:0.95rem; font-weight:700;">${defaultFromMonth}</span>
+              <span class="matuailMonthCountPill" style="background:#1d3969; color:#00C2FF; font-family:var(--font-amount); font-size:0.95rem; font-weight:800; padding:5px 12px; border-radius:8px; border:1px solid rgba(0,194,255,0.3);">${initialCountPill}</span>
+              <span class="matuailRangeLabel" style="color:#f8fafc; font-size:0.95rem; font-weight:700;">${initialRangeStr}</span>
             </div>
             <div style="display:flex; align-items:baseline; gap:12px; flex-wrap:wrap;">
-              <span style="font-size:0.88rem; color:#94a3b8;">Main Amount: <strong class="matuailBaseText" style="color:white; font-family:var(--font-amount); font-size:1.2rem; font-weight:800;">${parseInt(savedRate).toLocaleString()}</strong></span>
-              <span class="matuailFeeText" style="font-size:0.88rem; color:#FF7A00; display:none;">+ <strong class="matuailFeeValText">0</strong> fee</span>
-              <span style="font-size:0.95rem; color:#00E676;">Total: <strong class="matuailTotalText" style="font-size:1.35rem; font-family:var(--font-amount); font-weight:900;">${parseInt(savedRate).toLocaleString()}</strong></span>
+              <span style="font-size:0.88rem; color:#94a3b8;">Main Amount: <strong class="matuailBaseText" style="color:white; font-family:var(--font-amount); font-size:1.2rem; font-weight:800;">${initialBase.toLocaleString()}</strong></span>
+              <span class="matuailFeeText" style="font-size:0.88rem; color:#FF7A00; ${initialFee > 0 ? '' : 'display:none;'}">+ <strong class="matuailFeeValText">${initialFee.toLocaleString()}</strong> fee</span>
+              <span style="font-size:0.95rem; color:#00E676;">Total: <strong class="matuailTotalText" style="font-size:1.35rem; font-family:var(--font-amount); font-weight:900;">${initialTotal.toLocaleString()}</strong></span>
             </div>
           </div>
 
@@ -6986,7 +7124,19 @@ function renderLandingPageCards() {
           Last Paid <span class="amount-highlight" style="color:var(--accent);">৳ ${parseInt(lastPayment.amount).toLocaleString()}</span>
           <div class="billSub" style="color:${subColor}; font-weight:600; margin-top: 4px;">${subText}</div>
         `;
-      } else if (bill.id === 'noakhaliPalli' || bill.id === 'uttaraWater' || bill.id === 'matuailGas') {
+      } else if (bill.id === 'matuailGas') {
+        const latestGasPayment = getLatestBillPayment('matuailGas') || lastPayment;
+        const gasDueInfo = getMatuailGasDueInfo(latestGasPayment);
+        let subText = `${gasDueInfo.paidTill} • Due: ${gasDueInfo.dueText}`;
+        let subColor = gasDueInfo.dueColor;
+        shortStatus = gasDueInfo.totalDue > 0 ? `Due: ${gasDueInfo.dueText}` : 'Paid';
+        shortColor = gasDueInfo.dueColor;
+
+        statusHtml = `
+          Last Paid <span class="amount-highlight" style="color:var(--accent);">৳ ${parseInt(lastPayment.amount).toLocaleString()}</span>
+          <div class="billSub" style="color:${subColor}; font-weight:600; margin-top: 4px;">${subText}</div>
+        `;
+      } else if (bill.id === 'noakhaliPalli' || bill.id === 'uttaraWater') {
         let subText = `Paid for ${lastPayment.billMonth || 'N/A'}`;
         let subColor = '#7ee787'; // Green
         shortStatus = lastPayment.billMonth || 'Paid';
@@ -7004,7 +7154,7 @@ function renderLandingPageCards() {
             const diffTime = today - overdueDate;
             const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
             const overdueDays = diffDays + 1;
-            const overdueStr = bill.id === 'matuailGas' ? formatOverdueMonths(overdueDays) : `${overdueDays}d`;
+            const overdueStr = `${overdueDays}d`;
             subText = `Paid for ${lastPayment.billMonth} • Overdue ${overdueStr}`;
             subColor = '#ff6368'; // Red
             shortStatus = `Overdue ${overdueStr}`;
@@ -7464,11 +7614,24 @@ function renderDashboardPage() {
       }
     } else { // Postpaid
       if (lastPayment) {
-        const paidMonthDate = parseBillMonth(lastPayment.billMonth);
-        if (paidMonthDate) {
-          // Postpaid monthly due logic (e.g. WASA, Palli Bidyut, Titas Gas).
-          const nextDueDate = new Date(paidMonthDate.getFullYear(), paidMonthDate.getMonth() + 2, 1);
-          
+        let nextDueDate;
+        if (bill.id === 'matuailGas') {
+          const latestGasPayment = getLatestBillPayment('matuailGas') || lastPayment;
+          const parsedGas = parseBillMonth(latestGasPayment.billMonth);
+          if (parsedGas) {
+            nextDueDate = new Date(parsedGas.getFullYear(), parsedGas.getMonth() + 1, 21);
+          } else {
+            nextDueDate = new Date(now.getFullYear(), now.getMonth(), 21);
+          }
+        } else {
+          const paidMonthDate = parseBillMonth(lastPayment.billMonth);
+          if (paidMonthDate) {
+            // Postpaid monthly due logic (e.g. WASA, Palli Bidyut).
+            nextDueDate = new Date(paidMonthDate.getFullYear(), paidMonthDate.getMonth() + 2, 1);
+          }
+        }
+        
+        if (nextDueDate) {
           nextDueTop = formatDateFriendly(formatLocalDate(nextDueDate));
           
           const diffTime = nextDueDate - now;
