@@ -8,6 +8,7 @@ import { AnalyticsView } from './components/AnalyticsView';
 import { PaymentModal } from './components/PaymentModal';
 import { EditModal } from './components/EditModal';
 import { DescoModal } from './components/DescoModal';
+import { UniqueStatsModal } from './components/UniqueStatsModal';
 import { ToastContainer } from './components/ToastContainer';
 
 const MainContent: React.FC = () => {
@@ -36,6 +37,7 @@ const MainContent: React.FC = () => {
       <PaymentModal />
       <EditModal />
       <DescoModal />
+      <UniqueStatsModal />
       <ToastContainer />
     </div>
   );

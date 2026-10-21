@@ -33,7 +33,7 @@ import {
 import { getSeasonName } from '../core/domain/seasonal';
 
 export const AnalyticsView: React.FC = () => {
-  const { payments, openDescoModal } = useApp();
+  const { payments, openDescoModal, openUniqueStats } = useApp();
 
   const currentSeason = getSeasonName(new Date());
 
@@ -848,7 +848,7 @@ export const AnalyticsView: React.FC = () => {
                           </div>
                         </div>
 
-                        {isDesco && (
+                        {isDesco ? (
                           <Button
                             size="sm"
                             variant="flat"
@@ -858,6 +858,17 @@ export const AnalyticsView: React.FC = () => {
                             onClick={() => openDescoModal(item.billId)}
                           >
                             Live
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="flat"
+                            color="primary"
+                            className="h-7 px-2 text-[11px] font-bold"
+                            startContent={<BarChart2 size={12} />}
+                            onClick={() => openUniqueStats(item.billId)}
+                          >
+                            Stats
                           </Button>
                         )}
                       </div>

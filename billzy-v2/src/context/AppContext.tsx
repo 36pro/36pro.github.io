@@ -87,6 +87,11 @@ interface AppContextValue {
   selectedDescoBillId: string | null;
   openDescoModal: (billId: string) => void;
   closeDescoModal: () => void;
+  // Per-Utility Unique Stats
+  isUniqueStatsOpen: boolean;
+  selectedUniqueStatsBillId: string | null;
+  openUniqueStats: (billId: string) => void;
+  closeUniqueStats: () => void;
 }
 
 const AppContext = createContext<AppContextValue | undefined>(undefined);
@@ -117,11 +122,33 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const openDescoModal = useCallback((billId: string) => {
     setSelectedDescoBillId(billId);
     setIsDescoModalOpen(true);
+    window.location.hash = `#desco-analytics/${billId}`;
   }, []);
 
   const closeDescoModal = useCallback(() => {
     setIsDescoModalOpen(false);
     setSelectedDescoBillId(null);
+    if (window.location.hash.startsWith('#desco-analytics')) {
+      window.location.hash = '#dashboard';
+    }
+  }, []);
+
+  // Per-Utility Unique Stats state
+  const [isUniqueStatsOpen, setIsUniqueStatsOpen] = useState(false);
+  const [selectedUniqueStatsBillId, setSelectedUniqueStatsBillId] = useState<string | null>(null);
+
+  const openUniqueStats = useCallback((billId: string) => {
+    setSelectedUniqueStatsBillId(billId);
+    setIsUniqueStatsOpen(true);
+    window.location.hash = `#unique-stats/${billId}`;
+  }, []);
+
+  const closeUniqueStats = useCallback(() => {
+    setIsUniqueStatsOpen(false);
+    setSelectedUniqueStatsBillId(null);
+    if (window.location.hash.startsWith('#unique-stats')) {
+      window.location.hash = '#dashboard';
+    }
   }, []);
 
   const refreshDescoTelemetry = useCallback(async (billId: string, accountNo: string) => {
@@ -202,10 +229,28 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     // Listen to hash changes
     const handleHash = () => {
-      const h = window.location.hash.toLowerCase();
-      if (h === '#database') setActiveTabState('database');
-      else if (h === '#analytics' || h === '#stats') setActiveTabState('analytics');
-      else setActiveTabState('dashboard');
+      const rawHash = window.location.hash;
+      const h = rawHash.toLowerCase();
+
+      if (h.startsWith('#unique-stats/')) {
+        const parts = rawHash.split('/');
+        if (parts.length >= 2 && parts[1]) {
+          setSelectedUniqueStatsBillId(parts[1]);
+          setIsUniqueStatsOpen(true);
+        }
+      } else if (h.startsWith('#desco-analytics/')) {
+        const parts = rawHash.split('/');
+        if (parts.length >= 2 && parts[1]) {
+          setSelectedDescoBillId(parts[1]);
+          setIsDescoModalOpen(true);
+        }
+      } else if (h === '#database') {
+        setActiveTabState('database');
+      } else if (h === '#analytics' || h === '#stats') {
+        setActiveTabState('analytics');
+      } else {
+        setActiveTabState('dashboard');
+      }
     };
     handleHash();
     window.addEventListener('hashchange', handleHash);
@@ -560,7 +605,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     isDescoModalOpen,
     selectedDescoBillId,
     openDescoModal,
-    closeDescoModal
+    closeDescoModal,
+    isUniqueStatsOpen,
+    selectedUniqueStatsBillId,
+    openUniqueStats,
+    closeUniqueStats
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

@@ -24,7 +24,8 @@ import {
   Clock,
   ArrowUpRight,
   TrendingUp,
-  ShieldCheck
+  ShieldCheck,
+  BarChart2
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { BILL_DEFINITIONS, UtilityDefinition } from '../core/contracts/utility';
@@ -48,7 +49,8 @@ export const DashboardView: React.FC = () => {
     matuailRate,
     openPaymentModal,
     descoMetrics,
-    openDescoModal
+    openDescoModal,
+    openUniqueStats
   } = useApp();
 
   // 1. Calculate monthly burn
@@ -464,7 +466,7 @@ export const DashboardView: React.FC = () => {
                   )}
 
                   <div className="flex items-center gap-1.5">
-                    {isDescoBill && (
+                    {isDescoBill ? (
                       <Button
                         size="sm"
                         variant="flat"
@@ -474,6 +476,17 @@ export const DashboardView: React.FC = () => {
                         onClick={() => openDescoModal(bill.id)}
                       >
                         Telemetry
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="flat"
+                        color="primary"
+                        className="bg-accent/10 text-accent hover:bg-accent/20 font-bold rounded-[var(--radius)] h-8 px-2.5 text-xs"
+                        startContent={<BarChart2 size={13} />}
+                        onClick={() => openUniqueStats(bill.id)}
+                      >
+                        Stats
                       </Button>
                     )}
                     <Button
