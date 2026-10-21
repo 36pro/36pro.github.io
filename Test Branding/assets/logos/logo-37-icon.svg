@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="100%" height="100%" fill="none">
+  <rect width="80" height="80" rx="18" fill="#121008" stroke="#2B2412" stroke-width="1.5"/>
+  <!-- Outer Sacred Ring -->
+  <circle cx="40" cy="40" r="28" stroke="#EAB308" stroke-width="2"/>
+  <circle cx="40" cy="40" r="23" stroke="#EAB308" stroke-width="1" stroke-dasharray="2 3"/>
+  <!-- Alchemical Triangle of Elements -->
+  <polygon points="40,16 64,56 16,56" stroke="#E2E8F0" stroke-width="2" fill="none"/>
+  <!-- Inverted Air/Energy Triangle -->
+  <polygon points="40,64 64,24 16,24" stroke="#EAB308" stroke-width="1.5" fill="none"/>
+  <!-- Core Solar Seal Dot -->
+  <circle cx="40" cy="40" r="4.5" fill="#EAB308"/>
+</svg>

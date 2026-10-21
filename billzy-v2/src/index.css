@@ -1,0 +1,47 @@
+@import '../theme.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-bricolage-grotesque: 'Bricolage Grotesque', system-ui, sans-serif;
+  --font-sans: 'Bricolage Grotesque', system-ui, sans-serif;
+  --radius: 0.125rem;
+  --field-radius: 0.75rem;
+}
+
+body {
+  font-family: var(--font-bricolage-grotesque), system-ui, sans-serif;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+.font-amount {
+  font-family: 'Outfit', system-ui, sans-serif;
+}
+
+.font-bangla {
+  font-family: 'Tiro Bangla', serif;
+}
+
+.font-mono-code {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.font-logo {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+
+/* Ensure form fields adhere to exact --field-radius: 0.75rem */
+input, select, textarea {
+  border-radius: var(--field-radius, 0.75rem) !important;
+}
+
+/* Ensure HeroUI cards & buttons follow exact --radius: 0.125rem */
+.heroui-card, [data-slot="base"], button.heroui-btn {
+  border-radius: var(--radius, 0.125rem);
+}

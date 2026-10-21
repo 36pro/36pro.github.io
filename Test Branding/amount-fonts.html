@@ -1,0 +1,1521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BILLZY — Amount &amp; Numeral Typography Lab (20 Options)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@700;800&family=Plus+Jakarta+Sans:wght@800;900&family=Space+Mono:wght@700&family=Inter:wght@800;900&family=Fira+Code:wght@700&family=Outfit:wght@800;900&family=Oswald:wght@700&family=Space+Grotesk:wght@700;900&family=Orbitron:wght@800;900&family=Syne:wght@800;900&family=DM+Sans:wght@800&family=IBM+Plex+Mono:wght@700&family=Share+Tech+Mono&family=Manrope:wght@800&family=Epilogue:wght@900&family=Chivo+Mono:wght@800;900&family=Red+Hat+Mono:wght@700&family=Montserrat:wght@800;900&family=VT323&family=Cinzel:wght@900&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --bg-primary: #020817;
+  --bg-surface: #0b1730;
+  --bg-surface-elevated: #112448;
+  --bg-card: rgba(11, 23, 48, 0.85);
+  --border-color: rgba(29, 57, 105, 0.8);
+  --border-glow: rgba(0, 194, 255, 0.4);
+  
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --text-dim: #64748b;
+  
+  --billzy-electric: #00E676;
+  --billzy-water: #00C2FF;
+  --billzy-gas: #FF7A00;
+  
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+}
+
+/* Theme Variations */
+[data-theme="oled"] {
+  --bg-primary: #000000;
+  --bg-surface: #0a0a0a;
+  --bg-surface-elevated: #171717;
+  --bg-card: rgba(18, 18, 18, 0.92);
+  --border-color: #262626;
+}
+[data-theme="light"] {
+  --bg-primary: #f8fafc;
+  --bg-surface: #ffffff;
+  --bg-surface-elevated: #f1f5f9;
+  --bg-card: #ffffff;
+  --border-color: #e2e8f0;
+  --text-main: #0f172a;
+  --text-muted: #475569;
+  --text-dim: #94a3b8;
+}
+[data-theme="navy"] {
+  --bg-primary: #0a1128;
+  --bg-surface: #101f42;
+  --bg-surface-elevated: #1a3168;
+  --bg-card: rgba(16, 31, 66, 0.88);
+  --border-color: #1e3a8a;
+}
+[data-theme="slate"] {
+  --bg-primary: #0f172a;
+  --bg-surface: #1e293b;
+  --bg-surface-elevated: #334155;
+  --bg-card: rgba(30, 41, 59, 0.88);
+  --border-color: #334155;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-main);
+  min-height: 100vh;
+  line-height: 1.5;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  overflow-x: hidden;
+}
+
+/* Top Navigation Bar */
+.top-nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(2, 8, 23, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border-color);
+  padding: 12px 28px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.nav-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  transition: all 0.2s ease;
+}
+.back-link:hover {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: #00c2ff;
+}
+
+.nav-badge {
+  background: linear-gradient(135deg, #00c2ff, #00e676);
+  color: #020817;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 800;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.nav-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+.theme-palette {
+  display: flex;
+  gap: 6px;
+  background: var(--bg-surface);
+  padding: 4px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+}
+
+.theme-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+.theme-dot:hover {
+  transform: scale(1.18);
+}
+.theme-dot.active {
+  border-color: #00c2ff;
+  box-shadow: 0 0 10px rgba(0, 194, 255, 0.6);
+}
+
+/* Main Container */
+.container {
+  max-width: 1540px;
+  margin: 0 auto;
+  padding: 32px 24px 80px;
+}
+
+/* Hero Section */
+.hero {
+  text-align: center;
+  padding: 32px 20px 36px;
+  position: relative;
+}
+
+.hero-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 750px;
+  height: 260px;
+  background: radial-gradient(circle, rgba(0, 230, 118, 0.18) 0%, rgba(0, 194, 255, 0.12) 40%, rgba(255, 122, 0, 0.08) 70%, transparent 85%);
+  filter: blur(75px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
+}
+
+.hero-title {
+  font-size: clamp(2.2rem, 4.5vw, 3.4rem);
+  font-weight: 900;
+  letter-spacing: -1px;
+  line-height: 1.15;
+  margin-bottom: 12px;
+  background: linear-gradient(135deg, #ffffff 30%, #cbd5e1 70%, #94a3b8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.hero-subtitle {
+  font-size: 1.05rem;
+  color: var(--text-muted);
+  max-width: 860px;
+  margin: 0 auto 24px;
+}
+
+/* Interactive Control Toolbar */
+.toolbar-wrap {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 18px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 36px;
+  position: sticky;
+  top: 70px;
+  z-index: 90;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+.tool-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.tool-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.custom-input {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  outline: none;
+  width: 170px;
+  transition: border-color 0.2s ease, width 0.2s ease;
+}
+.custom-input:focus {
+  border-color: #00e676;
+  width: 210px;
+}
+
+.preset-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.preset-btn:hover {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.12);
+}
+.preset-btn.active {
+  background: #00e676;
+  color: #020817;
+  border-color: #00e676;
+}
+
+/* Amount Font Cards Grid */
+.amount-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(440px, 1fr));
+  gap: 28px;
+}
+
+@media (max-width: 600px) {
+  .amount-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.amount-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.amount-card:hover {
+  transform: translateY(-6px);
+  border-color: rgba(0, 230, 118, 0.5);
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7), 0 0 30px rgba(0, 230, 118, 0.18);
+}
+
+.card-top-row {
+  padding: 16px 22px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.amount-id {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #00e676;
+}
+
+.amount-cat-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(0, 230, 118, 0.1);
+  color: #00e676;
+  border: 1px solid rgba(0, 230, 118, 0.2);
+}
+
+/* Amount Live Showcase Canvas */
+.amount-canvas {
+  padding: 36px 24px 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.03) 0%, transparent 70%);
+  gap: 12px;
+}
+
+.amount-display-val {
+  font-size: 2.5rem;
+  color: var(--text-main);
+  letter-spacing: 0px;
+  line-height: 1.1;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.amount-sub-metric {
+  display: flex;
+  gap: 16px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.amount-body {
+  padding: 22px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.amount-name-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 4px;
+}
+
+.amount-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.amount-weight-spec {
+  font-size: 0.78rem;
+  color: #00c2ff;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.amount-desc {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-bottom: 18px;
+  flex: 1;
+}
+
+/* CSS Code Snippet Box */
+.css-snippet-box {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  color: #38bdf8;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.css-snippet-box:hover {
+  background: rgba(0, 194, 255, 0.1);
+}
+
+.card-footer-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  gap: 8px;
+}
+
+.rating-stars {
+  display: flex;
+  gap: 3px;
+}
+
+.star-btn {
+  background: none;
+  border: none;
+  color: #475569;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+.star-btn:hover, .star-btn.active {
+  color: #f59e0b;
+  transform: scale(1.15);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+.btn-primary {
+  background: #00e676;
+  color: #020817;
+}
+.btn-primary:hover {
+  background: #00c766;
+  box-shadow: 0 0 15px rgba(0, 230, 118, 0.4);
+}
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-main);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: #00e676;
+}
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  background: #00e676;
+  color: #020817;
+  font-weight: 700;
+  font-size: 0.875rem;
+  padding: 12px 20px;
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 25px rgba(0, 230, 118, 0.4);
+  transform: translateY(100px);
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 9999;
+}
+.toast.show {
+  transform: translateY(0);
+  opacity: 1;
+}
+</style>
+</head>
+
+<body data-theme="default">
+
+<!-- Navigation -->
+<nav class="top-nav">
+  <div class="nav-left">
+    <a href="winner-brand-book.html" class="back-link">🏆 Winner Brand Book</a>
+    <a href="curated-combos.html" class="back-link">⭐ Multi-Surface Lab</a>
+    <a href="index.html" class="back-link">Master 40 Lab</a>
+    <span class="nav-badge">NUMERAL LAB</span>
+    <span class="nav-title">Billzy Amount &amp; Currency Typography (20 Options)</span>
+  </div>
+
+  <div class="theme-palette">
+    <div class="theme-dot active" style="background:#020817;" onclick="setCanvasTheme('default', this)" title="Cyber Navy"></div>
+    <div class="theme-dot" style="background:#000000;" onclick="setCanvasTheme('oled', this)" title="Pitch OLED"></div>
+    <div class="theme-dot" style="background:#0a1128;" onclick="setCanvasTheme('navy', this)" title="Deep Sapphire"></div>
+    <div class="theme-dot" style="background:#0f172a;" onclick="setCanvasTheme('slate', this)" title="Slate Dark"></div>
+    <div class="theme-dot" style="background:#ffffff;" onclick="setCanvasTheme('light', this)" title="Titanium White"></div>
+  </div>
+</nav>
+
+<div class="container">
+
+  <!-- Hero Header -->
+  <section class="hero">
+    <div class="hero-glow"></div>
+    <div class="hero-content">
+      <div class="nav-badge" style="display:inline-block; margin-bottom:14px;">⚡ 20 FINANCIAL NUMERAL STYLES</div>
+      <h1 class="hero-title">Amount &amp; Balance Typography Lab</h1>
+      <p class="hero-subtitle">
+        Evaluate 20 distinct typeface choices for Billzy's core financial numbers, monthly utility totals, kilowatt meter reads, and transaction receipts.
+      </p>
+    </div>
+  </section>
+
+  <!-- Interactive Controls Toolbar -->
+  <div class="toolbar-wrap">
+    <div class="tool-group">
+      <span class="tool-label">Test Custom Amount:</span>
+      <input type="text" class="custom-input" id="amountInput" value="৳ 28,984.00" oninput="updateLiveAmounts(this.value)">
+    </div>
+
+    <div class="tool-group">
+      <span class="tool-label">Quick Presets:</span>
+      <button class="preset-btn active" onclick="setPreset('৳ 28,984.00', this)">৳ 28,984.00</button>
+      <button class="preset-btn" onclick="setPreset('৳ 16,920.00', this)">⚡ 16,920.00</button>
+      <button class="preset-btn" onclick="setPreset('2,450.75 kWh', this)">2,450.75 kWh</button>
+      <button class="preset-btn" onclick="setPreset('$1,420.50', this)">$1,420.50</button>
+      <button class="preset-btn" onclick="setPreset('৳ 3,515.00', this)">৳ 3,515.00</button>
+    </div>
+
+    <div class="tool-group">
+      <span class="tool-label">Color Accent:</span>
+      <button class="preset-btn" style="color:#00E676;" onclick="setAmountColor('#00E676')">⚡ Mint</button>
+      <button class="preset-btn" style="color:#00C2FF;" onclick="setAmountColor('#00C2FF')">💧 Aqua</button>
+      <button class="preset-btn" style="color:#FF7A00;" onclick="setAmountColor('#FF7A00')">🔥 Amber</button>
+      <button class="preset-btn" style="color:#FFFFFF;" onclick="setAmountColor('var(--text-main)')">⚪ Clean White</button>
+    </div>
+  </div>
+
+  <!-- 20 Amount Font Cards Grid -->
+  <div class="amount-grid" id="amountGrid">
+
+    <!-- Card A01 -->
+    <div class="amount-card" id="card-A01">
+      <div class="card-top-row">
+        <span class="amount-id">A01</span>
+        <span class="amount-cat-badge">Engineering Monospace</span>
+      </div>
+
+      <div class="amount-canvas">
+        <div class="amount-display-val" id="val-A01" style="font-family: 'JetBrains Mono', monospace; font-feature-settings: 'tnum' 1, 'zero' 1;">
+          ৳ 28,984.00
+        </div>
+        <div class="amount-sub-metric">
+          <span style="color:#00E676;">⚡ DESCO: ৳ 7,045</span>
+          <span style="color:#00C2FF;">💧 WASA: ৳ 2,966</span>
+        </div>
+      </div>
+
+      <div class="amount-body">
+        <div class="amount-name-row">
+          <h3 class="amount-title">JetBrains Mono</h3>
+          <span class="amount-weight-spec">800 ExtraBold</span>
+        </div>
+        <p class="amount-desc">Default developer standard, perfectly aligned columns, crisp zeros.</p>
+
+        <div class="css-snippet-box" onclick="copyCssSnippet('A01')" title="Click to copy CSS rule">
+          <code>font-family: 'JetBrains Mono', monospace; font-feature-settings: 'tnum' 1, 'zero' 1;</code>
+          <span>📋</span>
+        </div>
+
+        <div class="card-footer-row">
+          <div class="rating-stars" id="stars-A01">
+            <button class="star-btn" onclick="rateAmountFont('A01', 1)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A01', 2)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A01', 3)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A01', 4)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A01', 5)">★</button>
+          </div>
+
+          <button class="btn btn-primary" onclick="copyCssSnippet('A01')">📋 Copy CSS</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Card A02 -->
+    <div class="amount-card" id="card-A02">
+      <div class="card-top-row">
+        <span class="amount-id">A02</span>
+        <span class="amount-cat-badge">Brand Harmonized Geometric</span>
+      </div>
+
+      <div class="amount-canvas">
+        <div class="amount-display-val" id="val-A02" style="font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-feature-settings: 'tnum' 1;">
+          ৳ 28,984.00
+        </div>
+        <div class="amount-sub-metric">
+          <span style="color:#00E676;">⚡ DESCO: ৳ 7,045</span>
+          <span style="color:#00C2FF;">💧 WASA: ৳ 2,966</span>
+        </div>
+      </div>
+
+      <div class="amount-body">
+        <div class="amount-name-row">
+          <h3 class="amount-title">Plus Jakarta Sans</h3>
+          <span class="amount-weight-spec">800 ExtraBold</span>
+        </div>
+        <p class="amount-desc">100% harmonized with the winning 'billzy°' wordmark. Smooth, modern, premium.</p>
+
+        <div class="css-snippet-box" onclick="copyCssSnippet('A02')" title="Click to copy CSS rule">
+          <code>font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-feature-settings: 'tnum' 1;</code>
+          <span>📋</span>
+        </div>
+
+        <div class="card-footer-row">
+          <div class="rating-stars" id="stars-A02">
+            <button class="star-btn" onclick="rateAmountFont('A02', 1)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A02', 2)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A02', 3)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A02', 4)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A02', 5)">★</button>
+          </div>
+
+          <button class="btn btn-primary" onclick="copyCssSnippet('A02')">📋 Copy CSS</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Card A03 -->
+    <div class="amount-card" id="card-A03">
+      <div class="card-top-row">
+        <span class="amount-id">A03</span>
+        <span class="amount-cat-badge">Retro Sci-Fi Technical</span>
+      </div>
+
+      <div class="amount-canvas">
+        <div class="amount-display-val" id="val-A03" style="font-family: 'Space Mono', monospace; letter-spacing: -0.5px;">
+          ৳ 28,984.00
+        </div>
+        <div class="amount-sub-metric">
+          <span style="color:#00E676;">⚡ DESCO: ৳ 7,045</span>
+          <span style="color:#00C2FF;">💧 WASA: ৳ 2,966</span>
+        </div>
+      </div>
+
+      <div class="amount-body">
+        <div class="amount-name-row">
+          <h3 class="amount-title">Space Mono</h3>
+          <span class="amount-weight-spec">700 Bold</span>
+        </div>
+        <p class="amount-desc">Distinctive mechanical angular cuts, editorial tech personality.</p>
+
+        <div class="css-snippet-box" onclick="copyCssSnippet('A03')" title="Click to copy CSS rule">
+          <code>font-family: 'Space Mono', monospace; letter-spacing: -0.5px;</code>
+          <span>📋</span>
+        </div>
+
+        <div class="card-footer-row">
+          <div class="rating-stars" id="stars-A03">
+            <button class="star-btn" onclick="rateAmountFont('A03', 1)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A03', 2)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A03', 3)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A03', 4)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A03', 5)">★</button>
+          </div>
+
+          <button class="btn btn-primary" onclick="copyCssSnippet('A03')">📋 Copy CSS</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Card A04 -->
+    <div class="amount-card" id="card-A04">
+      <div class="card-top-row">
+        <span class="amount-id">A04</span>
+        <span class="amount-cat-badge">FinTech Standard Proportional</span>
+      </div>
+
+      <div class="amount-canvas">
+        <div class="amount-display-val" id="val-A04" style="font-family: 'Inter', system-ui, sans-serif; font-feature-settings: 'tnum' 1, 'cv05' 1;">
+          ৳ 28,984.00
+        </div>
+        <div class="amount-sub-metric">
+          <span style="color:#00E676;">⚡ DESCO: ৳ 7,045</span>
+          <span style="color:#00C2FF;">💧 WASA: ৳ 2,966</span>
+        </div>
+      </div>
+
+      <div class="amount-body">
+        <div class="amount-name-row">
+          <h3 class="amount-title">Inter (Tabular Numbers)</h3>
+          <span class="amount-weight-spec">900 Black</span>
+        </div>
+        <p class="amount-desc">Stripe / Linear / Apple standard. Ultra-clean, neutral, maximum readability.</p>
+
+        <div class="css-snippet-box" onclick="copyCssSnippet('A04')" title="Click to copy CSS rule">
+          <code>font-family: 'Inter', system-ui, sans-serif; font-feature-settings: 'tnum' 1, 'cv05' 1;</code>
+          <span>📋</span>
+        </div>
+
+        <div class="card-footer-row">
+          <div class="rating-stars" id="stars-A04">
+            <button class="star-btn" onclick="rateAmountFont('A04', 1)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A04', 2)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A04', 3)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A04', 4)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A04', 5)">★</button>
+          </div>
+
+          <button class="btn btn-primary" onclick="copyCssSnippet('A04')">📋 Copy CSS</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Card A05 -->
+    <div class="amount-card" id="card-A05">
+      <div class="card-top-row">
+        <span class="amount-id">A05</span>
+        <span class="amount-cat-badge">Clean Slashed-Zero Codec</span>
+      </div>
+
+      <div class="amount-canvas">
+        <div class="amount-display-val" id="val-A05" style="font-family: 'Fira Code', monospace; font-feature-settings: 'zero' 1;">
+          ৳ 28,984.00
+        </div>
+        <div class="amount-sub-metric">
+          <span style="color:#00E676;">⚡ DESCO: ৳ 7,045</span>
+          <span style="color:#00C2FF;">💧 WASA: ৳ 2,966</span>
+        </div>
+      </div>
+
+      <div class="amount-body">
+        <div class="amount-name-row">
+          <h3 class="amount-title">Fira Code</h3>
+          <span class="amount-weight-spec">700 Bold</span>
+        </div>
+        <p class="amount-desc">Pristine slashed-zero glyphs and wide legibility for financial balances.</p>
+
+        <div class="css-snippet-box" onclick="copyCssSnippet('A05')" title="Click to copy CSS rule">
+          <code>font-family: 'Fira Code', monospace; font-feature-settings: 'zero' 1;</code>
+          <span>📋</span>
+        </div>
+
+        <div class="card-footer-row">
+          <div class="rating-stars" id="stars-A05">
+            <button class="star-btn" onclick="rateAmountFont('A05', 1)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A05', 2)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A05', 3)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A05', 4)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A05', 5)">★</button>
+          </div>
+
+          <button class="btn btn-primary" onclick="copyCssSnippet('A05')">📋 Copy CSS</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Card A06 -->
+    <div class="amount-card" id="card-A06">
+      <div class="card-top-row">
+        <span class="amount-id">A06</span>
+        <span class="amount-cat-badge">Circular Bauhaus</span>
+      </div>
+
+      <div class="amount-canvas">
+        <div class="amount-display-val" id="val-A06" style="font-family: 'Outfit', system-ui, sans-serif; font-feature-settings: 'tnum' 1;">
+          ৳ 28,984.00
+        </div>
+        <div class="amount-sub-metric">
+          <span style="color:#00E676;">⚡ DESCO: ৳ 7,045</span>
+          <span style="color:#00C2FF;">💧 WASA: ৳ 2,966</span>
+        </div>
+      </div>
+
+      <div class="amount-body">
+        <div class="amount-name-row">
+          <h3 class="amount-title">Outfit Geometric</h3>
+          <span class="amount-weight-spec">900 Black</span>
+        </div>
+        <p class="amount-desc">Perfect circular geometric curves, friendly and massive visual weight.</p>
+
+        <div class="css-snippet-box" onclick="copyCssSnippet('A06')" title="Click to copy CSS rule">
+          <code>font-family: 'Outfit', system-ui, sans-serif; font-feature-settings: 'tnum' 1;</code>
+          <span>📋</span>
+        </div>
+
+        <div class="card-footer-row">
+          <div class="rating-stars" id="stars-A06">
+            <button class="star-btn" onclick="rateAmountFont('A06', 1)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A06', 2)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A06', 3)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A06', 4)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A06', 5)">★</button>
+          </div>
+
+          <button class="btn btn-primary" onclick="copyCssSnippet('A06')">📋 Copy CSS</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Card A07 -->
+    <div class="amount-card" id="card-A07">
+      <div class="card-top-row">
+        <span class="amount-id">A07</span>
+        <span class="amount-cat-badge">Industrial High-Density</span>
+      </div>
+
+      <div class="amount-canvas">
+        <div class="amount-display-val" id="val-A07" style="font-family: 'Oswald', sans-serif; letter-spacing: 0.5px;">
+          ৳ 28,984.00
+        </div>
+        <div class="amount-sub-metric">
+          <span style="color:#00E676;">⚡ DESCO: ৳ 7,045</span>
+          <span style="color:#00C2FF;">💧 WASA: ৳ 2,966</span>
+        </div>
+      </div>
+
+      <div class="amount-body">
+        <div class="amount-name-row">
+          <h3 class="amount-title">Oswald Condensed</h3>
+          <span class="amount-weight-spec">700 Bold Condensed</span>
+        </div>
+        <p class="amount-desc">Tall, vertical, high-impact numbers that fit large 7-figure totals cleanly.</p>
+
+        <div class="css-snippet-box" onclick="copyCssSnippet('A07')" title="Click to copy CSS rule">
+          <code>font-family: 'Oswald', sans-serif; letter-spacing: 0.5px;</code>
+          <span>📋</span>
+        </div>
+
+        <div class="card-footer-row">
+          <div class="rating-stars" id="stars-A07">
+            <button class="star-btn" onclick="rateAmountFont('A07', 1)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A07', 2)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A07', 3)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A07', 4)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A07', 5)">★</button>
+          </div>
+
+          <button class="btn btn-primary" onclick="copyCssSnippet('A07')">📋 Copy CSS</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Card A08 -->
+    <div class="amount-card" id="card-A08">
+      <div class="card-top-row">
+        <span class="amount-id">A08</span>
+        <span class="amount-cat-badge">Neo-Grotesque Tech</span>
+      </div>
+
+      <div class="amount-canvas">
+        <div class="amount-display-val" id="val-A08" style="font-family: 'Space Grotesk', system-ui, sans-serif; font-feature-settings: 'tnum' 1;">
+          ৳ 28,984.00
+        </div>
+        <div class="amount-sub-metric">
+          <span style="color:#00E676;">⚡ DESCO: ৳ 7,045</span>
+          <span style="color:#00C2FF;">💧 WASA: ৳ 2,966</span>
+        </div>
+      </div>
+
+      <div class="amount-body">
+        <div class="amount-name-row">
+          <h3 class="amount-title">Space Grotesk</h3>
+          <span class="amount-weight-spec">900 Heavy</span>
+        </div>
+        <p class="amount-desc">Crisp modern tech-grotesque figures with structured geometry.</p>
+
+        <div class="css-snippet-box" onclick="copyCssSnippet('A08')" title="Click to copy CSS rule">
+          <code>font-family: 'Space Grotesk', system-ui, sans-serif; font-feature-settings: 'tnum' 1;</code>
+          <span>📋</span>
+        </div>
+
+        <div class="card-footer-row">
+          <div class="rating-stars" id="stars-A08">
+            <button class="star-btn" onclick="rateAmountFont('A08', 1)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A08', 2)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A08', 3)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A08', 4)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A08', 5)">★</button>
+          </div>
+
+          <button class="btn btn-primary" onclick="copyCssSnippet('A08')">📋 Copy CSS</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Card A09 -->
+    <div class="amount-card" id="card-A09">
+      <div class="card-top-row">
+        <span class="amount-id">A09</span>
+        <span class="amount-cat-badge">Futuristic Telemetry HUD</span>
+      </div>
+
+      <div class="amount-canvas">
+        <div class="amount-display-val" id="val-A09" style="font-family: 'Orbitron', sans-serif; letter-spacing: 1px;">
+          ৳ 28,984.00
+        </div>
+        <div class="amount-sub-metric">
+          <span style="color:#00E676;">⚡ DESCO: ৳ 7,045</span>
+          <span style="color:#00C2FF;">💧 WASA: ৳ 2,966</span>
+        </div>
+      </div>
+
+      <div class="amount-body">
+        <div class="amount-name-row">
+          <h3 class="amount-title">Orbitron Cyber</h3>
+          <span class="amount-weight-spec">900 Black</span>
+        </div>
+        <p class="amount-desc">Cybernetic digital numbers resembling high-tech power plant gauges.</p>
+
+        <div class="css-snippet-box" onclick="copyCssSnippet('A09')" title="Click to copy CSS rule">
+          <code>font-family: 'Orbitron', sans-serif; letter-spacing: 1px;</code>
+          <span>📋</span>
+        </div>
+
+        <div class="card-footer-row">
+          <div class="rating-stars" id="stars-A09">
+            <button class="star-btn" onclick="rateAmountFont('A09', 1)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A09', 2)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A09', 3)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A09', 4)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A09', 5)">★</button>
+          </div>
+
+          <button class="btn btn-primary" onclick="copyCssSnippet('A09')">📋 Copy CSS</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Card A10 -->
+    <div class="amount-card" id="card-A10">
+      <div class="card-top-row">
+        <span class="amount-id">A10</span>
+        <span class="amount-cat-badge">Wide Architectural</span>
+      </div>
+
+      <div class="amount-canvas">
+        <div class="amount-display-val" id="val-A10" style="font-family: 'Syne', system-ui, sans-serif; letter-spacing: 1px;">
+          ৳ 28,984.00
+        </div>
+        <div class="amount-sub-metric">
+          <span style="color:#00E676;">⚡ DESCO: ৳ 7,045</span>
+          <span style="color:#00C2FF;">💧 WASA: ৳ 2,966</span>
+        </div>
+      </div>
+
+      <div class="amount-body">
+        <div class="amount-name-row">
+          <h3 class="amount-title">Syne Brutalist</h3>
+          <span class="amount-weight-spec">900 Heavy</span>
+        </div>
+        <p class="amount-desc">Ultra-wide, high-fashion brutalist numerals for bold primary dashboard cards.</p>
+
+        <div class="css-snippet-box" onclick="copyCssSnippet('A10')" title="Click to copy CSS rule">
+          <code>font-family: 'Syne', system-ui, sans-serif; letter-spacing: 1px;</code>
+          <span>📋</span>
+        </div>
+
+        <div class="card-footer-row">
+          <div class="rating-stars" id="stars-A10">
+            <button class="star-btn" onclick="rateAmountFont('A10', 1)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A10', 2)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A10', 3)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A10', 4)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A10', 5)">★</button>
+          </div>
+
+          <button class="btn btn-primary" onclick="copyCssSnippet('A10')">📋 Copy CSS</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Card A11 -->
+    <div class="amount-card" id="card-A11">
+      <div class="card-top-row">
+        <span class="amount-id">A11</span>
+        <span class="amount-cat-badge">Warm Humanist FinTech</span>
+      </div>
+
+      <div class="amount-canvas">
+        <div class="amount-display-val" id="val-A11" style="font-family: 'DM Sans', system-ui, sans-serif; font-feature-settings: 'tnum' 1;">
+          ৳ 28,984.00
+        </div>
+        <div class="amount-sub-metric">
+          <span style="color:#00E676;">⚡ DESCO: ৳ 7,045</span>
+          <span style="color:#00C2FF;">💧 WASA: ৳ 2,966</span>
+        </div>
+      </div>
+
+      <div class="amount-body">
+        <div class="amount-name-row">
+          <h3 class="amount-title">DM Sans</h3>
+          <span class="amount-weight-spec">800 Bold</span>
+        </div>
+        <p class="amount-desc">Friendly, approachable, human-scale numbers used in Monzo / Wise.</p>
+
+        <div class="css-snippet-box" onclick="copyCssSnippet('A11')" title="Click to copy CSS rule">
+          <code>font-family: 'DM Sans', system-ui, sans-serif; font-feature-settings: 'tnum' 1;</code>
+          <span>📋</span>
+        </div>
+
+        <div class="card-footer-row">
+          <div class="rating-stars" id="stars-A11">
+            <button class="star-btn" onclick="rateAmountFont('A11', 1)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A11', 2)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A11', 3)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A11', 4)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A11', 5)">★</button>
+          </div>
+
+          <button class="btn btn-primary" onclick="copyCssSnippet('A11')">📋 Copy CSS</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Card A12 -->
+    <div class="amount-card" id="card-A12">
+      <div class="card-top-row">
+        <span class="amount-id">A12</span>
+        <span class="amount-cat-badge">Corporate Institutional</span>
+      </div>
+
+      <div class="amount-canvas">
+        <div class="amount-display-val" id="val-A12" style="font-family: 'IBM Plex Mono', monospace; font-feature-settings: 'zero' 1;">
+          ৳ 28,984.00
+        </div>
+        <div class="amount-sub-metric">
+          <span style="color:#00E676;">⚡ DESCO: ৳ 7,045</span>
+          <span style="color:#00C2FF;">💧 WASA: ৳ 2,966</span>
+        </div>
+      </div>
+
+      <div class="amount-body">
+        <div class="amount-name-row">
+          <h3 class="amount-title">IBM Plex Mono</h3>
+          <span class="amount-weight-spec">700 Bold</span>
+        </div>
+        <p class="amount-desc">Engineered by IBM for clarity in financial tables and mainframes.</p>
+
+        <div class="css-snippet-box" onclick="copyCssSnippet('A12')" title="Click to copy CSS rule">
+          <code>font-family: 'IBM Plex Mono', monospace; font-feature-settings: 'zero' 1;</code>
+          <span>📋</span>
+        </div>
+
+        <div class="card-footer-row">
+          <div class="rating-stars" id="stars-A12">
+            <button class="star-btn" onclick="rateAmountFont('A12', 1)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A12', 2)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A12', 3)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A12', 4)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A12', 5)">★</button>
+          </div>
+
+          <button class="btn btn-primary" onclick="copyCssSnippet('A12')">📋 Copy CSS</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Card A13 -->
+    <div class="amount-card" id="card-A13">
+      <div class="card-top-row">
+        <span class="amount-id">A13</span>
+        <span class="amount-cat-badge">Substation Utility Meter</span>
+      </div>
+
+      <div class="amount-canvas">
+        <div class="amount-display-val" id="val-A13" style="font-family: 'Share Tech Mono', monospace; letter-spacing: 0.5px;">
+          ৳ 28,984.00
+        </div>
+        <div class="amount-sub-metric">
+          <span style="color:#00E676;">⚡ DESCO: ৳ 7,045</span>
+          <span style="color:#00C2FF;">💧 WASA: ৳ 2,966</span>
+        </div>
+      </div>
+
+      <div class="amount-body">
+        <div class="amount-name-row">
+          <h3 class="amount-title">Share Tech Mono</h3>
+          <span class="amount-weight-spec">400 Regular (High Density)</span>
+        </div>
+        <p class="amount-desc">Authentic military and electrical substation telemetry font.</p>
+
+        <div class="css-snippet-box" onclick="copyCssSnippet('A13')" title="Click to copy CSS rule">
+          <code>font-family: 'Share Tech Mono', monospace; letter-spacing: 0.5px;</code>
+          <span>📋</span>
+        </div>
+
+        <div class="card-footer-row">
+          <div class="rating-stars" id="stars-A13">
+            <button class="star-btn" onclick="rateAmountFont('A13', 1)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A13', 2)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A13', 3)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A13', 4)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A13', 5)">★</button>
+          </div>
+
+          <button class="btn btn-primary" onclick="copyCssSnippet('A13')">📋 Copy CSS</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Card A14 -->
+    <div class="amount-card" id="card-A14">
+      <div class="card-top-row">
+        <span class="amount-id">A14</span>
+        <span class="amount-cat-badge">Modern European Clean</span>
+      </div>
+
+      <div class="amount-canvas">
+        <div class="amount-display-val" id="val-A14" style="font-family: 'Manrope', system-ui, sans-serif; font-feature-settings: 'tnum' 1;">
+          ৳ 28,984.00
+        </div>
+        <div class="amount-sub-metric">
+          <span style="color:#00E676;">⚡ DESCO: ৳ 7,045</span>
+          <span style="color:#00C2FF;">💧 WASA: ৳ 2,966</span>
+        </div>
+      </div>
+
+      <div class="amount-body">
+        <div class="amount-name-row">
+          <h3 class="amount-title">Manrope</h3>
+          <span class="amount-weight-spec">800 Bold</span>
+        </div>
+        <p class="amount-desc">Geometric neo-grotesque figures with semi-rounded strokes and high polish.</p>
+
+        <div class="css-snippet-box" onclick="copyCssSnippet('A14')" title="Click to copy CSS rule">
+          <code>font-family: 'Manrope', system-ui, sans-serif; font-feature-settings: 'tnum' 1;</code>
+          <span>📋</span>
+        </div>
+
+        <div class="card-footer-row">
+          <div class="rating-stars" id="stars-A14">
+            <button class="star-btn" onclick="rateAmountFont('A14', 1)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A14', 2)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A14', 3)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A14', 4)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A14', 5)">★</button>
+          </div>
+
+          <button class="btn btn-primary" onclick="copyCssSnippet('A14')">📋 Copy CSS</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Card A15 -->
+    <div class="amount-card" id="card-A15">
+      <div class="card-top-row">
+        <span class="amount-id">A15</span>
+        <span class="amount-cat-badge">Heavy Structural Sans</span>
+      </div>
+
+      <div class="amount-canvas">
+        <div class="amount-display-val" id="val-A15" style="font-family: 'Epilogue', system-ui, sans-serif; font-feature-settings: 'tnum' 1;">
+          ৳ 28,984.00
+        </div>
+        <div class="amount-sub-metric">
+          <span style="color:#00E676;">⚡ DESCO: ৳ 7,045</span>
+          <span style="color:#00C2FF;">💧 WASA: ৳ 2,966</span>
+        </div>
+      </div>
+
+      <div class="amount-body">
+        <div class="amount-name-row">
+          <h3 class="amount-title">Epilogue</h3>
+          <span class="amount-weight-spec">900 Black</span>
+        </div>
+        <p class="amount-desc">Solid, weighty numeric stems with commanding visual presence.</p>
+
+        <div class="css-snippet-box" onclick="copyCssSnippet('A15')" title="Click to copy CSS rule">
+          <code>font-family: 'Epilogue', system-ui, sans-serif; font-feature-settings: 'tnum' 1;</code>
+          <span>📋</span>
+        </div>
+
+        <div class="card-footer-row">
+          <div class="rating-stars" id="stars-A15">
+            <button class="star-btn" onclick="rateAmountFont('A15', 1)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A15', 2)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A15', 3)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A15', 4)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A15', 5)">★</button>
+          </div>
+
+          <button class="btn btn-primary" onclick="copyCssSnippet('A15')">📋 Copy CSS</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Card A16 -->
+    <div class="amount-card" id="card-A16">
+      <div class="card-top-row">
+        <span class="amount-id">A16</span>
+        <span class="amount-cat-badge">Heavy Telemetry Mono</span>
+      </div>
+
+      <div class="amount-canvas">
+        <div class="amount-display-val" id="val-A16" style="font-family: 'Chivo Mono', monospace; font-feature-settings: 'tnum' 1;">
+          ৳ 28,984.00
+        </div>
+        <div class="amount-sub-metric">
+          <span style="color:#00E676;">⚡ DESCO: ৳ 7,045</span>
+          <span style="color:#00C2FF;">💧 WASA: ৳ 2,966</span>
+        </div>
+      </div>
+
+      <div class="amount-body">
+        <div class="amount-name-row">
+          <h3 class="amount-title">Chivo Mono</h3>
+          <span class="amount-weight-spec">900 Black</span>
+        </div>
+        <p class="amount-desc">Brutalist grotesque monospace with heavy black ink traps.</p>
+
+        <div class="css-snippet-box" onclick="copyCssSnippet('A16')" title="Click to copy CSS rule">
+          <code>font-family: 'Chivo Mono', monospace; font-feature-settings: 'tnum' 1;</code>
+          <span>📋</span>
+        </div>
+
+        <div class="card-footer-row">
+          <div class="rating-stars" id="stars-A16">
+            <button class="star-btn" onclick="rateAmountFont('A16', 1)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A16', 2)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A16', 3)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A16', 4)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A16', 5)">★</button>
+          </div>
+
+          <button class="btn btn-primary" onclick="copyCssSnippet('A16')">📋 Copy CSS</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Card A17 -->
+    <div class="amount-card" id="card-A17">
+      <div class="card-top-row">
+        <span class="amount-id">A17</span>
+        <span class="amount-cat-badge">Open-Source Server Terminal</span>
+      </div>
+
+      <div class="amount-canvas">
+        <div class="amount-display-val" id="val-A17" style="font-family: 'Red Hat Mono', monospace;">
+          ৳ 28,984.00
+        </div>
+        <div class="amount-sub-metric">
+          <span style="color:#00E676;">⚡ DESCO: ৳ 7,045</span>
+          <span style="color:#00C2FF;">💧 WASA: ৳ 2,966</span>
+        </div>
+      </div>
+
+      <div class="amount-body">
+        <div class="amount-name-row">
+          <h3 class="amount-title">Red Hat Mono</h3>
+          <span class="amount-weight-spec">700 Bold</span>
+        </div>
+        <p class="amount-desc">Linux server command terminal aesthetic with crisp numeric spacing.</p>
+
+        <div class="css-snippet-box" onclick="copyCssSnippet('A17')" title="Click to copy CSS rule">
+          <code>font-family: 'Red Hat Mono', monospace;</code>
+          <span>📋</span>
+        </div>
+
+        <div class="card-footer-row">
+          <div class="rating-stars" id="stars-A17">
+            <button class="star-btn" onclick="rateAmountFont('A17', 1)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A17', 2)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A17', 3)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A17', 4)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A17', 5)">★</button>
+          </div>
+
+          <button class="btn btn-primary" onclick="copyCssSnippet('A17')">📋 Copy CSS</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Card A18 -->
+    <div class="amount-card" id="card-A18">
+      <div class="card-top-row">
+        <span class="amount-id">A18</span>
+        <span class="amount-cat-badge">Classic Architectural Caps</span>
+      </div>
+
+      <div class="amount-canvas">
+        <div class="amount-display-val" id="val-A18" style="font-family: 'Montserrat', sans-serif; font-feature-settings: 'tnum' 1;">
+          ৳ 28,984.00
+        </div>
+        <div class="amount-sub-metric">
+          <span style="color:#00E676;">⚡ DESCO: ৳ 7,045</span>
+          <span style="color:#00C2FF;">💧 WASA: ৳ 2,966</span>
+        </div>
+      </div>
+
+      <div class="amount-body">
+        <div class="amount-name-row">
+          <h3 class="amount-title">Montserrat</h3>
+          <span class="amount-weight-spec">900 Black</span>
+        </div>
+        <p class="amount-desc">Broad geometric proportions with punchy comma and dot separators.</p>
+
+        <div class="css-snippet-box" onclick="copyCssSnippet('A18')" title="Click to copy CSS rule">
+          <code>font-family: 'Montserrat', sans-serif; font-feature-settings: 'tnum' 1;</code>
+          <span>📋</span>
+        </div>
+
+        <div class="card-footer-row">
+          <div class="rating-stars" id="stars-A18">
+            <button class="star-btn" onclick="rateAmountFont('A18', 1)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A18', 2)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A18', 3)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A18', 4)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A18', 5)">★</button>
+          </div>
+
+          <button class="btn btn-primary" onclick="copyCssSnippet('A18')">📋 Copy CSS</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Card A19 -->
+    <div class="amount-card" id="card-A19">
+      <div class="card-top-row">
+        <span class="amount-id">A19</span>
+        <span class="amount-cat-badge">Physical Kilowatt Meter LCD</span>
+      </div>
+
+      <div class="amount-canvas">
+        <div class="amount-display-val" id="val-A19" style="font-family: 'VT323', monospace; letter-spacing: 2px; font-size: 1.4em;">
+          ৳ 28,984.00
+        </div>
+        <div class="amount-sub-metric">
+          <span style="color:#00E676;">⚡ DESCO: ৳ 7,045</span>
+          <span style="color:#00C2FF;">💧 WASA: ৳ 2,966</span>
+        </div>
+      </div>
+
+      <div class="amount-body">
+        <div class="amount-name-row">
+          <h3 class="amount-title">Digital 7-Segment LCD</h3>
+          <span class="amount-weight-spec">400 Display</span>
+        </div>
+        <p class="amount-desc">Simulates real physical DESCO prepaid meter LCD glass displays.</p>
+
+        <div class="css-snippet-box" onclick="copyCssSnippet('A19')" title="Click to copy CSS rule">
+          <code>font-family: 'VT323', monospace; letter-spacing: 2px; font-size: 1.4em;</code>
+          <span>📋</span>
+        </div>
+
+        <div class="card-footer-row">
+          <div class="rating-stars" id="stars-A19">
+            <button class="star-btn" onclick="rateAmountFont('A19', 1)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A19', 2)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A19', 3)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A19', 4)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A19', 5)">★</button>
+          </div>
+
+          <button class="btn btn-primary" onclick="copyCssSnippet('A19')">📋 Copy CSS</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Card A20 -->
+    <div class="amount-card" id="card-A20">
+      <div class="card-top-row">
+        <span class="amount-id">A20</span>
+        <span class="amount-cat-badge">Institutional Sovereign Roman</span>
+      </div>
+
+      <div class="amount-canvas">
+        <div class="amount-display-val" id="val-A20" style="font-family: 'Cinzel', serif; letter-spacing: 1px;">
+          ৳ 28,984.00
+        </div>
+        <div class="amount-sub-metric">
+          <span style="color:#00E676;">⚡ DESCO: ৳ 7,045</span>
+          <span style="color:#00C2FF;">💧 WASA: ৳ 2,966</span>
+        </div>
+      </div>
+
+      <div class="amount-body">
+        <div class="amount-name-row">
+          <h3 class="amount-title">Cinzel Classical</h3>
+          <span class="amount-weight-spec">900 Black</span>
+        </div>
+        <p class="amount-desc">High-contrast roman chisel numerals for municipal treasury and VIP ledgers.</p>
+
+        <div class="css-snippet-box" onclick="copyCssSnippet('A20')" title="Click to copy CSS rule">
+          <code>font-family: 'Cinzel', serif; letter-spacing: 1px;</code>
+          <span>📋</span>
+        </div>
+
+        <div class="card-footer-row">
+          <div class="rating-stars" id="stars-A20">
+            <button class="star-btn" onclick="rateAmountFont('A20', 1)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A20', 2)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A20', 3)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A20', 4)">★</button>
+            <button class="star-btn" onclick="rateAmountFont('A20', 5)">★</button>
+          </div>
+
+          <button class="btn btn-primary" onclick="copyCssSnippet('A20')">📋 Copy CSS</button>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <span id="toastMsg">Copied CSS snippet to clipboard!</span>
+</div>
+
+<script>
+const AMOUNT_DATA = [{"id": "A01", "name": "JetBrains Mono", "family": "'JetBrains Mono', monospace", "google_font": "JetBrains+Mono:wght@700;800", "category": "Engineering Monospace", "weight": "800 ExtraBold", "vibe": "Default developer standard, perfectly aligned columns, crisp zeros.", "css_rule": "font-family: 'JetBrains Mono', monospace; font-feature-settings: 'tnum' 1, 'zero' 1;", "sample_val": "\u09f3 28,984.00"}, {"id": "A02", "name": "Plus Jakarta Sans", "family": "'Plus Jakarta Sans', system-ui, sans-serif", "google_font": "Plus+Jakarta+Sans:wght@800;900", "category": "Brand Harmonized Geometric", "weight": "800 ExtraBold", "vibe": "100% harmonized with the winning 'billzy\u00b0' wordmark. Smooth, modern, premium.", "css_rule": "font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-feature-settings: 'tnum' 1;", "sample_val": "\u09f3 28,984.00"}, {"id": "A03", "name": "Space Mono", "family": "'Space Mono', monospace", "google_font": "Space+Mono:wght@700", "category": "Retro Sci-Fi Technical", "weight": "700 Bold", "vibe": "Distinctive mechanical angular cuts, editorial tech personality.", "css_rule": "font-family: 'Space Mono', monospace; letter-spacing: -0.5px;", "sample_val": "\u09f3 28,984.00"}, {"id": "A04", "name": "Inter (Tabular Numbers)", "family": "'Inter', system-ui, sans-serif", "google_font": "Inter:wght@800;900", "category": "FinTech Standard Proportional", "weight": "900 Black", "vibe": "Stripe / Linear / Apple standard. Ultra-clean, neutral, maximum readability.", "css_rule": "font-family: 'Inter', system-ui, sans-serif; font-feature-settings: 'tnum' 1, 'cv05' 1;", "sample_val": "\u09f3 28,984.00"}, {"id": "A05", "name": "Fira Code", "family": "'Fira Code', monospace", "google_font": "Fira+Code:wght@700", "category": "Clean Slashed-Zero Codec", "weight": "700 Bold", "vibe": "Pristine slashed-zero glyphs and wide legibility for financial balances.", "css_rule": "font-family: 'Fira Code', monospace; font-feature-settings: 'zero' 1;", "sample_val": "\u09f3 28,984.00"}, {"id": "A06", "name": "Outfit Geometric", "family": "'Outfit', system-ui, sans-serif", "google_font": "Outfit:wght@800;900", "category": "Circular Bauhaus", "weight": "900 Black", "vibe": "Perfect circular geometric curves, friendly and massive visual weight.", "css_rule": "font-family: 'Outfit', system-ui, sans-serif; font-feature-settings: 'tnum' 1;", "sample_val": "\u09f3 28,984.00"}, {"id": "A07", "name": "Oswald Condensed", "family": "'Oswald', sans-serif", "google_font": "Oswald:wght@700", "category": "Industrial High-Density", "weight": "700 Bold Condensed", "vibe": "Tall, vertical, high-impact numbers that fit large 7-figure totals cleanly.", "css_rule": "font-family: 'Oswald', sans-serif; letter-spacing: 0.5px;", "sample_val": "\u09f3 28,984.00"}, {"id": "A08", "name": "Space Grotesk", "family": "'Space Grotesk', system-ui, sans-serif", "google_font": "Space+Grotesk:wght@700;900", "category": "Neo-Grotesque Tech", "weight": "900 Heavy", "vibe": "Crisp modern tech-grotesque figures with structured geometry.", "css_rule": "font-family: 'Space Grotesk', system-ui, sans-serif; font-feature-settings: 'tnum' 1;", "sample_val": "\u09f3 28,984.00"}, {"id": "A09", "name": "Orbitron Cyber", "family": "'Orbitron', sans-serif", "google_font": "Orbitron:wght@800;900", "category": "Futuristic Telemetry HUD", "weight": "900 Black", "vibe": "Cybernetic digital numbers resembling high-tech power plant gauges.", "css_rule": "font-family: 'Orbitron', sans-serif; letter-spacing: 1px;", "sample_val": "\u09f3 28,984.00"}, {"id": "A10", "name": "Syne Brutalist", "family": "'Syne', system-ui, sans-serif", "google_font": "Syne:wght@800;900", "category": "Wide Architectural", "weight": "900 Heavy", "vibe": "Ultra-wide, high-fashion brutalist numerals for bold primary dashboard cards.", "css_rule": "font-family: 'Syne', system-ui, sans-serif; letter-spacing: 1px;", "sample_val": "\u09f3 28,984.00"}, {"id": "A11", "name": "DM Sans", "family": "'DM Sans', system-ui, sans-serif", "google_font": "DM+Sans:wght@800", "category": "Warm Humanist FinTech", "weight": "800 Bold", "vibe": "Friendly, approachable, human-scale numbers used in Monzo / Wise.", "css_rule": "font-family: 'DM Sans', system-ui, sans-serif; font-feature-settings: 'tnum' 1;", "sample_val": "\u09f3 28,984.00"}, {"id": "A12", "name": "IBM Plex Mono", "family": "'IBM Plex Mono', monospace", "google_font": "IBM+Plex+Mono:wght@700", "category": "Corporate Institutional", "weight": "700 Bold", "vibe": "Engineered by IBM for clarity in financial tables and mainframes.", "css_rule": "font-family: 'IBM Plex Mono', monospace; font-feature-settings: 'zero' 1;", "sample_val": "\u09f3 28,984.00"}, {"id": "A13", "name": "Share Tech Mono", "family": "'Share Tech Mono', monospace", "google_font": "Share+Tech+Mono", "category": "Substation Utility Meter", "weight": "400 Regular (High Density)", "vibe": "Authentic military and electrical substation telemetry font.", "css_rule": "font-family: 'Share Tech Mono', monospace; letter-spacing: 0.5px;", "sample_val": "\u09f3 28,984.00"}, {"id": "A14", "name": "Manrope", "family": "'Manrope', system-ui, sans-serif", "google_font": "Manrope:wght@800", "category": "Modern European Clean", "weight": "800 Bold", "vibe": "Geometric neo-grotesque figures with semi-rounded strokes and high polish.", "css_rule": "font-family: 'Manrope', system-ui, sans-serif; font-feature-settings: 'tnum' 1;", "sample_val": "\u09f3 28,984.00"}, {"id": "A15", "name": "Epilogue", "family": "'Epilogue', system-ui, sans-serif", "google_font": "Epilogue:wght@900", "category": "Heavy Structural Sans", "weight": "900 Black", "vibe": "Solid, weighty numeric stems with commanding visual presence.", "css_rule": "font-family: 'Epilogue', system-ui, sans-serif; font-feature-settings: 'tnum' 1;", "sample_val": "\u09f3 28,984.00"}, {"id": "A16", "name": "Chivo Mono", "family": "'Chivo Mono', monospace", "google_font": "Chivo+Mono:wght@800;900", "category": "Heavy Telemetry Mono", "weight": "900 Black", "vibe": "Brutalist grotesque monospace with heavy black ink traps.", "css_rule": "font-family: 'Chivo Mono', monospace; font-feature-settings: 'tnum' 1;", "sample_val": "\u09f3 28,984.00"}, {"id": "A17", "name": "Red Hat Mono", "family": "'Red Hat Mono', monospace", "google_font": "Red+Hat+Mono:wght@700", "category": "Open-Source Server Terminal", "weight": "700 Bold", "vibe": "Linux server command terminal aesthetic with crisp numeric spacing.", "css_rule": "font-family: 'Red Hat Mono', monospace;", "sample_val": "\u09f3 28,984.00"}, {"id": "A18", "name": "Montserrat", "family": "'Montserrat', sans-serif", "google_font": "Montserrat:wght@800;900", "category": "Classic Architectural Caps", "weight": "900 Black", "vibe": "Broad geometric proportions with punchy comma and dot separators.", "css_rule": "font-family: 'Montserrat', sans-serif; font-feature-settings: 'tnum' 1;", "sample_val": "\u09f3 28,984.00"}, {"id": "A19", "name": "Digital 7-Segment LCD", "family": "'VT323', monospace", "google_font": "VT323", "category": "Physical Kilowatt Meter LCD", "weight": "400 Display", "vibe": "Simulates real physical DESCO prepaid meter LCD glass displays.", "css_rule": "font-family: 'VT323', monospace; letter-spacing: 2px; font-size: 1.4em;", "sample_val": "\u09f3 28,984.00"}, {"id": "A20", "name": "Cinzel Classical", "family": "'Cinzel', serif", "google_font": "Cinzel:wght@900", "category": "Institutional Sovereign Roman", "weight": "900 Black", "vibe": "High-contrast roman chisel numerals for municipal treasury and VIP ledgers.", "css_rule": "font-family: 'Cinzel', serif; letter-spacing: 1px;", "sample_val": "\u09f3 28,984.00"}];
+let amountRatings = JSON.parse(localStorage.getItem('billzy_amount_ratings') || '{}');
+
+window.addEventListener('DOMContentLoaded', () => {
+  renderAmountRatings();
+});
+
+function updateLiveAmounts(val) {
+  if (!val.trim()) val = '৳ 28,984.00';
+  document.querySelectorAll('.amount-display-val').forEach(el => {
+    el.textContent = val;
+  });
+}
+
+function setPreset(val, btn) {
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  document.getElementById('amountInput').value = val;
+  updateLiveAmounts(val);
+}
+
+function setAmountColor(colorHex) {
+  document.querySelectorAll('.amount-display-val').forEach(el => {
+    el.style.color = colorHex;
+  });
+  showToast('Applied color accent: ' + colorHex);
+}
+
+function setCanvasTheme(themeName, el) {
+  document.querySelectorAll('.theme-dot').forEach(d => d.classList.remove('active'));
+  if (el) el.classList.add('active');
+  document.body.setAttribute('data-theme', themeName);
+  showToast('Canvas theme switched to: ' + themeName);
+}
+
+function copyCssSnippet(id) {
+  const item = AMOUNT_DATA.find(x => x.id === id);
+  if (item) {
+    navigator.clipboard.writeText(item.css_rule);
+    showToast('Copied CSS for ' + item.name + '!');
+  }
+}
+
+function rateAmountFont(id, stars) {
+  amountRatings[id] = stars;
+  localStorage.setItem('billzy_amount_ratings', JSON.stringify(amountRatings));
+  renderAmountRatings();
+  showToast(`Rated ${id} with ${stars} stars!`);
+}
+
+function renderAmountRatings() {
+  AMOUNT_DATA.forEach(a => {
+    const starContainer = document.getElementById('stars-' + a.id);
+    if (!starContainer) return;
+    const currentRating = amountRatings[a.id] || 0;
+    const buttons = starContainer.querySelectorAll('.star-btn');
+    buttons.forEach((btn, index) => {
+      if (index < currentRating) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+  });
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  const toastMsg = document.getElementById('toastMsg');
+  toastMsg.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => {
+    toast.classList.remove('show');
+  }, 2500);
+}
+</script>
+
+</body>
+</html>

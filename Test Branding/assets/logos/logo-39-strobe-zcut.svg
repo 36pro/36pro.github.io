@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 80" width="100%" height="100%" fill="none">
+  <g transform="translate(10, 10)">
+    <polygon points="12,12 44,12 36,20 12,20" fill="#FF3E00"/>
+    <polygon points="20,24 38,24 30,34 12,34" fill="#FF3E00"/>
+    <polygon points="12,38 44,38 44,46 12,46" fill="#FF3E00"/>
+  </g>
+  <g transform="translate(75, 48)">
+    <text font-family="'Inter', system-ui, sans-serif" font-weight="900" font-size="34" letter-spacing="3" fill="#FFFFFF">
+      BILL<tspan fill="#FF3E00">Z</tspan>Y
+    </text>
+  </g>
+  <g transform="translate(77, 65)">
+    <text font-family="'JetBrains Mono', monospace" font-weight="700" font-size="8.5" letter-spacing="4" fill="#FF3E00">
+      STROBE VELOCITY SETTLEMENT
+    </text>
+  </g>
+</svg>

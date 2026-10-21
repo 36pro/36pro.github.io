@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 80" width="100%" height="100%" fill="none">
+  <!-- M23 Trefoil Mobius Ribbon Manifold Mark -->
+  <g transform="translate(12, 10)">
+    <!-- 3-Petal Ribbon Loops: Power (Mint), Water (Aqua), Gas (Amber) -->
+    <path d="M30 30 C30 10, 42 6, 30 6 C18 6, 30 10, 30 30 Z" stroke="#00E676" stroke-width="4.2" stroke-linecap="round" fill="none"/>
+    <path d="M30 30 C46 22, 54 36, 46 44 C38 52, 38 38, 30 30 Z" stroke="#00C2FF" stroke-width="4.2" stroke-linecap="round" fill="none"/>
+    <path d="M30 30 C14 22, 6 36, 14 44 C22 52, 22 38, 30 30 Z" stroke="#FF7A00" stroke-width="4.2" stroke-linecap="round" fill="none"/>
+    <!-- Central Node Core -->
+    <circle cx="30" cy="30" r="4.5" fill="#FFFFFF"/>
+    <circle cx="30" cy="30" r="2" fill="#020817"/>
+  </g>
+  <!-- M37 Plus Jakarta Sans Typography with Degree Symbol -->
+  <g transform="translate(85, 48)">
+    <text font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-weight="800" font-size="36" letter-spacing="-0.5" fill="#FFFFFF">
+      billzy<tspan fill="#00E676">°</tspan>
+    </text>
+  </g>
+  <g transform="translate(86, 65)">
+    <text font-family="'Inter', system-ui, sans-serif" font-weight="600" font-size="8.5" letter-spacing="3" fill="#00C2FF">
+      CONTINUOUS TREFOIL FLOW
+    </text>
+  </g>
+</svg>

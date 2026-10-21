@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="100%" height="100%" fill="none">
+  <rect width="80" height="80" rx="18" fill="#041527" stroke="#0D3558" stroke-width="1.5"/>
+  <!-- Acoustic Wave Arcs (Left) -->
+  <path d="M26 26 A 20 20 0 0 0 26 54" stroke="#0D9488" stroke-width="3" stroke-linecap="round"/>
+  <path d="M18 18 A 30 30 0 0 0 18 62" stroke="#22D3EE" stroke-width="3" stroke-linecap="round"/>
+  <!-- Acoustic Wave Arcs (Right) -->
+  <path d="M54 26 A 20 20 0 0 1 54 54" stroke="#0D9488" stroke-width="3" stroke-linecap="round"/>
+  <path d="M62 18 A 30 30 0 0 1 62 62" stroke="#22D3EE" stroke-width="3" stroke-linecap="round"/>
+  <!-- Center Resonance Chamber -->
+  <circle cx="40" cy="40" r="6" fill="#0D9488"/>
+  <circle cx="40" cy="40" r="3" fill="#FFFFFF"/>
+</svg>

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="100%" height="100%" fill="none">
+  <rect width="80" height="80" rx="18" fill="#0B0914" stroke="#251A3E" stroke-width="1.5"/>
+  <!-- Geometric Faceted Origami Crane -->
+  <!-- Main Body Core -->
+  <polygon points="40,24 54,46 40,58 26,46" fill="#8B5CF6"/>
+  <!-- Left Wing -->
+  <polygon points="40,24 10,28 26,46" fill="#6D28D9"/>
+  <!-- Right Wing Ascending -->
+  <polygon points="40,24 70,16 54,46" fill="#A78BFA"/>
+  <!-- Tail -->
+  <polygon points="40,58 40,70 34,52" fill="#10B981"/>
+  <!-- Head & Beak -->
+  <polygon points="40,24 32,10 38,18" fill="#E0E7FF"/>
+  <!-- Wingtip Light Spark -->
+  <circle cx="70" cy="16" r="2.5" fill="#10B981"/>
+</svg>

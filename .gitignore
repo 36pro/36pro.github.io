@@ -1,0 +1,6 @@
+node_modules/
+dist/
+.DS_Store
+Thumbs.db
+billzy-v2/node_modules/
+billzy-v2/dist/

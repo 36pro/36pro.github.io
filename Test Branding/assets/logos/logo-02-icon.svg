@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="100%" height="100%" fill="none">
+  <defs>
+    <linearGradient id="sf-g1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06B6D4" />
+      <stop offset="100%" stop-color="#3B82F6" />
+    </linearGradient>
+    <linearGradient id="sf-g2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366F1" />
+      <stop offset="100%" stop-color="#8B5CF6" />
+    </linearGradient>
+    <linearGradient id="sf-g3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3B82F6" />
+      <stop offset="100%" stop-color="#6366F1" />
+    </linearGradient>
+  </defs>
+  <rect width="80" height="80" rx="18" fill="#090D1A" stroke="#1E293B" stroke-width="1.5"/>
+  <path d="M22 46 L42 34 L60 44 L40 56 Z" fill="url(#sf-g2)" opacity="0.65" />
+  <path d="M22 46 L40 56 L40 62 L22 52 Z" fill="#4338CA" />
+  <path d="M40 56 L60 44 L60 50 L40 62 Z" fill="#312E81" />
+  <path d="M22 34 L42 22 L60 32 L40 44 Z" fill="url(#sf-g3)" opacity="0.85" />
+  <path d="M22 34 L40 44 L40 50 L22 40 Z" fill="#2563EB" />
+  <path d="M40 44 L60 32 L60 38 L40 50 Z" fill="#1D4ED8" />
+  <path d="M22 22 L42 10 L60 20 L40 32 Z" fill="url(#sf-g1)" />
+  <path d="M22 22 L40 32 L40 38 L22 28 Z" fill="#0891B2" />
+  <path d="M40 32 L60 20 L60 26 L40 38 Z" fill="#0E7490" />
+  <rect x="30" y="16" width="16" height="5" rx="2.5" fill="#FFFFFF" opacity="0.9" transform="rotate(-18 38 18)"/>
+</svg>

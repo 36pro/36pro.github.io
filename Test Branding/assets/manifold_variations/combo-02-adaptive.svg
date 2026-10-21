@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 80" width="100%" height="100%" fill="none">
+  <style>
+    .bz2-text { fill: #0F172A; }
+    .bz2-subtext { fill: #0284C7; }
+    .bz2-dot { fill: #059669; }
+    .bz2-center-outer { fill: #0F172A; }
+    .bz2-center-inner { fill: #FFFFFF; }
+    .bz2-loop-green { stroke: #059669; }
+    .bz2-loop-blue { stroke: #0284C7; }
+    .bz2-loop-amber { stroke: #EA580C; }
+    @media (prefers-color-scheme: dark) {
+      .bz2-text { fill: #FFFFFF; }
+      .bz2-subtext { fill: #00C2FF; }
+      .bz2-dot { fill: #00E676; }
+      .bz2-center-outer { fill: #FFFFFF; }
+      .bz2-center-inner { fill: #020817; }
+      .bz2-loop-green { stroke: #00E676; }
+      .bz2-loop-blue { stroke: #00C2FF; }
+      .bz2-loop-amber { stroke: #FF7A00; }
+    }
+  </style>
+  <g transform="translate(10, 8)">
+    <circle class="bz2-loop-green" cx="30" cy="16" r="8.5" stroke-width="2.8" fill="none"/>
+    <circle class="bz2-loop-blue" cx="42" cy="38" r="8.5" stroke-width="2.8" fill="none"/>
+    <circle class="bz2-loop-amber" cx="18" cy="38" r="8.5" stroke-width="2.8" fill="none"/>
+    <circle class="bz2-center-outer" cx="30" cy="30" r="5"/>
+    <circle class="bz2-center-inner" cx="30" cy="30" r="2"/>
+  </g>
+  <g transform="translate(85, 48)">
+    <text font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-weight="800" font-size="36" letter-spacing="-0.5" class="bz2-text">
+      billzy<tspan class="bz2-dot">°</tspan>
+    </text>
+  </g>
+  <g transform="translate(86, 65)">
+    <text font-family="'Inter', system-ui, sans-serif" font-weight="600" font-size="8.5" letter-spacing="3" class="bz2-subtext">
+      TRIPLE INFINITY UTILITY FLOW
+    </text>
+  </g>
+</svg>

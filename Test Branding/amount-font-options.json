@@ -1,0 +1,225 @@
+{
+  "total_options": 20,
+  "options": [
+    {
+      "id": "A01",
+      "name": "JetBrains Mono",
+      "family": "'JetBrains Mono', monospace",
+      "google_font": "JetBrains+Mono:wght@700;800",
+      "category": "Engineering Monospace",
+      "weight": "800 ExtraBold",
+      "vibe": "Default developer standard, perfectly aligned columns, crisp zeros.",
+      "css_rule": "font-family: 'JetBrains Mono', monospace; font-feature-settings: 'tnum' 1, 'zero' 1;",
+      "sample_val": "\u09f3 28,984.00"
+    },
+    {
+      "id": "A02",
+      "name": "Plus Jakarta Sans",
+      "family": "'Plus Jakarta Sans', system-ui, sans-serif",
+      "google_font": "Plus+Jakarta+Sans:wght@800;900",
+      "category": "Brand Harmonized Geometric",
+      "weight": "800 ExtraBold",
+      "vibe": "100% harmonized with the winning 'billzy\u00b0' wordmark. Smooth, modern, premium.",
+      "css_rule": "font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-feature-settings: 'tnum' 1;",
+      "sample_val": "\u09f3 28,984.00"
+    },
+    {
+      "id": "A03",
+      "name": "Space Mono",
+      "family": "'Space Mono', monospace",
+      "google_font": "Space+Mono:wght@700",
+      "category": "Retro Sci-Fi Technical",
+      "weight": "700 Bold",
+      "vibe": "Distinctive mechanical angular cuts, editorial tech personality.",
+      "css_rule": "font-family: 'Space Mono', monospace; letter-spacing: -0.5px;",
+      "sample_val": "\u09f3 28,984.00"
+    },
+    {
+      "id": "A04",
+      "name": "Inter (Tabular Numbers)",
+      "family": "'Inter', system-ui, sans-serif",
+      "google_font": "Inter:wght@800;900",
+      "category": "FinTech Standard Proportional",
+      "weight": "900 Black",
+      "vibe": "Stripe / Linear / Apple standard. Ultra-clean, neutral, maximum readability.",
+      "css_rule": "font-family: 'Inter', system-ui, sans-serif; font-feature-settings: 'tnum' 1, 'cv05' 1;",
+      "sample_val": "\u09f3 28,984.00"
+    },
+    {
+      "id": "A05",
+      "name": "Fira Code",
+      "family": "'Fira Code', monospace",
+      "google_font": "Fira+Code:wght@700",
+      "category": "Clean Slashed-Zero Codec",
+      "weight": "700 Bold",
+      "vibe": "Pristine slashed-zero glyphs and wide legibility for financial balances.",
+      "css_rule": "font-family: 'Fira Code', monospace; font-feature-settings: 'zero' 1;",
+      "sample_val": "\u09f3 28,984.00"
+    },
+    {
+      "id": "A06",
+      "name": "Outfit Geometric",
+      "family": "'Outfit', system-ui, sans-serif",
+      "google_font": "Outfit:wght@800;900",
+      "category": "Circular Bauhaus",
+      "weight": "900 Black",
+      "vibe": "Perfect circular geometric curves, friendly and massive visual weight.",
+      "css_rule": "font-family: 'Outfit', system-ui, sans-serif; font-feature-settings: 'tnum' 1;",
+      "sample_val": "\u09f3 28,984.00"
+    },
+    {
+      "id": "A07",
+      "name": "Oswald Condensed",
+      "family": "'Oswald', sans-serif",
+      "google_font": "Oswald:wght@700",
+      "category": "Industrial High-Density",
+      "weight": "700 Bold Condensed",
+      "vibe": "Tall, vertical, high-impact numbers that fit large 7-figure totals cleanly.",
+      "css_rule": "font-family: 'Oswald', sans-serif; letter-spacing: 0.5px;",
+      "sample_val": "\u09f3 28,984.00"
+    },
+    {
+      "id": "A08",
+      "name": "Space Grotesk",
+      "family": "'Space Grotesk', system-ui, sans-serif",
+      "google_font": "Space+Grotesk:wght@700;900",
+      "category": "Neo-Grotesque Tech",
+      "weight": "900 Heavy",
+      "vibe": "Crisp modern tech-grotesque figures with structured geometry.",
+      "css_rule": "font-family: 'Space Grotesk', system-ui, sans-serif; font-feature-settings: 'tnum' 1;",
+      "sample_val": "\u09f3 28,984.00"
+    },
+    {
+      "id": "A09",
+      "name": "Orbitron Cyber",
+      "family": "'Orbitron', sans-serif",
+      "google_font": "Orbitron:wght@800;900",
+      "category": "Futuristic Telemetry HUD",
+      "weight": "900 Black",
+      "vibe": "Cybernetic digital numbers resembling high-tech power plant gauges.",
+      "css_rule": "font-family: 'Orbitron', sans-serif; letter-spacing: 1px;",
+      "sample_val": "\u09f3 28,984.00"
+    },
+    {
+      "id": "A10",
+      "name": "Syne Brutalist",
+      "family": "'Syne', system-ui, sans-serif",
+      "google_font": "Syne:wght@800;900",
+      "category": "Wide Architectural",
+      "weight": "900 Heavy",
+      "vibe": "Ultra-wide, high-fashion brutalist numerals for bold primary dashboard cards.",
+      "css_rule": "font-family: 'Syne', system-ui, sans-serif; letter-spacing: 1px;",
+      "sample_val": "\u09f3 28,984.00"
+    },
+    {
+      "id": "A11",
+      "name": "DM Sans",
+      "family": "'DM Sans', system-ui, sans-serif",
+      "google_font": "DM+Sans:wght@800",
+      "category": "Warm Humanist FinTech",
+      "weight": "800 Bold",
+      "vibe": "Friendly, approachable, human-scale numbers used in Monzo / Wise.",
+      "css_rule": "font-family: 'DM Sans', system-ui, sans-serif; font-feature-settings: 'tnum' 1;",
+      "sample_val": "\u09f3 28,984.00"
+    },
+    {
+      "id": "A12",
+      "name": "IBM Plex Mono",
+      "family": "'IBM Plex Mono', monospace",
+      "google_font": "IBM+Plex+Mono:wght@700",
+      "category": "Corporate Institutional",
+      "weight": "700 Bold",
+      "vibe": "Engineered by IBM for clarity in financial tables and mainframes.",
+      "css_rule": "font-family: 'IBM Plex Mono', monospace; font-feature-settings: 'zero' 1;",
+      "sample_val": "\u09f3 28,984.00"
+    },
+    {
+      "id": "A13",
+      "name": "Share Tech Mono",
+      "family": "'Share Tech Mono', monospace",
+      "google_font": "Share+Tech+Mono",
+      "category": "Substation Utility Meter",
+      "weight": "400 Regular (High Density)",
+      "vibe": "Authentic military and electrical substation telemetry font.",
+      "css_rule": "font-family: 'Share Tech Mono', monospace; letter-spacing: 0.5px;",
+      "sample_val": "\u09f3 28,984.00"
+    },
+    {
+      "id": "A14",
+      "name": "Manrope",
+      "family": "'Manrope', system-ui, sans-serif",
+      "google_font": "Manrope:wght@800",
+      "category": "Modern European Clean",
+      "weight": "800 Bold",
+      "vibe": "Geometric neo-grotesque figures with semi-rounded strokes and high polish.",
+      "css_rule": "font-family: 'Manrope', system-ui, sans-serif; font-feature-settings: 'tnum' 1;",
+      "sample_val": "\u09f3 28,984.00"
+    },
+    {
+      "id": "A15",
+      "name": "Epilogue",
+      "family": "'Epilogue', system-ui, sans-serif",
+      "google_font": "Epilogue:wght@900",
+      "category": "Heavy Structural Sans",
+      "weight": "900 Black",
+      "vibe": "Solid, weighty numeric stems with commanding visual presence.",
+      "css_rule": "font-family: 'Epilogue', system-ui, sans-serif; font-feature-settings: 'tnum' 1;",
+      "sample_val": "\u09f3 28,984.00"
+    },
+    {
+      "id": "A16",
+      "name": "Chivo Mono",
+      "family": "'Chivo Mono', monospace",
+      "google_font": "Chivo+Mono:wght@800;900",
+      "category": "Heavy Telemetry Mono",
+      "weight": "900 Black",
+      "vibe": "Brutalist grotesque monospace with heavy black ink traps.",
+      "css_rule": "font-family: 'Chivo Mono', monospace; font-feature-settings: 'tnum' 1;",
+      "sample_val": "\u09f3 28,984.00"
+    },
+    {
+      "id": "A17",
+      "name": "Red Hat Mono",
+      "family": "'Red Hat Mono', monospace",
+      "google_font": "Red+Hat+Mono:wght@700",
+      "category": "Open-Source Server Terminal",
+      "weight": "700 Bold",
+      "vibe": "Linux server command terminal aesthetic with crisp numeric spacing.",
+      "css_rule": "font-family: 'Red Hat Mono', monospace;",
+      "sample_val": "\u09f3 28,984.00"
+    },
+    {
+      "id": "A18",
+      "name": "Montserrat",
+      "family": "'Montserrat', sans-serif",
+      "google_font": "Montserrat:wght@800;900",
+      "category": "Classic Architectural Caps",
+      "weight": "900 Black",
+      "vibe": "Broad geometric proportions with punchy comma and dot separators.",
+      "css_rule": "font-family: 'Montserrat', sans-serif; font-feature-settings: 'tnum' 1;",
+      "sample_val": "\u09f3 28,984.00"
+    },
+    {
+      "id": "A19",
+      "name": "Digital 7-Segment LCD",
+      "family": "'VT323', monospace",
+      "google_font": "VT323",
+      "category": "Physical Kilowatt Meter LCD",
+      "weight": "400 Display",
+      "vibe": "Simulates real physical DESCO prepaid meter LCD glass displays.",
+      "css_rule": "font-family: 'VT323', monospace; letter-spacing: 2px; font-size: 1.4em;",
+      "sample_val": "\u09f3 28,984.00"
+    },
+    {
+      "id": "A20",
+      "name": "Cinzel Classical",
+      "family": "'Cinzel', serif",
+      "google_font": "Cinzel:wght@900",
+      "category": "Institutional Sovereign Roman",
+      "weight": "900 Black",
+      "vibe": "High-contrast roman chisel numerals for municipal treasury and VIP ledgers.",
+      "css_rule": "font-family: 'Cinzel', serif; letter-spacing: 1px;",
+      "sample_val": "\u09f3 28,984.00"
+    }
+  ]
+}

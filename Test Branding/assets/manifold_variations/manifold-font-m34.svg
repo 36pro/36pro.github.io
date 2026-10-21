@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 80" width="100%" height="100%" fill="none">
+  <g transform="translate(12, 10)">
+    <ellipse cx="30" cy="14" rx="4" ry="7" fill="#00E676"/>
+    <ellipse cx="44" cy="38" rx="6" ry="4" fill="#00C2FF" transform="rotate(30 44 38)"/>
+    <ellipse cx="16" cy="38" rx="6" ry="4" fill="#FF7A00" transform="rotate(-30 16 38)"/>
+    <!-- Merged Liquid Center -->
+    <circle cx="30" cy="30" r="9" fill="rgba(255,255,255,0.15)" stroke="#FFFFFF" stroke-width="2"/>
+    <circle cx="28" cy="27" r="2.5" fill="#FFFFFF"/>
+  </g>
+  <g transform="translate(85, 48)">
+    <text font-family="'DM Sans', system-ui, sans-serif" font-weight="800" font-size="36" letter-spacing="0.5" fill="#FFFFFF">
+      billzy
+    </text>
+  </g>
+  <g transform="translate(86, 65)">
+    <text font-family="'DM Sans', system-ui, sans-serif" font-weight="600" font-size="8.5" letter-spacing="2.5" fill="#00C2FF">
+      fluid surface-tension billing
+    </text>
+  </g>
+</svg>

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="100%" height="100%" fill="none">
+  <defs>
+    <filter id="sz-glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+  <rect width="80" height="80" rx="18" fill="#0A0A0E" stroke="#231F2A" stroke-width="1.5"/>
+  <!-- 3-Tier Strobe Velocity Slices 'Z' -->
+  <polygon points="18,18 62,18 52,28 18,28" fill="#FF3E00" filter="url(#sz-glow)"/>
+  <polygon points="28,34 52,34 40,46 16,46" fill="#FF3E00" filter="url(#sz-glow)"/>
+  <polygon points="18,52 62,52 62,62 18,62" fill="#FF3E00" filter="url(#sz-glow)"/>
+  <!-- Velocity Streak Lines -->
+  <line x1="8" y1="23" x2="16" y2="23" stroke="#FFFFFF" stroke-width="2"/>
+  <line x1="12" y1="40" x2="24" y2="40" stroke="#FFFFFF" stroke-width="2"/>
+  <line x1="8" y1="57" x2="16" y2="57" stroke="#FFFFFF" stroke-width="2"/>
+</svg>

@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 80" width="100%" height="100%" fill="none">
+  <g transform="translate(10, 8)">
+    <!-- 3D Top Pipe -->
+    <path d="M28 8 L36 8 L36 28 L28 28 Z" fill="#00E676"/>
+    <ellipse cx="32" cy="8" rx="4" ry="2" fill="#FFFFFF"/>
+    <!-- 3D Bottom Right Pipe -->
+    <path d="M32 30 L50 40 L46 46 L28 36 Z" fill="#00C2FF"/>
+    <!-- 3D Bottom Left Pipe -->
+    <path d="M32 30 L14 40 L18 46 L36 36 Z" fill="#FF7A00"/>
+    <!-- Central Isometric Cylinder Valve -->
+    <ellipse cx="32" cy="30" rx="10" ry="6" fill="#0E2238" stroke="#FFFFFF" stroke-width="1.8"/>
+    <ellipse cx="32" cy="27" rx="6" ry="3" fill="#00C2FF"/>
+  </g>
+  <g transform="translate(85, 48)">
+    <text font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-weight="800" font-size="36" letter-spacing="-0.5" fill="#FFFFFF">
+      billzy<tspan fill="#00C2FF">.</tspan>
+    </text>
+  </g>
+  <g transform="translate(86, 65)">
+    <text font-family="'Inter', system-ui, sans-serif" font-weight="600" font-size="8.5" letter-spacing="3" fill="#00E676">
+      3D ISOMETRIC FLOW MATRIX
+    </text>
+  </g>
+</svg>

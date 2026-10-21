@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 80" width="100%" height="100%" fill="none">
+  <defs>
+    <linearGradient id="sf-full-g1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06B6D4" />
+      <stop offset="100%" stop-color="#3B82F6" />
+    </linearGradient>
+    <linearGradient id="sf-full-g2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366F1" />
+      <stop offset="100%" stop-color="#8B5CF6" />
+    </linearGradient>
+  </defs>
+  <g transform="translate(10, 10)">
+    <path d="M12 36 L32 24 L50 34 L30 46 Z" fill="url(#sf-full-g2)" opacity="0.6" />
+    <path d="M12 25 L32 13 L50 23 L30 35 Z" fill="#3B82F6" opacity="0.8" />
+    <path d="M12 14 L32 2 L50 12 L30 24 Z" fill="url(#sf-full-g1)" />
+    <path d="M12 14 L30 24 L30 29 L12 19 Z" fill="#0891B2" />
+    <path d="M30 24 L50 12 L50 17 L30 29 Z" fill="#0E7490" />
+    <rect x="20" y="7" width="12" height="4" rx="2" fill="#FFFFFF" opacity="0.9" transform="rotate(-18 26 9)"/>
+  </g>
+  <g transform="translate(85, 48)">
+    <text font-family="'Plus Jakarta Sans', 'Inter', system-ui, sans-serif" font-weight="800" font-size="36" letter-spacing="-0.5" fill="#FFFFFF">
+      billzy<tspan fill="#06B6D4">.</tspan>
+    </text>
+  </g>
+  <g transform="translate(86, 65)">
+    <text font-family="'Inter', system-ui, sans-serif" font-weight="600" font-size="9" letter-spacing="3.5" fill="#94A3B8">
+      SMART BILLING PLATFORM
+    </text>
+  </g>
+</svg>

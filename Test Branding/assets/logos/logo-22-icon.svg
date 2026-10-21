@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="100%" height="100%" fill="none">
+  <rect width="80" height="80" rx="18" fill="#121215" stroke="#27272A" stroke-width="1.5"/>
+  <!-- Switch Insulator Block Base -->
+  <rect x="18" y="54" width="44" height="12" rx="3" fill="#18181B" stroke="#3F3F46" stroke-width="1.5"/>
+  <rect x="18" y="14" width="44" height="10" rx="3" fill="#18181B" stroke="#3F3F46" stroke-width="1.5"/>
+  <!-- Copper Blade Jaws (Closed Contact) -->
+  <rect x="24" y="18" width="8" height="14" fill="#D97706" rx="2"/>
+  <rect x="48" y="18" width="8" height="14" fill="#D97706" rx="2"/>
+  <!-- Pivot Base Hinges -->
+  <circle cx="28" cy="56" r="5" fill="#D97706"/>
+  <circle cx="52" cy="56" r="5" fill="#D97706"/>
+  <!-- Solid Heavy Switch Blades Snapped Down -->
+  <path d="M28 56 L28 22" stroke="#FF4D00" stroke-width="4.5" stroke-linecap="round"/>
+  <path d="M52 56 L52 22" stroke="#FF4D00" stroke-width="4.5" stroke-linecap="round"/>
+  <!-- Crossbar Handle -->
+  <rect x="20" y="28" width="40" height="6" rx="3" fill="#E4E4E7"/>
+  <!-- Electric Contact Spark Indicator -->
+  <circle cx="28" cy="22" r="2.5" fill="#FFF500"/>
+  <circle cx="52" cy="22" r="2.5" fill="#FFF500"/>
+</svg>
