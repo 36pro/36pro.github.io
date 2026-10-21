@@ -75,10 +75,11 @@ export const Navbar: React.FC = () => {
                 ? 'bg-accent text-accent-foreground font-bold shadow-sm'
                 : 'text-foreground/80 hover:text-foreground'
             }`}
-            startContent={<LayoutDashboard size={16} />}
             onClick={() => setActiveTab('dashboard')}
+            title="Dashboard"
           >
-            Dashboard
+            <LayoutDashboard size={16} className="shrink-0" />
+            <span className="hidden sm:inline ml-1">Dashboard</span>
           </Button>
         </NavbarItem>
 
@@ -92,10 +93,11 @@ export const Navbar: React.FC = () => {
                 ? 'bg-accent text-accent-foreground font-bold shadow-sm'
                 : 'text-foreground/80 hover:text-foreground'
             }`}
-            startContent={<Database size={16} />}
             onClick={() => setActiveTab('database')}
+            title="Database"
           >
-            Database
+            <Database size={16} className="shrink-0" />
+            <span className="hidden sm:inline ml-1">Database</span>
           </Button>
         </NavbarItem>
 
@@ -109,10 +111,11 @@ export const Navbar: React.FC = () => {
                 ? 'bg-accent text-accent-foreground font-bold shadow-sm'
                 : 'text-foreground/80 hover:text-foreground'
             }`}
-            startContent={<BarChart3 size={16} />}
             onClick={() => setActiveTab('analytics')}
+            title="Analytics"
           >
-            Analytics
+            <BarChart3 size={16} className="shrink-0" />
+            <span className="hidden sm:inline ml-1">Analytics</span>
           </Button>
         </NavbarItem>
       </NavbarContent>

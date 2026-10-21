@@ -608,21 +608,21 @@ export const DashboardView: React.FC = () => {
                 onClick={() => openUtilityDetail(bill.id)}
                 className="bg-surface border border-border hover:border-accent/40 cursor-pointer transition-all rounded-[var(--radius)] shadow-sm flex flex-col justify-between"
               >
-                <CardHeader className="flex justify-between items-start pb-2">
-                  <div className="flex items-center gap-2.5">
-                    <div className="p-2 rounded-lg bg-surface-secondary border border-border">
+                <CardHeader className="flex justify-between items-start pb-2 gap-2">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="p-2 rounded-lg bg-surface-secondary border border-border shrink-0">
                       {UTILITY_ICONS[bill.utility] || <Zap size={18} />}
                     </div>
-                    <div>
-                      <h3 className="font-bold text-sm text-foreground leading-snug">
+                    <div className="min-w-0">
+                      <h3 className="font-bold text-sm text-foreground leading-snug truncate">
                         {bill.name}
                       </h3>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className="text-[11px] text-accent font-semibold">
+                      <div className="flex items-center gap-1.5 mt-0.5 truncate">
+                        <span className="text-[11px] text-accent font-semibold shrink-0">
                           {company}
                         </span>
-                        <span>•</span>
-                        <span className="text-[11px] text-muted font-mono-code">
+                        <span className="text-muted/60">•</span>
+                        <span className="text-[11px] text-muted font-mono-code truncate">
                           {bill.account}
                         </span>
                       </div>
@@ -633,7 +633,7 @@ export const DashboardView: React.FC = () => {
                   <Chip
                     size="sm"
                     variant="flat"
-                    className="font-semibold text-[11px] px-2 h-6 border"
+                    className="font-semibold text-[11px] px-2 h-6 border shrink-0"
                     style={{
                       backgroundColor: statusStyle.bg,
                       color: statusStyle.color,
@@ -693,7 +693,7 @@ export const DashboardView: React.FC = () => {
                 </CardBody>
 
                 <CardFooter
-                  className="pt-1 flex items-center justify-between gap-2 border-t border-border/40"
+                  className="pt-2 flex flex-wrap items-center justify-between gap-2 border-t border-border/40"
                   onClick={e => e.stopPropagation()}
                 >
                   <Button

@@ -155,7 +155,7 @@ export const UtilityDetailModal: React.FC = () => {
               </div>
 
               {/* Action Launchers in Header */}
-              <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
                 {isDesco ? (
                   <Button
                     size="sm"
