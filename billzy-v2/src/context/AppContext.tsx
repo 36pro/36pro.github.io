@@ -92,6 +92,11 @@ interface AppContextValue {
   selectedUniqueStatsBillId: string | null;
   openUniqueStats: (billId: string) => void;
   closeUniqueStats: () => void;
+  // Utility Detail Hub
+  isUtilityDetailOpen: boolean;
+  selectedUtilityDetailBillId: string | null;
+  openUtilityDetail: (billId: string) => void;
+  closeUtilityDetail: () => void;
 }
 
 const AppContext = createContext<AppContextValue | undefined>(undefined);
@@ -147,6 +152,24 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setIsUniqueStatsOpen(false);
     setSelectedUniqueStatsBillId(null);
     if (window.location.hash.startsWith('#unique-stats')) {
+      window.location.hash = '#dashboard';
+    }
+  }, []);
+
+  // Utility Detail Hub state
+  const [isUtilityDetailOpen, setIsUtilityDetailOpen] = useState(false);
+  const [selectedUtilityDetailBillId, setSelectedUtilityDetailBillId] = useState<string | null>(null);
+
+  const openUtilityDetail = useCallback((billId: string) => {
+    setSelectedUtilityDetailBillId(billId);
+    setIsUtilityDetailOpen(true);
+    window.location.hash = `#bill/${billId}`;
+  }, []);
+
+  const closeUtilityDetail = useCallback(() => {
+    setIsUtilityDetailOpen(false);
+    setSelectedUtilityDetailBillId(null);
+    if (window.location.hash.startsWith('#bill')) {
       window.location.hash = '#dashboard';
     }
   }, []);
@@ -243,6 +266,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         if (parts.length >= 2 && parts[1]) {
           setSelectedDescoBillId(parts[1]);
           setIsDescoModalOpen(true);
+        }
+      } else if (h.startsWith('#bill/')) {
+        const parts = rawHash.split('/');
+        if (parts.length >= 2 && parts[1]) {
+          setSelectedUtilityDetailBillId(parts[1]);
+          setIsUtilityDetailOpen(true);
         }
       } else if (h === '#database') {
         setActiveTabState('database');
@@ -609,7 +638,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     isUniqueStatsOpen,
     selectedUniqueStatsBillId,
     openUniqueStats,
-    closeUniqueStats
+    closeUniqueStats,
+    isUtilityDetailOpen,
+    selectedUtilityDetailBillId,
+    openUtilityDetail,
+    closeUtilityDetail
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

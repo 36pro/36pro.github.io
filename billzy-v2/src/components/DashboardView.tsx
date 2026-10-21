@@ -25,12 +25,17 @@ import {
   ArrowUpRight,
   TrendingUp,
   ShieldCheck,
-  BarChart2
+  BarChart2,
+  Calendar,
+  ChevronRight,
+  Info
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { BILL_DEFINITIONS, UtilityDefinition } from '../core/contracts/utility';
 import { calculateNextDue } from '../core/domain/due-dates';
 import { getStatusStyles, StatusType } from '../ui/tokens';
+import { getCompanyForBill } from '../core/domain/utility-detail';
+import { formatDateFriendlyShort } from '../core/domain/bill-month';
 
 const UTILITY_ICONS: Record<string, React.ReactNode> = {
   electric: <Zap size={18} className="text-amber-400" />,
@@ -50,7 +55,8 @@ export const DashboardView: React.FC = () => {
     openPaymentModal,
     descoMetrics,
     openDescoModal,
-    openUniqueStats
+    openUniqueStats,
+    openUtilityDetail
   } = useApp();
 
   // 1. Calculate monthly burn
@@ -93,8 +99,19 @@ export const DashboardView: React.FC = () => {
     };
   }, [payments, isGymPaused, matuailRate]);
 
+  const todayStr = useMemo(() => {
+    return new Date().toLocaleDateString('en-US', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    });
+  }, []);
+
   // Compute status for all utilities
   const billStatuses = useMemo(() => {
+    const nowTime = new Date().getTime();
+
     return Object.values(BILL_DEFINITIONS).map(bill => {
       const dueInfo = calculateNextDue(bill.id, payments, {
         gymPaused: isGymPaused,
@@ -121,11 +138,41 @@ export const DashboardView: React.FC = () => {
         statusLabel = 'Pending';
       }
 
+      const billPayments = payments
+        .filter(p => p.billId === bill.id)
+        .sort((a, b) => (b.payDate || '').localeCompare(a.payDate || ''));
+      const lastPayment = billPayments[0];
+
+      let lastPayTop = 'Never';
+      let lastPaySub = '-';
+      let lastPayClass = 'text-muted';
+
+      if (lastPayment) {
+        const days = Math.floor((nowTime - new Date(lastPayment.payDate).getTime()) / 86400000);
+        lastPayTop = days === 0 ? 'Today' : `${days} days ago`;
+        lastPaySub = formatDateFriendlyShort(lastPayment.payDate);
+
+        if (days <= 5) lastPayClass = 'text-emerald-400 font-bold';
+        else if (days <= 15) lastPayClass = 'text-warning font-semibold';
+        else lastPayClass = 'text-danger font-semibold';
+      }
+
+      const company = getCompanyForBill(bill.id);
+      const isRecharge = bill.type === 'prepaid' && bill.formType === 'prepaid';
+      const isDescoBill = bill.id === 'rupnagarDesco' || bill.id === 'uttaraDesco';
+
       return {
         bill,
         dueInfo,
         statusType,
-        statusLabel
+        statusLabel,
+        lastPayment,
+        lastPayTop,
+        lastPaySub,
+        lastPayClass,
+        company,
+        isRecharge,
+        isDescoBill
       };
     });
   }, [payments, isGymPaused, matuailRate]);
@@ -152,6 +199,37 @@ export const DashboardView: React.FC = () => {
           >
             Record Payment
           </Button>
+        </div>
+      </div>
+
+      {/* Top Date Banner + Summary Badges */}
+      <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-[var(--radius)] bg-surface border border-border shadow-sm">
+        <div className="flex items-center gap-2 text-xs font-bold text-foreground">
+          <Calendar size={16} className="text-accent" />
+          <span>{todayStr}</span>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Chip
+            size="sm"
+            variant="flat"
+            className={overdueCount > 0 ? 'bg-danger/15 text-danger font-bold text-xs border border-danger/30' : 'bg-surface-secondary text-muted text-xs'}
+          >
+            Overdue: {overdueCount}
+          </Chip>
+          <Chip
+            size="sm"
+            variant="flat"
+            className={upcomingCount > 0 ? 'bg-warning/15 text-warning font-bold text-xs border border-warning/30' : 'bg-surface-secondary text-muted text-xs'}
+          >
+            Due Soon: {upcomingCount}
+          </Chip>
+          <Chip
+            size="sm"
+            variant="flat"
+            className="bg-emerald-500/15 text-emerald-400 font-bold text-xs border border-emerald-500/30"
+          >
+            All Accounts Synced
+          </Chip>
         </div>
       </div>
 
@@ -339,7 +417,7 @@ export const DashboardView: React.FC = () => {
 
       {/* Actionable Due List Section */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <ShieldCheck size={20} className="text-accent" />
             <h2 className="text-lg sm:text-xl font-bold text-foreground">
@@ -347,21 +425,188 @@ export const DashboardView: React.FC = () => {
             </h2>
           </div>
           <span className="text-xs text-muted font-mono-code">
-            {billStatuses.length} Total Services
+            Click any service row to open its Detail Hub
           </span>
         </div>
 
-        {/* Responsive Grid of Utility Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {billStatuses.map(({ bill, dueInfo, statusType, statusLabel }) => {
+        {/* Desktop / Tablet Comprehensive Table View */}
+        <div className="hidden md:block overflow-x-auto rounded-[var(--radius)] border border-border shadow-sm bg-surface">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-surface-secondary/80 text-[11px] text-muted font-bold border-b border-border/60 uppercase">
+              <tr>
+                <th className="py-3 px-4">Bill</th>
+                <th className="py-3 px-4">Type</th>
+                <th className="py-3 px-4">Last Payment</th>
+                <th className="py-3 px-4">Next Due</th>
+                <th className="py-3 px-4">Status</th>
+                <th className="py-3 px-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/40">
+              {billStatuses.map(item => {
+                const {
+                  bill,
+                  dueInfo,
+                  statusType,
+                  statusLabel,
+                  lastPayTop,
+                  lastPaySub,
+                  lastPayClass,
+                  company,
+                  isDescoBill,
+                  isRecharge
+                } = item;
+                const statusStyle = getStatusStyles(statusType);
+
+                return (
+                  <tr
+                    key={bill.id}
+                    onClick={() => openUtilityDetail(bill.id)}
+                    className="hover:bg-surface-secondary/50 cursor-pointer transition-colors group"
+                  >
+                    {/* Bill & Company Cell */}
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-surface-secondary border border-border/70 shrink-0">
+                          {UTILITY_ICONS[bill.utility] || <Zap size={16} />}
+                        </div>
+                        <div>
+                          <div className="font-bold text-sm text-foreground group-hover:text-accent transition-colors flex items-center gap-1">
+                            <span>{bill.name}</span>
+                            <ChevronRight size={13} className="opacity-0 group-hover:opacity-100 transition-opacity text-accent" />
+                          </div>
+                          <div className="text-[11px] text-muted flex items-center gap-1.5 mt-0.5">
+                            <span className="font-semibold text-accent/90">{company}</span>
+                            <span>•</span>
+                            <span className="font-mono-code">{bill.account}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Type Cell */}
+                    <td className="py-3 px-4 whitespace-nowrap">
+                      <Chip
+                        size="sm"
+                        variant="flat"
+                        className="capitalize font-mono-code text-[10px] h-5 border border-border/60"
+                      >
+                        {bill.type}
+                      </Chip>
+                    </td>
+
+                    {/* Last Payment Cell */}
+                    <td className="py-3 px-4 whitespace-nowrap">
+                      <div className={`text-xs ${lastPayClass}`}>{lastPayTop}</div>
+                      <div className="text-[11px] text-muted font-mono-code">{lastPaySub}</div>
+                    </td>
+
+                    {/* Next Due Cell */}
+                    <td className="py-3 px-4 whitespace-nowrap">
+                      <div className="text-xs font-bold text-foreground">{dueInfo.dueText}</div>
+                      <div className="text-[11px] text-muted font-mono-code">
+                        {dueInfo.diffDays !== undefined
+                          ? dueInfo.diffDays < 0
+                            ? `Overdue by ${Math.abs(dueInfo.diffDays)}d`
+                            : `In ${dueInfo.diffDays}d`
+                          : 'Cycle tracked'}
+                      </div>
+                    </td>
+
+                    {/* Status Pill Cell */}
+                    <td className="py-3 px-4 whitespace-nowrap">
+                      <Chip
+                        size="sm"
+                        variant="flat"
+                        className="font-semibold text-[11px] px-2 h-6 border"
+                        style={{
+                          backgroundColor: statusStyle.bg,
+                          color: statusStyle.color,
+                          borderColor: statusStyle.borderColor
+                        }}
+                      >
+                        {statusLabel}
+                      </Chip>
+                    </td>
+
+                    {/* Actions Cell */}
+                    <td className="py-3 px-4 whitespace-nowrap text-right">
+                      <div
+                        className="inline-flex items-center gap-1.5 justify-end"
+                        onClick={e => e.stopPropagation()}
+                      >
+                        <Button
+                          size="sm"
+                          variant="light"
+                          className="h-7 px-2 text-xs font-semibold text-muted hover:text-foreground"
+                          onClick={() => openUtilityDetail(bill.id)}
+                        >
+                          Detail
+                        </Button>
+
+                        {isDescoBill ? (
+                          <Button
+                            size="sm"
+                            variant="flat"
+                            color="primary"
+                            className="bg-amber-400/10 text-amber-500 dark:text-amber-400 hover:bg-amber-400/20 font-bold rounded-[var(--radius)] h-7 px-2.5 text-xs"
+                            startContent={<Zap size={12} />}
+                            onClick={() => openDescoModal(bill.id)}
+                          >
+                            Live
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="flat"
+                            color="primary"
+                            className="bg-accent/10 text-accent hover:bg-accent/20 font-bold rounded-[var(--radius)] h-7 px-2.5 text-xs"
+                            startContent={<BarChart2 size={12} />}
+                            onClick={() => openUniqueStats(bill.id)}
+                          >
+                            Stats
+                          </Button>
+                        )}
+
+                        <Button
+                          size="sm"
+                          color="primary"
+                          className="bg-accent text-accent-foreground font-bold rounded-[var(--radius)] h-7 px-3 text-xs"
+                          onClick={() => openPaymentModal(bill.id)}
+                        >
+                          {isRecharge ? 'Recharge' : 'Pay'}
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Mobile View: Vertical Responsive Cards */}
+        <div className="md:hidden grid grid-cols-1 gap-4">
+          {billStatuses.map(item => {
+            const {
+              bill,
+              dueInfo,
+              statusType,
+              statusLabel,
+              lastPayTop,
+              lastPaySub,
+              lastPayClass,
+              company,
+              isDescoBill,
+              isRecharge
+            } = item;
             const statusStyle = getStatusStyles(statusType);
-            const isRecharge = bill.type === 'prepaid' && bill.formType === 'prepaid';
-            const isDescoBill = bill.id === 'rupnagarDesco' || bill.id === 'uttaraDesco';
 
             return (
               <Card
                 key={bill.id}
-                className="bg-surface border border-border hover:border-accent/40 transition-all rounded-[var(--radius)] shadow-sm flex flex-col justify-between"
+                onClick={() => openUtilityDetail(bill.id)}
+                className="bg-surface border border-border hover:border-accent/40 cursor-pointer transition-all rounded-[var(--radius)] shadow-sm flex flex-col justify-between"
               >
                 <CardHeader className="flex justify-between items-start pb-2">
                   <div className="flex items-center gap-2.5">
@@ -369,18 +614,17 @@ export const DashboardView: React.FC = () => {
                       {UTILITY_ICONS[bill.utility] || <Zap size={18} />}
                     </div>
                     <div>
-                      <h3 className="font-bold text-sm sm:text-base text-foreground leading-snug">
+                      <h3 className="font-bold text-sm text-foreground leading-snug">
                         {bill.name}
                       </h3>
                       <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className="text-[11px] text-accent font-semibold">
+                          {company}
+                        </span>
+                        <span>•</span>
                         <span className="text-[11px] text-muted font-mono-code">
                           {bill.account}
                         </span>
-                        {bill.location && (
-                          <span className="text-[10px] text-muted/70 truncate max-w-[120px]">
-                            • {bill.location}
-                          </span>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -407,16 +651,14 @@ export const DashboardView: React.FC = () => {
                         <Clock size={12} />
                         {isRecharge ? 'Last Recharge' : 'Cycle Status'}
                       </span>
-                      <span className="font-bold font-sans text-foreground text-xs sm:text-sm text-right">
+                      <span className="font-bold font-sans text-foreground text-xs text-right">
                         {dueInfo.dueText}
                       </span>
                     </div>
-                    {bill.meterNumber && (
-                      <div className="flex justify-between items-center text-[10px] text-muted mt-1 pt-1 border-t border-border/40 font-mono-code">
-                        <span>Meter / ID</span>
-                        <span>{bill.meterNumber}</span>
-                      </div>
-                    )}
+                    <div className="flex justify-between items-center text-[10px] text-muted mt-1 pt-1 border-t border-border/40 font-mono-code">
+                      <span>Last Payment:</span>
+                      <span className={lastPayClass}>{lastPayTop} ({lastPaySub})</span>
+                    </div>
                   </div>
 
                   {/* DESCO Live Telemetry Quick Pill */}
@@ -450,20 +692,18 @@ export const DashboardView: React.FC = () => {
                   )}
                 </CardBody>
 
-                <CardFooter className="pt-1 flex items-center justify-between gap-2 border-t border-border/40">
-                  {bill.portalUrl ? (
-                    <a
-                      href={bill.portalUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[11px] text-accent hover:underline flex items-center gap-0.5 font-medium"
-                    >
-                      <span>Portal</span>
-                      <ArrowUpRight size={12} />
-                    </a>
-                  ) : (
-                    <span className="text-[11px] text-muted">Local Record</span>
-                  )}
+                <CardFooter
+                  className="pt-1 flex items-center justify-between gap-2 border-t border-border/40"
+                  onClick={e => e.stopPropagation()}
+                >
+                  <Button
+                    size="sm"
+                    variant="light"
+                    className="h-8 px-2 text-xs text-muted"
+                    onClick={() => openUtilityDetail(bill.id)}
+                  >
+                    Detail
+                  </Button>
 
                   <div className="flex items-center gap-1.5">
                     {isDescoBill ? (
@@ -492,8 +732,7 @@ export const DashboardView: React.FC = () => {
                     <Button
                       size="sm"
                       color="primary"
-                      variant="flat"
-                      className="bg-accent/15 text-accent hover:bg-accent hover:text-accent-foreground font-bold rounded-[var(--radius)] h-8 px-3 text-xs"
+                      className="bg-accent text-accent-foreground font-bold rounded-[var(--radius)] h-8 px-3 text-xs"
                       onClick={() => openPaymentModal(bill.id)}
                     >
                       {isRecharge ? 'Recharge' : 'Pay Now'}
