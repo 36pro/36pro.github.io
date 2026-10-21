@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Card, CardHeader, CardBody, Progress, Chip } from '@heroui/react';
+import { Card, CardHeader, CardBody, CardFooter, Progress, Chip, Button } from '@heroui/react';
 import {
   BarChart3,
   TrendingUp,
@@ -19,7 +19,7 @@ import { BILL_DEFINITIONS } from '../core/contracts/utility';
 import { parsePaymentRecord } from '../core/domain/fee-splitting';
 
 export const AnalyticsView: React.FC = () => {
-  const { payments } = useApp();
+  const { payments, openDescoModal } = useApp();
 
   // 1. Overall stats & category breakdown
   const { categoryTotals, grandTotal, monthlyTrends } = useMemo(() => {
@@ -274,6 +274,21 @@ export const AnalyticsView: React.FC = () => {
                   </div>
                 </div>
               </CardBody>
+
+              {(billId === 'rupnagarDesco' || billId === 'uttaraDesco') && (
+                <CardFooter className="pt-0 pb-2 px-3">
+                  <Button
+                    size="sm"
+                    variant="flat"
+                    color="primary"
+                    className="w-full text-xs font-bold bg-accent/10 text-accent hover:bg-accent hover:text-accent-foreground rounded-[var(--radius)]"
+                    startContent={<Zap size={13} />}
+                    onClick={() => openDescoModal(billId)}
+                  >
+                    Live Telemetry & Calculator
+                  </Button>
+                </CardFooter>
+              )}
             </Card>
           ))}
         </div>

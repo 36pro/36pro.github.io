@@ -7,6 +7,7 @@ import { DatabaseView } from './components/DatabaseView';
 import { AnalyticsView } from './components/AnalyticsView';
 import { PaymentModal } from './components/PaymentModal';
 import { EditModal } from './components/EditModal';
+import { DescoModal } from './components/DescoModal';
 import { ToastContainer } from './components/ToastContainer';
 
 const MainContent: React.FC = () => {
@@ -34,6 +35,7 @@ const MainContent: React.FC = () => {
       {/* Global Modals & Notifications */}
       <PaymentModal />
       <EditModal />
+      <DescoModal />
       <ToastContainer />
     </div>
   );

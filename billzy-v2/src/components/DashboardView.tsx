@@ -46,7 +46,9 @@ export const DashboardView: React.FC = () => {
     isGymPaused,
     toggleGymPause,
     matuailRate,
-    openPaymentModal
+    openPaymentModal,
+    descoMetrics,
+    openDescoModal
   } = useApp();
 
   // 1. Calculate monthly burn
@@ -256,6 +258,83 @@ export const DashboardView: React.FC = () => {
         </Card>
       </div>
 
+      {/* DESCO Prepaid Quick Telemetry Bar */}
+      <div className="p-4 rounded-[var(--radius)] bg-surface border border-border space-y-3 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-amber-400/10 text-amber-400">
+              <Zap size={16} />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-foreground">
+                Live DESCO Electricity Telemetry
+              </h3>
+              <p className="text-[11px] text-muted">
+                Real-time prepaid balance, daily consumption & seasonal exhaustion forecasting
+              </p>
+            </div>
+          </div>
+          <span className="text-[11px] font-mono-code text-muted hidden sm:inline">
+            Dhaka Electric Supply Company
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {(['rupnagarDesco', 'uttaraDesco'] as const).map(bId => {
+            const bDef = BILL_DEFINITIONS[bId];
+            const m = descoMetrics[bId];
+            return (
+              <div
+                key={bId}
+                onClick={() => openDescoModal(bId)}
+                className="p-3 rounded-[var(--field-radius)] bg-surface-secondary/70 border border-border/80 hover:border-accent/60 cursor-pointer transition-all flex items-center justify-between group"
+              >
+                <div className="space-y-0.5 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-bold text-foreground group-hover:text-accent transition-colors truncate">
+                      {bDef.name}
+                    </span>
+                    <span className="text-[10px] text-muted font-mono-code shrink-0">
+                      ({bDef.account})
+                    </span>
+                  </div>
+                  {m ? (
+                    <div className="flex items-center gap-2 text-xs">
+                      <span
+                        className="font-mono-code font-bold"
+                        style={{ color: m.alertColor }}
+                      >
+                        ৳ {m.formattedBalance}
+                      </span>
+                      <span className="text-muted">•</span>
+                      <span className="text-muted text-[11px] truncate">
+                        ~{m.daysRemaining}d left ({m.avgDailyUnits} kWh/d)
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="text-xs text-muted">Click to view telemetry & calculator</div>
+                  )}
+                </div>
+
+                <Button
+                  size="sm"
+                  variant="flat"
+                  color="primary"
+                  className="h-7 px-2 text-[11px] font-bold shrink-0 ml-2"
+                  endContent={<ArrowUpRight size={12} />}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openDescoModal(bId);
+                  }}
+                >
+                  Live Stats
+                </Button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Actionable Due List Section */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
@@ -275,6 +354,7 @@ export const DashboardView: React.FC = () => {
           {billStatuses.map(({ bill, dueInfo, statusType, statusLabel }) => {
             const statusStyle = getStatusStyles(statusType);
             const isRecharge = bill.type === 'prepaid' && bill.formType === 'prepaid';
+            const isDescoBill = bill.id === 'rupnagarDesco' || bill.id === 'uttaraDesco';
 
             return (
               <Card
@@ -336,6 +416,36 @@ export const DashboardView: React.FC = () => {
                       </div>
                     )}
                   </div>
+
+                  {/* DESCO Live Telemetry Quick Pill */}
+                  {isDescoBill && descoMetrics[bill.id] && (
+                    <div className="p-2 rounded-[var(--field-radius)] bg-surface-secondary/50 border border-border/80 flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className="w-2 h-2 rounded-full inline-block animate-pulse shrink-0"
+                          style={{
+                            backgroundColor: descoMetrics[bill.id]?.alertColor,
+                            boxShadow: `0 0 6px ${descoMetrics[bill.id]?.alertColor}`
+                          }}
+                        />
+                        <div>
+                          <span className="text-[10px] text-muted block leading-none">Live Balance</span>
+                          <span
+                            className="font-bold font-mono-code leading-tight"
+                            style={{ color: descoMetrics[bill.id]?.alertColor }}
+                          >
+                            ৳ {descoMetrics[bill.id]?.formattedBalance}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] text-muted block leading-none">Days Left</span>
+                        <span className="font-bold text-foreground text-[11px] leading-tight">
+                          ~{descoMetrics[bill.id]?.daysRemaining}d
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </CardBody>
 
                 <CardFooter className="pt-1 flex items-center justify-between gap-2 border-t border-border/40">
@@ -353,15 +463,29 @@ export const DashboardView: React.FC = () => {
                     <span className="text-[11px] text-muted">Local Record</span>
                   )}
 
-                  <Button
-                    size="sm"
-                    color="primary"
-                    variant="flat"
-                    className="bg-accent/15 text-accent hover:bg-accent hover:text-accent-foreground font-bold rounded-[var(--radius)] h-8 px-3 text-xs"
-                    onClick={() => openPaymentModal(bill.id)}
-                  >
-                    {isRecharge ? 'Recharge' : 'Pay Now'}
-                  </Button>
+                  <div className="flex items-center gap-1.5">
+                    {isDescoBill && (
+                      <Button
+                        size="sm"
+                        variant="flat"
+                        color="primary"
+                        className="bg-amber-400/10 text-amber-500 dark:text-amber-400 hover:bg-amber-400/20 font-bold rounded-[var(--radius)] h-8 px-2.5 text-xs"
+                        startContent={<Zap size={13} />}
+                        onClick={() => openDescoModal(bill.id)}
+                      >
+                        Telemetry
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      color="primary"
+                      variant="flat"
+                      className="bg-accent/15 text-accent hover:bg-accent hover:text-accent-foreground font-bold rounded-[var(--radius)] h-8 px-3 text-xs"
+                      onClick={() => openPaymentModal(bill.id)}
+                    >
+                      {isRecharge ? 'Recharge' : 'Pay Now'}
+                    </Button>
+                  </div>
                 </CardFooter>
               </Card>
             );

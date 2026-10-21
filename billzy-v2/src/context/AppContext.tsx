@@ -16,6 +16,12 @@ import {
   deletePaymentFromCloud,
   updateUserCloudProfile
 } from '../core/services/firebase';
+import {
+  fetchDESCOTelemetry,
+  computeDescoMetrics,
+  getCachedDescoTelemetry,
+  DescoComputedMetrics
+} from '../core/services/desco-api';
 
 export type AppTab = 'dashboard' | 'database' | 'analytics';
 
@@ -73,6 +79,14 @@ interface AppContextValue {
   toasts: ToastItem[];
   showToast: (message: string, type?: ToastItem['type']) => void;
   removeToast: (id: string) => void;
+  // DESCO Live Telemetry
+  descoMetrics: Record<string, import('../core/services/desco-api').DescoComputedMetrics | null>;
+  descoLoading: Record<string, boolean>;
+  refreshDescoTelemetry: (billId: string, accountNo: string) => Promise<void>;
+  isDescoModalOpen: boolean;
+  selectedDescoBillId: string | null;
+  openDescoModal: (billId: string) => void;
+  closeDescoModal: () => void;
 }
 
 const AppContext = createContext<AppContextValue | undefined>(undefined);
@@ -93,6 +107,60 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [selectedBillId, setSelectedBillId] = useState<string | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<PaymentRecord | null>(null);
+
+  // DESCO Telemetry state
+  const [descoMetrics, setDescoMetrics] = useState<Record<string, DescoComputedMetrics | null>>({});
+  const [descoLoading, setDescoLoading] = useState<Record<string, boolean>>({});
+  const [isDescoModalOpen, setIsDescoModalOpen] = useState(false);
+  const [selectedDescoBillId, setSelectedDescoBillId] = useState<string | null>(null);
+
+  const openDescoModal = useCallback((billId: string) => {
+    setSelectedDescoBillId(billId);
+    setIsDescoModalOpen(true);
+  }, []);
+
+  const closeDescoModal = useCallback(() => {
+    setIsDescoModalOpen(false);
+    setSelectedDescoBillId(null);
+  }, []);
+
+  const refreshDescoTelemetry = useCallback(async (billId: string, accountNo: string) => {
+    setDescoLoading(prev => ({ ...prev, [billId]: true }));
+    try {
+      const data = await fetchDESCOTelemetry(accountNo);
+      const metrics = computeDescoMetrics(data);
+      setDescoMetrics(prev => ({ ...prev, [billId]: metrics }));
+    } catch (err) {
+      console.warn(`Could not refresh DESCO telemetry for ${billId}:`, err);
+      const cached = getCachedDescoTelemetry(accountNo);
+      if (cached) {
+        setDescoMetrics(prev => ({ ...prev, [billId]: computeDescoMetrics(cached) }));
+      }
+    } finally {
+      setDescoLoading(prev => ({ ...prev, [billId]: false }));
+    }
+  }, []);
+
+  // Initialize DESCO accounts on mount
+  useEffect(() => {
+    const accounts: Record<string, string> = {
+      rupnagarDesco: '140-10-368',
+      uttaraDesco: '250-38-654'
+    };
+
+    Object.entries(accounts).forEach(([bId, acc]) => {
+      const cached = getCachedDescoTelemetry(acc);
+      if (cached) {
+        try {
+          const metrics = computeDescoMetrics(cached);
+          setDescoMetrics(prev => ({ ...prev, [bId]: metrics }));
+        } catch {
+          // Ignore cache parse error
+        }
+      }
+      refreshDescoTelemetry(bId, acc);
+    });
+  }, [refreshDescoTelemetry]);
 
   // Toasts
   const [toasts, setToasts] = useState<ToastItem[]>([]);
@@ -485,7 +553,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     closeEditModal,
     toasts,
     showToast,
-    removeToast
+    removeToast,
+    descoMetrics,
+    descoLoading,
+    refreshDescoTelemetry,
+    isDescoModalOpen,
+    selectedDescoBillId,
+    openDescoModal,
+    closeDescoModal
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
