@@ -769,7 +769,7 @@ dialog#cloudSync { width: min(450px, calc(100vw - 32px)); border: 0; border-radi
     <section id="spending"><div class="sec"><h2>Where the money goes</h2><p>By bill, category and season</p></div>
       <div class="g g2">
         <div class="card"><h3>Total spend by bill <span class="chip accent">All time</span></h3><div class="rank" id="r-total"></div></div>
-        <div class="card"><h3>YTD spend by bill <span class="chip success">Jan - Oct 2026</span></h3><div class="rank" id="r-ytd"></div></div>
+        <div class="card"><h3>YTD spend by bill <span class="chip success" id="ytdChip">Jan - Dec</span></h3><div class="rank" id="r-ytd"></div></div>
       </div>
       <div class="g g2">
         <div class="card"><h3>Spend by category</h3><div class="cv sm"><canvas id="c-cat"></canvas></div></div>
@@ -885,7 +885,7 @@ dialog#cloudSync { width: min(450px, calc(100vw - 32px)); border: 0; border-radi
         <div class="avatar" id="csUserAvatarFallback" style="width:48px;height:48px;flex:none;"></div>
         <div class="cs-info">
           <b id="csUserName">Mahadi Hasan</b>
-          <small id="csUserEmail">user@example.com</small>
+          <small id="csUserEmail">-</small>
         </div>
       </div>
       <div class="cs-status">
@@ -2122,8 +2122,7 @@ const Analytics = (() => {
             cost: cost12,
             units: units12,
             months: months12,
-            tokens,
-            sample: false
+            tokens
           };
         }
       } catch (e) {
@@ -2193,7 +2192,7 @@ const Analytics = (() => {
     const f1 = v => v.toFixed(1), f2 = v => v.toFixed(2), k = v => v;
     mk('a-daily', { type: 'bar', data: { labels: days, datasets: [{ data: d.daily, backgroundColor: C('--accent'), borderRadius: 6, barPercentage: .45, vl: vl('--accent', f1) }] }, options: opt({ x: x(), y: y({ beginAtZero: false }) }) });
     mk('a-demand', { type: 'line', data: { labels: months, datasets: [{ data: d.maxDemand, borderColor: C('--warning'), borderWidth: 2.5, tension: .4, pointRadius: 4, pointBackgroundColor: C('--warning'), pointBorderColor: C('--surface'), pointBorderWidth: 2, vl: vl('--warning', f2) }] }, options: opt({ x: x(), y: y({ beginAtZero: false }) }) });
-    const yoy = (cid, vals, c, lab) => mk(cid, { type: 'bar', data: { labels: mshort, datasets: [{ label: 'Previous Year', data: mshort.map(() => null), backgroundColor: C('--muted', .45), borderRadius: 6 }, { label: 'Current Year (' + lab + ')', data: vals, backgroundColor: C(c), borderRadius: 6, barPercentage: .5, vl: vl(c, k) }] }, options: opt({ x: x(), y: y({ beginAtZero: true }) }, { legend: leg }) });
+    const yoy = (cid, vals, c, lab) => mk(cid, { type: 'bar', data: { labels: mshort, datasets: [{ label: lab, data: vals, backgroundColor: C(c), borderRadius: 6, barPercentage: .5, vl: vl(c, k) }] }, options: opt({ x: x(), y: y({ beginAtZero: true }) }, { legend: leg }) });
     yoy('a-cost', d.cost, '--success', 'Taka'); yoy('a-units', d.units, '--accent', 'kWh');
     mk('a-trend', { type: 'bar', data: { labels: months, datasets: [
       { type: 'bar', label: 'Units (kWh)', data: d.units, backgroundColor: C('--accent', .28), borderColor: C('--accent'), borderWidth: 1, borderRadius: 8, yAxisID: 'y', order: 2, vl: vl('--accent', k) },
@@ -2284,13 +2283,14 @@ function computeStats(records) {
   }).reduce((a, b) => a + b, 0);
   const avg12 = Math.round(m12Total / 12);
 
-  const y25 = Array.from({ length: 12 }, (_, i) => {
-    const pfx = `2025-${pad(i + 1)}`;
+  const prevYear = curYear - 1;
+  const yPrev = Array.from({ length: 12 }, (_, i) => {
+    const pfx = `${prevYear}-${pad(i + 1)}`;
     return recs.filter(r => r.date.startsWith(pfx)).reduce((s, r) => s + r.amount + r.fee, 0);
   });
-  const y26 = Array.from({ length: 12 }, (_, i) => {
+  const yCur = Array.from({ length: 12 }, (_, i) => {
     if (i > now.getMonth()) return null;
-    const pfx = `2026-${pad(i + 1)}`;
+    const pfx = `${curYear}-${pad(i + 1)}`;
     return recs.filter(r => r.date.startsWith(pfx)).reduce((s, r) => s + r.amount + r.fee, 0);
   });
 
@@ -2387,7 +2387,7 @@ function computeStats(records) {
     meters: effMeters
   };
 
-  return { total, ytd, avg12, highest, bills, months, monthly, y25, y26, quarters, days, avgPer, season, fees, eff };
+  return { total, ytd, avg12, highest, bills, months, monthly, prevYear, curYear, yPrev, yCur, quarters, days, avgPer, season, fees, eff };
 }
 
 let D = computeStats(Store.records);
@@ -2414,16 +2414,18 @@ const mini = (l, v, s, cls) => `<div class="mini"><div class="label">${l}</div><
 
 function renderStatic() {
   const mo = new Date().getMonth() + 1;
+  const curY = new Date().getFullYear();
+  if ($('#ytdChip')) $('#ytdChip').textContent = `Jan - ${M3[mo - 1]} ${curY}`;
   const cat = {}; D.bills.forEach(([n, t]) => cat[KIND[n]] = (cat[KIND[n]] || 0) + t);
   const catTotal = Object.values(cat).reduce((a, b) => a + b, 0), top = Object.entries(cat).sort((a, b) => b[1] - a[1])[0] || ['-', 0];
   const cnt = {}; D.days.forEach(([d]) => cnt[d] = (cnt[d] || 0) + 1);
   const busy = Object.entries(cnt).sort((a, b) => b[1] - a[1] || a[0] - b[0])[0] || [1, 0];
-  $('#kpis').innerHTML = kpi('Total spend', fmt(D.total), 'All time', 'success') + kpi('YTD spend', fmt(D.ytd), 'Jan - Oct 2026', 'accent') +
+  $('#kpis').innerHTML = kpi('Total spend', fmt(D.total), 'All time', 'success') + kpi('YTD spend', fmt(D.ytd), `Jan - ${M3[mo - 1]} ${curY}`, 'accent') +
     kpi('Highest bill', fmt(D.highest[1]), D.highest[0], 'warning') + kpi('Avg. monthly spend', fmt(D.avg12), 'Last 12 months', '');
-  $('#insights').innerHTML = kpi('Projected 2026 spend', fmt(D.ytd / mo * 12), 'At current pace', 'accent', `Based on ${mo} months so far`) +
-    kpi('Busiest payment day', busy[0] + ordinal(busy[0]), busy[1] + ' payments', 'warning', 'Most payments land on this day') +
-    kpi(top[0] + ' share', (top[1] / catTotal * 100).toFixed(1) + '%', 'Of all spend', 'success', `${fmt(top[1])} across its meters`) +
-    kpi('Winter premium', '+' + Math.round((D.season.winter / D.season.summer - 1) * 100) + '%', 'vs. summer', 'danger', 'Average monthly spend, Oct-Feb vs. Mar-Sep');
+  $('#insights').innerHTML = kpi(`Projected ${curY} spend`, fmt(D.ytd / mo * 12), 'At current pace', 'accent', `Based on ${mo} months so far`) +
+    kpi('Busiest payment day', busy[1] > 0 ? (busy[0] + ordinal(busy[0])) : '-', busy[1] + ' payments', 'warning', 'Most payments land on this day') +
+    kpi(top[0] + ' share', catTotal > 0 ? (top[1] / catTotal * 100).toFixed(1) + '%' : '0%', 'Of all spend', 'success', `${fmt(top[1])} across its meters`) +
+    kpi('Winter premium', (D.season.summer > 0 ? (D.season.winter >= D.season.summer ? '+' : '') + Math.round((D.season.winter / D.season.summer - 1) * 100) + '%' : '0%'), 'vs. summer', 'danger', 'Average monthly spend, Oct-Feb vs. Mar-Sep');
   rank('#r-total', [...D.bills].sort((a, b) => b[1] - a[1]).map(b => [b[0], b[1]]), { color: '--accent' });
   rank('#r-ytd', [...D.bills].sort((a, b) => b[2] - a[2]).map(b => [b[0], b[2]]), { color: '--success' });
   const f = D.fees, all = f.total + f.pure, fsum = f.by.reduce((a, b) => a + b[1], 0);
@@ -2485,13 +2487,13 @@ function drawAll() {
   mk('c-trend', { type: 'line', data: { labels: D.months, datasets: [line('--accent', D.monthly, { fill: true, backgroundColor: c => grad(c.chart, '--accent') })] }, options: opt({ vl: { on: true, color: C('--accent') } }, { x: x(), y: y() }) });
 
   let run = 0; const cum = a => a.map(v => v == null ? null : (run += v));
-  run = 0; const c25 = cum(D.y25); run = 0; const c26 = cum(D.y26);
+  run = 0; const cPrev = cum(D.yPrev); run = 0; const cCur = cum(D.yCur);
   mk('c-cum', { type: 'line', data: { labels: mths, datasets: [
-    line('--muted', c25, { label: '2025', pointRadius: 3, backgroundColor: 'transparent', borderColor: C('--muted', .6), pointBackgroundColor: C('--muted', .6) }),
-    line('--success', c26, { label: '2026', fill: true, backgroundColor: c => grad(c.chart, '--success') })] },
+    line('--muted', cPrev, { label: String(D.prevYear), pointRadius: 3, backgroundColor: 'transparent', borderColor: C('--muted', .6), pointBackgroundColor: C('--muted', .6) }),
+    line('--success', cCur, { label: String(D.curYear), fill: true, backgroundColor: c => grad(c.chart, '--success') })] },
     options: opt({ legend: leg('top'), vl: { on: true, color: C('--success'), last: true, ds: [1] } }, { x: x(), y: y() }) });
 
-  mk('c-yoy', { type: 'bar', data: { labels: mths, datasets: [{ label: '2025', data: D.y25, backgroundColor: C('--muted', .45), borderRadius: 6 }, { label: '2026', data: D.y26, backgroundColor: C('--success'), borderRadius: 6 }] },
+  mk('c-yoy', { type: 'bar', data: { labels: mths, datasets: [{ label: String(D.prevYear), data: D.yPrev, backgroundColor: C('--muted', .45), borderRadius: 6 }, { label: String(D.curYear), data: D.yCur, backgroundColor: C('--success'), borderRadius: 6 }] },
     options: opt({ legend: leg('top') }, { x: x(), y: y() }) });
 
   const pts = D.days.map(([d, a]) => ({ x: d, y: a, r: Math.max(5, 3 + Math.sqrt(a) / 8) }));
@@ -2586,24 +2588,18 @@ const Search = (() => {
 
 // ===================== Email alert history (bell) =====================
 const Alerts = (() => {
-  // ---- Live data: point ALERTS_API at your alert log. It must return a JSON array of { id, at (ISO), type, billId, subject, reason, to, status }. '' = sample history. ----
+  // ---- Live data: point ALERTS_API at your alert log. It must return a JSON array of { id, at (ISO), type, billId, subject, reason, to, status }. '' = clean empty state. ----
   const ALERTS_API = '';
-  const SAMPLE = [
-    { id: 1, at: '2026-10-22T08:00', type: 'low_balance', billId: 'rupnagarDesco', subject: 'Low prepaid balance: Rupnagar DESCO', reason: 'Balance 508 is under your 600 alert level. About 7 days left at 74 a day.', to: 'your alert inbox', status: 'sent' },
-    { id: 2, at: '2026-10-22T08:00', type: 'overdue', billId: 'uttaraWater', subject: 'Bill overdue: Uttara Water', reason: 'The September bill was due on 01 Oct 2026 and no payment is recorded yet.', to: 'your alert inbox', status: 'sent' },
-    { id: 3, at: '2026-10-21T08:00', type: 'overdue', billId: 'matuailGas', subject: 'Gas bill overdue: Matuail Gas', reason: 'The 21 Oct deadline passed. 1,090 is owed (0.7 months plus a 10 late fee).', to: 'your alert inbox', status: 'sent' },
-    { id: 4, at: '2026-10-21T08:00', type: 'overdue', billId: 'gym', subject: 'Gym membership ended', reason: 'The cycle ended on 20 Oct 2026 and the next one is not paid.', to: 'your alert inbox', status: 'sent' },
-    { id: 5, at: '2026-10-19T08:00', type: 'low_balance', billId: 'uttaraDesco', subject: 'Low prepaid balance: Uttara DESCO', reason: 'Balance 420 was under your 600 alert level.', to: 'your alert inbox', status: 'sent' },
-    { id: 6, at: '2026-10-16T08:00', type: 'low_balance', billId: 'rupnagarDesco', subject: 'Low prepaid balance: Rupnagar DESCO', reason: 'Balance 540 was under your 600 alert level.', to: 'your alert inbox', status: 'sent' },
-    { id: 7, at: '2026-10-01T08:00', type: 'due_soon', billId: 'uttaraWater', subject: 'Bill due today: Uttara Water', reason: 'The August bill is due on 01 Oct 2026.', to: 'your alert inbox', status: 'sent' }
-  ];
   const KIND = { low_balance: ['power', 'var(--warning)', 'Low balance'], overdue: ['alert', 'var(--danger)', 'Overdue'], due_soon: ['clock', 'var(--accent)', 'Due soon'], paused: ['gym', 'var(--muted)', 'Paused'], other: ['mail', 'var(--accent)', 'Alert'] };
   Object.assign(IC, { alert: '<path d="M12 3 2 20h20zM12 10v4M12 17h.01"/>', clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>', mail: '<rect x="3" y="5" width="18" height="14" rx="3"/><path d="m3 8 9 6 9-6"/>' });
   const trig = $('#btnBell'), badge = $('#bellBadge'), SEEN = 'billzy_alerts_seen'; let data = null, state = 'loading', err = '', menu = null, seq = 0;
-  const sleep = ms => new Promise(r => setTimeout(r, ms));
   async function fetchAlerts() {
-    if (ALERTS_API) { const r = await fetch(ALERTS_API); if (!r.ok) throw new Error('The alert log answered ' + r.status); return { items: await r.json(), sample: false }; }
-    await sleep(350); return { items: SAMPLE, sample: true };
+    if (ALERTS_API) {
+      const r = await fetch(ALERTS_API);
+      if (!r.ok) throw new Error('The alert log answered ' + r.status);
+      return { items: await r.json() };
+    }
+    return { items: [] };
   }
   const sorted = () => [...data.items].sort((a, b) => b.at.localeCompare(a.at));
   function updBadge() { const n = data ? data.items.filter(a => a.at > (ls.get(SEEN) || '')).length : 0; badge.hidden = !n; badge.textContent = n > 9 ? '9+' : n; trig.setAttribute('aria-label', n ? `Email alerts, ${n} new` : 'Email alerts'); }
@@ -2623,7 +2619,7 @@ const Alerts = (() => {
   }
   function paint() {
     if (!menu) return; const n = data ? data.items.length : 0;
-    menu.innerHTML = `<div class="phead"><div><b>Email alerts</b><div class="sub">${data ? `${n} email${n === 1 ? '' : 's'} sent` : 'Loading…'}</div></div><div class="grp2">${data ? `<span class="chip ${data.sample ? 'warning' : 'success'}">${data.sample ? 'Sample data' : 'Live'}</span>` : ''}<button class="icon-btn" data-refresh aria-label="Refresh email history">${svg('refresh')}</button></div></div>${body()}
+    menu.innerHTML = `<div class="phead"><div><b>Email alerts</b><div class="sub">${data ? `${n} email${n === 1 ? '' : 's'} sent` : 'Loading...'}</div></div><div class="grp2">${ALERTS_API ? '<span class="chip success">Live</span>' : ''}<button class="icon-btn" data-refresh aria-label="Refresh email history">${svg('refresh')}</button></div></div>${body()}
       <div class="pfoot">Each email is sent by your alert setup when a rule is hit. The reason shows which one.</div>`;
   }
   async function load() { const my = ++seq; state = 'loading'; paint(); try { const r = await fetchAlerts(); if (my !== seq) return; data = r; state = 'ok'; } catch (e) { if (my !== seq) return; state = 'error'; err = e.message || ''; } paint(); updBadge(); }
