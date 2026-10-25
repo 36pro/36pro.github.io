@@ -2030,24 +2030,110 @@ const Bill = (() => {
 
 const Analytics = (() => {
   const host = $('#v-analytics'); let id = null, data = null, state = 'loading', errMsg = '', seq = 0; const charts = {};
-  // ---- Live data: point DESCO_API at your endpoint. It must return the JSON shape of `base` below (plus the account), or leave '' to use sample data. ----
-  const DESCO_API = '';
-  const base = {
-    owner: 'MD.BILLAL HOSSAIN', meterNo: '661120015633', location: 'Mirpur', loadLimit: '2 kW', balance: 508, avgUsage: 10.54, avgCost: 74,
-    daily: [11.4, 11.5, 11.3, 11.6, 11.8, 11.3, 12.3, 11.2, 11.8, 12.8, 11.7, 25.0, 11.5, 11.1, 12.6], maxDemand: [0.77, 1.27, 0.99, 0.93, 1.02, 1.05, 1.45, 1.41, 0.85, 0.84, 0.80, 1.23],
-    cost: [2474, 1728, 1130, 986, 1135, 2350, 2164, 2730, 2666, 2686, 2689, 2852], units: [352, 257, 177, 157, 178, 337, 314, 384, 376, 379, 379, 400],
-    tokens: [['2026-10-17', 1000, 957, 48, 1321], ['2026-10-10', 1000, 833, 48, 5559], ['2026-09-28', 1000, 957, 48, 621], ['2026-09-15', 1500, 1436, 71, 2484], ['2026-09-08', 900, 737, 43, 3500],
-      ['2026-08-24', 1500, 1436, 71, 3806], ['2026-08-16', 1000, 833, 48, 1942], ['2026-07-27', 2000, 1914, 95, 3062], ['2026-07-09', 2000, 1790, 95, 6552], ['2026-06-23', 1500, 1436, 71, 1511]]
-  };
-  const sc = (a, f, d = 0) => a.map(v => +(v * f).toFixed(d));
-  const SAMPLE = { rupnagarDesco: base, uttaraDesco: { ...base, owner: '-', meterNo: '-', loadLimit: '-', location: 'Uttara', balance: 1320, avgUsage: 14.8, avgCost: 102, daily: sc(base.daily, 1.35, 1), maxDemand: sc(base.maxDemand, 1.3, 2), cost: sc(base.cost, 1.4), units: sc(base.units, 1.35),
-    tokens: [['2026-10-21', 2500, 2400, 100, 4410], ['2026-10-16', 1000, 957, 48, 7732], ['2026-10-02', 2000, 1914, 95, 2205], ['2026-09-20', 1500, 1436, 71, 9018], ['2026-09-05', 1500, 1436, 71, 3347]] } };
-  const sleep = ms => new Promise(r => setTimeout(r, ms));
-  async function fetchData(u) {
-    if (DESCO_API) { const r = await fetch(DESCO_API + encodeURIComponent(u.acct)); if (!r.ok) throw new Error('The DESCO service answered ' + r.status); return { ...(await r.json()), sample: false }; }
-    await sleep(600); return { ...SAMPLE[u.id], sample: true };
+
+  async function fetchDESCOData(u) {
+    const cleanAccountNo = String(u.acct || '').replace(/-/g, '');
+    const baseUrls = [
+      'https://prepaid.desco.org.bd/api/unified/customer',
+      'https://prepaid.desco.org.bd/api/tkdes/customer'
+    ];
+
+    const today = new Date();
+    const dateTo = today.toISOString().slice(0, 10);
+    const monthTo = `${today.getFullYear()}-${pad(today.getMonth() + 1)}`;
+    const oneYearAgo = new Date(today.getFullYear(), today.getMonth() - 11, 1);
+    const monthFrom = `${oneYearAgo.getFullYear()}-${pad(oneYearAgo.getMonth() + 1)}`;
+    const sixteenDaysAgo = new Date(today.getTime() - 16 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const sixMonthsAgo = new Date(today.getTime() - 180 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+    for (const baseUrl of baseUrls) {
+      try {
+        const bRes = await fetch(`${baseUrl}/getBalance?accountNo=${cleanAccountNo}`);
+        if (!bRes.ok) continue;
+        const bJson = await bRes.json();
+        if (bJson.code === 200 && bJson.data) {
+          const balanceData = bJson.data;
+
+          const [mRes, dRes, rRes] = await Promise.all([
+            fetch(`${baseUrl}/getCustomerMonthlyConsumption?accountNo=${cleanAccountNo}&monthFrom=${monthFrom}&monthTo=${monthTo}`)
+              .then(r => r.ok ? r.json() : null).catch(() => null),
+            fetch(`${baseUrl}/getCustomerDailyConsumption?accountNo=${cleanAccountNo}&dateFrom=${sixteenDaysAgo}&dateTo=${dateTo}`)
+              .then(r => r.ok ? r.json() : null).catch(() => null),
+            fetch(`${baseUrl}/getRechargeHistory?accountNo=${cleanAccountNo}&dateFrom=${sixMonthsAgo}&dateTo=${dateTo}`)
+              .then(r => r.ok ? r.json() : null).catch(() => null)
+          ]);
+
+          const monthlyRaw = (mRes && mRes.code === 200 && Array.isArray(mRes.data)) ? mRes.data : [];
+          const dailyRaw = (dRes && dRes.code === 200 && Array.isArray(dRes.data)) ? dRes.data : [];
+          const rechargeRaw = (rRes && rRes.code === 200 && Array.isArray(rRes.data)) ? rRes.data : [];
+
+          monthlyRaw.sort((a, b) => String(a.month).localeCompare(String(b.month)));
+          const latestM = monthlyRaw[monthlyRaw.length - 1] || {};
+
+          dailyRaw.sort((a, b) => String(a.date).localeCompare(String(b.date)));
+          const dailyUsage = [];
+          const dailyLabels = [];
+          let totalDailyUnits = 0;
+          let validDailyCount = 0;
+          for (let i = 1; i < dailyRaw.length; i++) {
+            const diff = (dailyRaw[i].consumedUnit || 0) - (dailyRaw[i - 1].consumedUnit || 0);
+            if (diff >= 0 && diff < 150) {
+              dailyUsage.push(+diff.toFixed(1));
+              const parts = String(dailyRaw[i].date).split('-');
+              dailyLabels.push(`${parts[1]}-${parts[2]}`);
+              totalDailyUnits += diff;
+              validDailyCount++;
+            }
+          }
+
+          const avgUsage = validDailyCount > 0 ? (totalDailyUnits / validDailyCount) : (latestM.consumedUnit ? latestM.consumedUnit / 30 : 10);
+          const unitRate = (latestM.consumedUnit > 0) ? (latestM.consumedTaka / latestM.consumedUnit) : 7.5;
+          const avgCost = Math.round(avgUsage * unitRate);
+
+          const cost12 = monthlyRaw.map(m => Math.round(m.consumedTaka || 0));
+          const units12 = monthlyRaw.map(m => Math.round(m.consumedUnit || 0));
+          const demand12 = monthlyRaw.map(m => +(m.maximumDemand || 0).toFixed(2));
+          const months12 = monthlyRaw.map(m => {
+            const [y, mo] = String(m.month).split('-');
+            return `${M3[(+mo || 1) - 1]} ${String(y).slice(2)}`;
+          });
+
+          rechargeRaw.sort((a, b) => String(b.rechargeDate).localeCompare(String(a.rechargeDate)));
+          const tokens = rechargeRaw.map(t => [
+            String(t.rechargeDate || '').slice(0, 10),
+            Math.round(t.totalAmount || 0),
+            Math.round(t.energyAmount || 0),
+            Math.round(t.VAT || 0),
+            String(t.tokenNo || '').trim()
+          ]);
+
+          return {
+            owner: latestM.customerName || balanceData.customerName || 'Customer',
+            meterNo: balanceData.meterNo || latestM.meterNo || '-',
+            location: latestM.installationAddress || u.loc,
+            loadLimit: `${latestM.sanctionLoad || 2} kW`,
+            balance: +(balanceData.balance || 0),
+            readingTime: balanceData.readingTime || '',
+            avgUsage,
+            avgCost,
+            daily: dailyUsage.slice(-15),
+            dailyLabels: dailyLabels.slice(-15),
+            maxDemand: demand12,
+            cost: cost12,
+            units: units12,
+            months: months12,
+            tokens,
+            sample: false
+          };
+        }
+      } catch (e) {
+        console.warn(`DESCO fetch error on ${baseUrl}:`, e);
+      }
+    }
+
+    throw new Error('Failed to retrieve live data from DESCO prepaid portal.');
   }
-  const tokenFull = (p, i) => { let n = +p * 7919 + i * 104729 + 1, t = String(p).padStart(4, '0'); while (t.length < 20) { n = (n * 1103515245 + 12345) % 2147483648; t += String(n).padStart(10, '0').slice(0, 4); } return t; };  // sample tokens only
+
   async function copyText(t) {
     try { await navigator.clipboard.writeText(t); return true; } catch (e) {
       const ta = Object.assign(document.createElement('textarea'), { value: t }); ta.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(ta); ta.select(); let ok = false; try { ok = document.execCommand('copy'); } catch (_) { } ta.remove(); return ok;
@@ -2055,23 +2141,23 @@ const Analytics = (() => {
   }
   const topbar = u => crumbs([['Home', '#/home'], [u.name, '#/bill/' + id], ['Live Analytics']]);
   const titlebar = (u, live) => `<div class="top"><div><h1>Live Analytics</h1><p class="sub">${u.name}<span> · ${acno(u.acct)}</span></p></div>
-    <div class="grp2">${live ? `<span class="chip ${data.sample ? 'warning' : 'success'}">${data.sample ? 'Sample data' : 'Live'}</span>` : ''}<button class="btn btn-alt" id="aRefresh">${svg('refresh')}Refresh</button></div></div>`;
+    <div class="grp2">${live ? `<span class="chip success">Live Official DESCO</span>` : ''}<button class="btn btn-alt" id="aRefresh">${svg('refresh')}Refresh</button></div></div>`;
   const skel = () => '<div class="g istrip">' + '<div class="skel" style="height:72px"></div>'.repeat(5) + '</div><div class="skel" style="height:190px;margin-top:16px"></div><div class="g g2"><div class="skel" style="height:300px"></div><div class="skel" style="height:300px"></div></div>';
   function paint() {
     const u = UM[id]; let h = topbar(u) + titlebar(u, state === 'ok');
     if (state === 'loading') h += skel();
-    else if (state === 'error') h += `<div class="card"><div class="alert danger" role="alert" style="margin:0 0 14px">Couldn’t load the DESCO data. ${esc(errMsg)}</div><button class="btn btn-primary" id="aRetry">Try again</button></div>`;
+    else if (state === 'error') h += `<div class="card"><div class="alert danger" role="alert" style="margin:0 0 14px">Couldn’t load live DESCO portal data. ${esc(errMsg)}</div><button class="btn btn-primary" id="aRetry">Try again</button></div>`;
     else h += body(u);
     host.innerHTML = h; if (state === 'ok') draw();
   }
   function body(u) {
-    const d = data, now = TODAY(), winter = [9, 10, 11, 0, 1].includes(now.getMonth()), left = d.balance / d.avgCost, st = left > 7 ? 'success' : left > 2 ? 'warning' : 'danger';
+    const d = data, now = TODAY(), winter = [9, 10, 11, 0, 1].includes(now.getMonth()), left = d.avgCost > 0 ? d.balance / d.avgCost : 0, st = left > 7 ? 'success' : left > 2 ? 'warning' : 'danger';
     const msg = { success: 'Balance looks healthy.', warning: 'Warning: Recharge recommended soon.', danger: 'Low balance: recharge now.' }[st], end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + Math.ceil(left));
     const info = [['Owner name', d.owner, 't-accent'], ['Account no', u.acct, 'acno'], ['Meter no', d.meterNo, 'mono'], ['Location', d.location, 't-accent'], ['Load limit', d.loadLimit, '']];
     const seas = `<span class="chip ${winter ? 'accent' : 'warning'}">${winter ? 'Winter' : 'Summer'}</span>`;
     return `<div class="istrip">${info.map(([l, v, c]) => `<div class="ibox"><div class="l">${l}</div><div class="iv ${c}">${c === 'acno' ? acno(v) : esc(v)}</div></div>`).join('')}</div>
-    <div class="card bal" style="--c:var(--${st})"><div class="balwrap"><div><div class="l2">Prepaid balance left</div><div class="balnum num">${fmt(d.balance)}</div>
-      <div class="bar2"><i style="width:${Math.min(100, d.balance / (d.avgCost * 14) * 100)}%"></i></div><div class="warn">${msg}</div></div>
+    <div class="card bal" style="--c:var(--${st})"><div class="balwrap"><div><div class="l2">Prepaid balance left (Live DESCO Portal)</div><div class="balnum num">${fmt(d.balance)}</div>
+      <div class="bar2"><i style="width:${Math.min(100, d.avgCost > 0 ? (d.balance / (d.avgCost * 14) * 100) : 50)}%"></i></div><div class="warn">${msg}${d.readingTime ? ` · As of ${esc(d.readingTime)}` : ''}</div></div>
       <div class="bminis"><div class="mini"><div class="lr"><span class="label">Avg Daily Usage</span>${seas}</div><div class="v t-accent">${d.avgUsage.toFixed(2)} <small>kWh</small></div></div>
       <div class="mini"><div class="lr"><span class="label">Avg Daily Cost</span>${seas.replace(/accent|warning/, winter ? 'success' : 'warning')}</div><div class="v">${fmt(d.avgCost)} <small>/ day</small></div></div>
       <div class="mini"><div class="label">Est. Disconnect Date</div><div class="v" style="color:var(--c)">${fD(end)}</div></div></div></div></div>
@@ -2079,8 +2165,8 @@ const Analytics = (() => {
     <div class="g g2"><div class="card"><h3>Cost (Taka) Year-over-Year Comparison</h3><div class="cv"><canvas id="a-cost"></canvas></div></div><div class="card"><h3>Units (kWh) Year-over-Year Comparison</h3><div class="cv"><canvas id="a-units"></canvas></div></div></div>
     <div class="g"><div class="card"><h3>12-Month Consumption Trends</h3><div class="cv tall"><canvas id="a-trend"></canvas></div></div></div>
     <div class="g"><div class="card"><h3>Recharge Token History (Last ${d.tokens.length} Logs)</h3><div class="tok"><div class="tr th"><span>Date</span><span>Paid</span><span>Energy</span><span>VAT</span><span class="ct">Token</span></div>
-      ${d.tokens.map(([dt, paid, en, vat, p], i) => `<div class="tr"><span class="cd">${dt}</span><span class="cp amt" data-l="Paid">${fmt(paid)}</span><span class="ce" data-l="Energy">${fmt(en)}</span><span class="cvat" data-l="VAT">${fmt(vat)}</span>
-      <span class="ct"><span class="tkcode">${String(p).padStart(4, '0')} ······</span><button class="copy" data-copy="${tokenFull(p, i)}">Copy</button></span></div>`).join('')}</div></div></div>`;
+      ${d.tokens.map(([dt, paid, en, vat, tok]) => `<div class="tr"><span class="cd">${dt}</span><span class="cp amt" data-l="Paid">${fmt(paid)}</span><span class="ce" data-l="Energy">${fmt(en)}</span><span class="cvat" data-l="VAT">${fmt(vat)}</span>
+      <span class="ct"><span class="tkcode">${tok ? tok.slice(0, 4) + ' ········ ' + tok.slice(-4) : '-'}</span><button class="copy" data-copy="${tok}" title="Copy full 20-digit token: ${tok}">Copy</button></span></div>`).join('')}</div></div></div>`;
   }
   // ---- charts ----
   const px = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
@@ -2101,9 +2187,9 @@ const Analytics = (() => {
     const vl = (c, f) => mob ? undefined : { color: C(c), fmt: f };
     const opt = (scales, plugins = {}) => ({ responsive: true, maintainAspectRatio: false, layout: { padding: { top: 20, right: 6 } }, interaction: { mode: 'index', intersect: false }, plugins: { legend: { display: false }, tooltip: tip, ...plugins }, scales });
     const mk = (cid, cfg) => { charts[cid]?.destroy(); charts[cid] = new Chart(document.getElementById(cid), cfg); };
-    const back = (n, f) => Array.from({ length: n }, (_, i) => f(new Date(now.getFullYear(), now.getMonth() - (n - i), 1)));
-    const months = back(12, m => `${M3[m.getMonth()]} ${String(m.getFullYear()).slice(2)}`), mshort = back(12, m => M3[m.getMonth()]);
-    const days = Array.from({ length: d.daily.length }, (_, i) => { const t = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (d.daily.length - i)); return `${pad(t.getMonth() + 1)}-${pad(t.getDate())}`; });
+    const days = (d.dailyLabels && d.dailyLabels.length) ? d.dailyLabels : Array.from({ length: d.daily.length }, (_, i) => `Day ${i + 1}`);
+    const months = (d.months && d.months.length) ? d.months : Array.from({ length: d.cost.length }, (_, i) => `M ${i + 1}`);
+    const mshort = months.map(m => m.slice(0, 3));
     const f1 = v => v.toFixed(1), f2 = v => v.toFixed(2), k = v => v;
     mk('a-daily', { type: 'bar', data: { labels: days, datasets: [{ data: d.daily, backgroundColor: C('--accent'), borderRadius: 6, barPercentage: .45, vl: vl('--accent', f1) }] }, options: opt({ x: x(), y: y({ beginAtZero: false }) }) });
     mk('a-demand', { type: 'line', data: { labels: months, datasets: [{ data: d.maxDemand, borderColor: C('--warning'), borderWidth: 2.5, tension: .4, pointRadius: 4, pointBackgroundColor: C('--warning'), pointBorderColor: C('--surface'), pointBorderWidth: 2, vl: vl('--warning', f2) }] }, options: opt({ x: x(), y: y({ beginAtZero: false }) }) });
@@ -2114,7 +2200,7 @@ const Analytics = (() => {
       { type: 'line', label: 'Cost (Taka)', data: d.cost, borderColor: C('--success'), borderWidth: 2.5, tension: .4, pointRadius: 4, pointBackgroundColor: C('--success'), yAxisID: 'y1', order: 1, vl: vl('--success', k) }] },
       options: opt({ x: x(), y: y({ beginAtZero: true, ticks: { color: C('--accent') } }), y1: { position: 'right', grid: { display: false }, border: { display: false }, ticks: { color: C('--success') } } }, { legend: leg }) });
   }
-    // ---- Generic analytics for accounts without a live data source (built from payment records) ----
+  // ---- Generic analytics for accounts without a live data source (built from payment records) ----
   function paintG() {
     const u = UM[id], rs = Store.records.filter(r => r.billId === id).sort(byDate); state = 'generic';
     const tot = rs.reduce((a, r) => a + r.amount + r.fee, 0), fees = rs.reduce((a, r) => a + r.fee, 0);
@@ -2138,13 +2224,13 @@ const Analytics = (() => {
   }
   async function load() {
     const my = ++seq; state = 'loading'; paint();
-    try { const r = await fetchData(UM[id]); if (my !== seq) return; data = r; state = 'ok'; } catch (e) { if (my !== seq) return; state = 'error'; errMsg = e.message || ''; }
+    try { const r = await fetchDESCOData(UM[id]); if (my !== seq) return; data = r; state = 'ok'; } catch (e) { if (my !== seq) return; state = 'error'; errMsg = e.message || ''; }
     paint();
   }
   host.addEventListener('click', async e => {
     if (e.target.closest('[data-rec]')) { location.hash = '#/database'; Database.search(UM[id].name); }
     if (e.target.closest('#aRefresh,#aRetry')) load();
-    const c = e.target.closest('[data-copy]'); if (c) { const ok = await copyText(c.dataset.copy); toast(ok ? 'Token copied' : 'Couldn’t copy the token', ok ? 'success' : 'danger'); }
+    const c = e.target.closest('[data-copy]'); if (c) { const ok = await copyText(c.dataset.copy); toast(ok ? 'Token copied: ' + c.dataset.copy : 'Couldn’t copy the token', ok ? 'success' : 'danger'); }
   });
   ['#t-light', '#t-dark'].forEach(s => $(s).addEventListener('click', () => setTimeout(() => { if (state === 'ok') draw(); else if (state === 'generic') drawG(); })));
   let wasM = innerWidth < 760; addEventListener('resize', () => { const m = innerWidth < 760; if (m !== wasM) { wasM = m; if (state === 'ok') draw(); else if (state === 'generic') drawG(); } });
