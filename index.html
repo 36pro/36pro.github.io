@@ -1155,10 +1155,8 @@ const loadLocal = () => { try { return JSON.parse(ls.get('billzy_local_payments'
 const loadCache = () => { try { return JSON.parse(ls.get('billzy_firestore_cache') || '[]'); } catch (e) { return []; } };
 const genUid = () => 'mr' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
-const initialRecords = loadCache().length ? loadCache() : [...SEED, ...loadLocal()];
-
 const Store = {
-  records: initialRecords,
+  records: [],
   paused: ls.get('billzy_gym_paused') === 'true',
   subs: [],
   rate(k) { const p = k.replace('land:', ''), gas = k === 'matuail'; return +ls.get(gas ? 'billzy_matuail_rate' : 'billzy_landtax_rate_' + p) || (gas ? 1080 : PM[p].def); },
@@ -1172,20 +1170,21 @@ const Store = {
     this.emit();
   },
   async add(r) {
-    const uid = r.uid || genUid();
+    const norm = normalizeRecord(r);
+    const uid = norm.uid;
     const record = {
-      ...r,
+      ...norm,
       uid,
-      amount: String(r.amount),
-      amountNum: +r.amount,
-      fee: String(r.fee || 0),
-      feeNum: +(r.fee || 0),
-      totalPaid: (+r.amount) + (+(r.fee || 0)),
-      savedAt: r.savedAt || new Date().toISOString(),
-      timestamp: r.timestamp || Date.now()
+      amount: String(norm.amount),
+      amountNum: +norm.amount,
+      fee: String(norm.fee || 0),
+      feeNum: +(norm.fee || 0),
+      totalPaid: (+norm.amount) + (+(norm.fee || 0)),
+      savedAt: norm.savedAt || new Date().toISOString(),
+      timestamp: norm.timestamp || Date.now()
     };
 
-    // If online & authenticated with Cloud Firestore, write to Cloud
+    // If online & authenticated with Cloud Firestore, write directly to Cloud
     if (currentUser && fbDb && navigator.onLine) {
       try {
         await fbDb.collection('users').doc(currentUser.uid).collection('payments').doc(uid).set(record);
@@ -1219,13 +1218,11 @@ const Store = {
   },
   async update(uid, r) {
     const i = this.records.findIndex(x => x.uid === uid);
+    const norm = normalizeRecord(r);
     const updated = {
       ...this.records[i],
-      ...r,
+      ...norm,
       uid,
-      amountNum: +r.amount,
-      feeNum: +(r.fee || 0),
-      totalPaid: (+r.amount) + (+(r.fee || 0)),
       updatedAt: new Date().toISOString()
     };
     if (i >= 0) this.records[i] = updated;
@@ -1275,16 +1272,94 @@ const Store = {
   emit() { this.subs.forEach(f => f()); }
 };
 
-// Fallback initial load from data.json if cache is empty
-if (!loadCache().length) {
-  fetch('./data.json')
-    .then(r => r.ok ? r.json() : null)
-    .then(data => {
-      if (Array.isArray(data) && data.length && !loadCache().length) {
-        Store.records = data;
-        Store.emit();
-      }
-    }).catch(() => {});
+// Initialize Store records from cache + locals + SEED
+const rawCached = loadCache();
+const rawLocal = loadLocal();
+Store.records = mergeRecords(rawCached.length ? rawCached : rawLocal, SEED);
+
+// Fallback load from data.json merging with current records
+fetch('./data.json')
+  .then(r => r.ok ? r.json() : null)
+  .then(data => {
+    if (Array.isArray(data) && data.length) {
+      Store.records = mergeRecords(data, Store.records);
+      Store.emit();
+    }
+  }).catch(() => {});
+
+// ---- Data Normalization & Span Parser ----
+const mi = w => M3.findIndex(m => m.toLowerCase() === String(w || '').slice(0, 3).toLowerCase());
+function parseSpan(u, t) {
+  t = String(t || '').trim();
+  if (!t || !u) return u && u.kind === 'meter' ? null : null;
+  if (u.kind === 'gym') {
+    const m = t.match(/(\d{1,2})\s+([A-Za-z]+)\.?\s+(\d{4})\s*[-–]\s*(\d{1,2})\s+([A-Za-z]+)\.?\s+(\d{4})/);
+    if (!m || mi(m[2]) < 0 || mi(m[5]) < 0) return null;
+    return { from: `${m[3]}-${pad(mi(m[2]) + 1)}-${pad(+m[1])}`, to: `${m[6]}-${pad(mi(m[5]) + 1)}-${pad(+m[4])}` };
+  }
+  if (u.kind === 'land') {
+    const y = [...t.matchAll(/FY\s*(\d{2})/gi)].map(x => 2000 + +x[1]);
+    return y.length ? { from: y[0], to: y[y.length - 1] } : null;
+  }
+  const p = t.split(/\s*[-–]\s*/).map(x => {
+    const m = x.match(/([A-Za-z]+)\.?\s+(\d{4})/);
+    return m && mi(m[1]) >= 0 ? `${m[2]}-${pad(mi(m[1]) + 1)}` : null;
+  });
+  return p.length && p.every(Boolean) ? { from: p[0], to: p[p.length - 1] } : null;
+}
+
+function normalizeRecord(r) {
+  if (!r) return null;
+  const u = UM[r.billId];
+  const date = r.date || r.payDate || iso(TODAY());
+  const bill = r.bill || r.billName || (u ? u.name : 'Unknown');
+  const type = r.type || r.billType || (u ? u.type : 'Prepaid');
+  const month = String(r.month != null ? r.month : (r.billMonth != null ? r.billMonth : '')).trim();
+  const amount = +(r.amountNum != null ? r.amountNum : r.amount) || 0;
+  const fee = +(r.feeNum != null ? r.feeNum : r.fee) || 0;
+  const span = r.span || (u ? parseSpan(u, month) : null) || null;
+
+  let property = r.property;
+  if (property) {
+    if (property.includes('মাতু') || property.toLowerCase().includes('matuail')) property = 'matuail';
+    else if (property.includes('উত্তর') || property.toLowerCase().includes('uttar')) property = 'uttarkhan';
+    else if (property.includes('কেশুর') || property.toLowerCase().includes('keshur')) property = 'keshurbag';
+  }
+
+  return {
+    ...r,
+    uid: r.uid || genUid(),
+    billId: r.billId,
+    bill,
+    billName: bill,
+    type,
+    billType: type,
+    date,
+    payDate: date,
+    month,
+    billMonth: month,
+    amount,
+    amountNum: amount,
+    fee,
+    feeNum: fee,
+    totalPaid: amount + fee,
+    span,
+    property,
+    note: r.note || ''
+  };
+}
+
+function mergeRecords(primary, fallback) {
+  const map = new Map();
+  (fallback || []).forEach(r => {
+    const norm = normalizeRecord(r);
+    if (norm) map.set(norm.uid || (norm.billId + '_' + norm.date), norm);
+  });
+  (primary || []).forEach(r => {
+    const norm = normalizeRecord(r);
+    if (norm) map.set(norm.uid || (norm.billId + '_' + norm.date), norm);
+  });
+  return [...map.values()].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 }
 
 // ---- Fee splitting, Titas late fee, gym cycle, land-tax FY, duplicates ----
@@ -1302,15 +1377,21 @@ function titas(from, to, pay, rate) {
   return { n, fine, base: rate * n };
 }
 const frac = (start, now) => Math.max(.1, Math.round(Math.max(0, dd(start, now) + 1) / 30.4375 * 10) / 10);
-const topCover = rs => rs.reduce((a, b) => String(b.span.to) > String(a.span.to) ? b : a);
+const topCover = rs => {
+  const withSpan = (rs || []).filter(r => r && r.span && r.span.to != null);
+  if (!withSpan.length) return null;
+  return withSpan.reduce((a, b) => String(b.span.to) > String(a.span.to) ? b : a);
+};
 function gymCycle(dur) {
   const rs = Store.records.filter(r => r.billId === 'gym' && r.span), t = TODAY();
-  const s = rs.length ? isoD(topCover(rs).span.to) : new Date(t.getFullYear(), t.getMonth() - (t.getDate() >= 20 ? 0 : 1), 20);
+  const cov = topCover(rs);
+  const s = cov ? isoD(cov.span.to) : new Date(t.getFullYear(), t.getMonth() - (t.getDate() >= 20 ? 0 : 1), 20);
   const e = new Date(s.getFullYear(), s.getMonth() + dur, 20); return { s, e, due: new Date(e.getFullYear(), e.getMonth(), 21) };
 }
 function ltStart(prop) {
   const rs = Store.records.filter(r => r.billId === 'landTax' && r.property === prop && r.span), t = TODAY();
-  return rs.length ? topCover(rs).span.to + 1 : (t.getMonth() >= 3 ? t.getFullYear() : t.getFullYear() - 1);
+  const cov = topCover(rs);
+  return cov ? cov.span.to + 1 : (t.getMonth() >= 3 ? t.getFullYear() : t.getFullYear() - 1);
 }
 function dupCheck(rec, ex) {
   const u = UM[rec.billId]; if (!rec.span) return null;
@@ -1319,47 +1400,60 @@ function dupCheck(rec, ex) {
       u.kind === 'land' ? r.property === rec.property && rec.span.from <= r.span.to && r.span.from <= rec.span.to :
         rec.span.from <= r.span.to && r.span.from <= rec.span.to)) || null;
 }
-const mi = w => M3.findIndex(m => m.toLowerCase() === w.slice(0, 3).toLowerCase());
-function parseSpan(u, t) {
-  t = t.trim(); if (!t) return u.kind === 'meter' ? null : undefined;
-  if (u.kind === 'gym') {
-    const m = t.match(/(\d{1,2})\s+([A-Za-z]+)\.?\s+(\d{4})\s*[-–]\s*(\d{1,2})\s+([A-Za-z]+)\.?\s+(\d{4})/);
-    if (!m || mi(m[2]) < 0 || mi(m[5]) < 0) return;
-    return { from: `${m[3]}-${pad(mi(m[2]) + 1)}-${pad(+m[1])}`, to: `${m[6]}-${pad(mi(m[5]) + 1)}-${pad(+m[4])}` };
-  }
-  if (u.kind === 'land') { const y = [...t.matchAll(/FY\s*(\d{2})/gi)].map(x => 2000 + +x[1]); return y.length ? { from: y[0], to: y[y.length - 1] } : undefined; }
-  const p = t.split(/\s+[-–]\s+/).map(x => { const m = x.match(/([A-Za-z]+)\.?\s+(\d{4})/); return m && mi(m[1]) >= 0 ? `${m[2]}-${pad(mi(m[1]) + 1)}` : null; });
-  return p.length && p.every(Boolean) ? { from: p[0], to: p[p.length - 1] } : undefined;
-}
 
-// ---- Due dates and status (kind: ok | soon | info | overdue | paused) ----
 const up = (d, note, info) => d <= 5 ? { kind: 'soon', chip: d <= 0 ? 'Due today' : `Due in ${d}d`, note } : info ? { kind: 'info', chip: `Due in ${d}d`, note } : { kind: 'ok', chip: 'Paid', note };
+
 function statusOf(u, now = TODAY()) {
   const all = Store.records.filter(r => r.billId === u.id);
   if (!all.length) return { kind: 'info', chip: 'No payments', note: 'Add your first payment', detail: 'Nothing recorded yet', due: null, last: null };
-  const last = all.reduce((a, b) => b.date > a.date ? b : a), mk = o => ({ last, due: null, ...o });
-  if (u.kind === 'meter') { const d = dd(isoD(last.date), now); return mk({ kind: 'ok', chip: 'Paid', note: d <= 0 ? 'Today' : `${d} Days Ago`, detail: `Recharged ${d <= 0 ? 'today' : d + ' days ago'}` }); }
+  const last = all.reduce((a, b) => (b.date || b.payDate || '') > (a.date || a.payDate || '') ? b : a);
+  const mk = o => ({ last, due: null, ...o });
+  const lastDate = last.date || last.payDate || iso(now);
+
+  if (u.kind === 'meter') {
+    const d = dd(isoD(lastDate), now);
+    return mk({ kind: 'ok', chip: 'Paid', note: d <= 0 ? 'Today' : `${d} Days Ago`, detail: `Recharged ${d <= 0 ? 'today' : d + ' days ago'}` });
+  }
+
+  const cov = topCover(all);
+  if (!cov || !cov.span || !cov.span.to) {
+    const d = dd(isoD(lastDate), now);
+    return mk({ kind: 'ok', chip: 'Paid', note: d <= 0 ? 'Today' : `${d} Days Ago`, detail: `Last paid ${fD(isoD(lastDate))}` });
+  }
+
   if (u.kind === 'gym') {
-    const end = isoD(topCover(all).span.to), due = new Date(end.getFullYear(), end.getMonth(), end.getDate() + 1), o = dd(due, now), note = `Covered until ${fD(end)}`;
+    const end = isoD(cov.span.to), due = new Date(end.getFullYear(), end.getMonth(), end.getDate() + 1), o = dd(due, now), note = `Covered until ${fD(end)}`;
     if (Store.paused) return mk({ kind: 'paused', chip: 'Paused', note: 'On Hold (No Dues)', detail: 'Subscription Paused', due });
     return o > 0 ? mk({ kind: 'overdue', chip: `Overdue ${o}d`, note, detail: `Cycle ended ${fD(end)}`, due }) : mk({ ...up(-o, note), detail: `Cycle ends ${fD(end)}`, due });
   }
+
   if (u.kind === 'land') {
-    const byP = {}; all.forEach(r => { const p = r.property || '-'; if (!byP[p] || r.span.to > byP[p].span.to) byP[p] = r; });
-    const { r, due } = Object.values(byP).map(r => ({ r, due: new Date(r.span.to + 1, 3, 1) })).sort((a, b) => a.due - b.due)[0], o = dd(due, now), note = `${fyL(r.span.to)} paid`;
-    const detail = note + (r.property ? ' for ' + PM[r.property].en : '');
+    const byP = {};
+    all.filter(r => r.span && r.span.to != null).forEach(r => {
+      const p = r.property || '-';
+      if (!byP[p] || r.span.to > byP[p].span.to) byP[p] = r;
+    });
+    const items = Object.values(byP);
+    if (!items.length) {
+      return mk({ kind: 'info', chip: 'No records', note: 'Add land tax payment', detail: 'No fiscal year on file' });
+    }
+    const { r, due } = items.map(r => ({ r, due: new Date(r.span.to + 1, 3, 1) })).sort((a, b) => a.due - b.due)[0];
+    const o = dd(due, now), note = `${fyL(r.span.to)} paid`;
+    const detail = note + (r.property ? ' for ' + (PM[r.property]?.en || r.property) : '');
     return o > 0 ? mk({ kind: 'overdue', chip: `Overdue ${o}d`, note, detail, due }) : mk({ ...up(-o, note), detail, due });
   }
-  const cov = topCover(all);
+
   if (u.kind === 'matuail') {
     const n = ymN(cov.span.to) + 1, start = new Date(Math.floor(n / 12), n % 12, 1), due = new Date(start.getFullYear(), start.getMonth(), 21);
-    const [py, pm] = cov.span.to.split('-'), note = `Paid till ${M3[pm - 1]} ${py.slice(2)}`;
+    const [py, pm] = String(cov.span.to).split('-'), note = `Paid till ${M3[(+pm || 1) - 1]} ${String(py).slice(2)}`;
     if (now < start) return mk({ ...up(dd(now, due), note), detail: note, paid: note, due });
     const t = titas(ymS(n), `${now.getFullYear()}-${pad(now.getMonth() + 1)}`, now, Store.rate('matuail')), f = frac(start, now);
     const txt = `${fmt(t.base + t.fine)} (${f} M${t.fine > 0 ? ' +' + t.fine : ''})`, over = now > due;
     return mk({ kind: over ? 'overdue' : 'soon', chip: over ? `Overdue ${f} M` : `Due in ${dd(now, due)}d`, note: `${note} • Due: ${txt}`, detail: `Due: ${txt}`, paid: note, owe: txt, due });
   }
-  const n = ymN(cov.span.to), due = new Date(Math.floor((n + u.lag) / 12), (n + u.lag) % 12, 1), o = dd(due, now);
+
+  // Monthly utilities (Uttara Water, Noakhali Palli, Inspire Broadband)
+  const n = ymN(cov.span.to), due = new Date(Math.floor((n + (u.lag || 1)) / 12), (n + (u.lag || 1)) % 12, 1), o = dd(due, now);
   if (o > 0) return mk({ kind: 'overdue', chip: `Overdue ${u.incl ? o + 1 : o}d`, note: `Paid for ${ymL(cov.span.to)}`, detail: `Was due ${fD(due)}`, due });
   return mk({ ...up(-o, u.lag === 1 ? `Next Due in ${-o} Days` : `Paid for ${ymL(cov.span.to)}`, u.lag === 1), detail: `Next due ${fD(due)}`, due });
 }
