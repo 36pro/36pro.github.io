@@ -1090,6 +1090,7 @@ const UI = (() => {
 // ===================== Domain (UI-demo mirror of src/core/domain) =====================
 const MON = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const M3 = MON.map(m => m.slice(0, 3));
+const mi = w => M3.findIndex(m => m.toLowerCase() === String(w || '').slice(0, 3).toLowerCase());
 const pad = n => String(n).padStart(2, '0');
 const iso = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const isoD = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
@@ -1133,6 +1134,81 @@ const U = [
 const UM = Object.fromEntries(U.map(u => [u.id, u]));
 const PROPS = [{ id: 'matuail', bn: 'মাতুয়াইল - ২০', en: 'Matuail', def: 1500 }, { id: 'uttarkhan', bn: 'উত্তরখান', en: 'Uttarkhan', def: 2000 }, { id: 'keshurbag', bn: 'কেশুরবাগ', en: 'Keshurbag', def: 850 }];
 const PM = Object.fromEntries(PROPS.map(p => [p.id, p]));
+
+
+// ---- Data Normalization & Span Parser ----
+function parseSpan(u, t) {
+  t = String(t || '').trim();
+  if (!t || !u) return u && u.kind === 'meter' ? null : null;
+  if (u.kind === 'gym') {
+    const m = t.match(/(\d{1,2})\s+([A-Za-z]+)\.?\s+(\d{4})\s*[-–]\s*(\d{1,2})\s+([A-Za-z]+)\.?\s+(\d{4})/);
+    if (!m || mi(m[2]) < 0 || mi(m[5]) < 0) return null;
+    return { from: `${m[3]}-${pad(mi(m[2]) + 1)}-${pad(+m[1])}`, to: `${m[6]}-${pad(mi(m[5]) + 1)}-${pad(+m[4])}` };
+  }
+  if (u.kind === 'land') {
+    const y = [...t.matchAll(/FY\s*(\d{2})/gi)].map(x => 2000 + +x[1]);
+    return y.length ? { from: y[0], to: y[y.length - 1] } : null;
+  }
+  const p = t.split(/\s*[-–]\s*/).map(x => {
+    const m = x.match(/([A-Za-z]+)\.?\s+(\d{4})/);
+    return m && mi(m[1]) >= 0 ? `${m[2]}-${pad(mi(m[1]) + 1)}` : null;
+  });
+  return p.length && p.every(Boolean) ? { from: p[0], to: p[p.length - 1] } : null;
+}
+
+function normalizeRecord(r) {
+  if (!r) return null;
+  const u = UM[r.billId];
+  const date = r.date || r.payDate || iso(TODAY());
+  const bill = r.bill || r.billName || (u ? u.name : 'Unknown');
+  const type = r.type || r.billType || (u ? u.type : 'Prepaid');
+  const month = String(r.month != null ? r.month : (r.billMonth != null ? r.billMonth : '')).trim();
+  const amount = +(r.amountNum != null ? r.amountNum : r.amount) || 0;
+  const fee = +(r.feeNum != null ? r.feeNum : r.fee) || 0;
+  const span = r.span || (u ? parseSpan(u, month) : null) || null;
+
+  let property = r.property;
+  if (property) {
+    if (property.includes('মাতু') || property.toLowerCase().includes('matuail')) property = 'matuail';
+    else if (property.includes('উত্তর') || property.toLowerCase().includes('uttar')) property = 'uttarkhan';
+    else if (property.includes('কেশুর') || property.toLowerCase().includes('keshur')) property = 'keshurbag';
+  }
+
+  return {
+    ...r,
+    uid: r.uid || genUid(),
+    billId: r.billId,
+    bill,
+    billName: bill,
+    type,
+    billType: type,
+    date,
+    payDate: date,
+    month,
+    billMonth: month,
+    amount,
+    amountNum: amount,
+    fee,
+    feeNum: fee,
+    totalPaid: amount + fee,
+    span,
+    property,
+    note: r.note || ''
+  };
+}
+
+function mergeRecords(primary, fallback) {
+  const map = new Map();
+  (fallback || []).forEach(r => {
+    const norm = normalizeRecord(r);
+    if (norm) map.set(norm.uid || (norm.billId + '_' + norm.date), norm);
+  });
+  (primary || []).forEach(r => {
+    const norm = normalizeRecord(r);
+    if (norm) map.set(norm.uid || (norm.billId + '_' + norm.date), norm);
+  });
+  return [...map.values()].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+}
 
 // ---- Seed records (replace with data.json / Firestore) ----
 let _n = 0;
@@ -1287,80 +1363,7 @@ fetch('./data.json')
     }
   }).catch(() => {});
 
-// ---- Data Normalization & Span Parser ----
-const mi = w => M3.findIndex(m => m.toLowerCase() === String(w || '').slice(0, 3).toLowerCase());
-function parseSpan(u, t) {
-  t = String(t || '').trim();
-  if (!t || !u) return u && u.kind === 'meter' ? null : null;
-  if (u.kind === 'gym') {
-    const m = t.match(/(\d{1,2})\s+([A-Za-z]+)\.?\s+(\d{4})\s*[-–]\s*(\d{1,2})\s+([A-Za-z]+)\.?\s+(\d{4})/);
-    if (!m || mi(m[2]) < 0 || mi(m[5]) < 0) return null;
-    return { from: `${m[3]}-${pad(mi(m[2]) + 1)}-${pad(+m[1])}`, to: `${m[6]}-${pad(mi(m[5]) + 1)}-${pad(+m[4])}` };
-  }
-  if (u.kind === 'land') {
-    const y = [...t.matchAll(/FY\s*(\d{2})/gi)].map(x => 2000 + +x[1]);
-    return y.length ? { from: y[0], to: y[y.length - 1] } : null;
-  }
-  const p = t.split(/\s*[-–]\s*/).map(x => {
-    const m = x.match(/([A-Za-z]+)\.?\s+(\d{4})/);
-    return m && mi(m[1]) >= 0 ? `${m[2]}-${pad(mi(m[1]) + 1)}` : null;
-  });
-  return p.length && p.every(Boolean) ? { from: p[0], to: p[p.length - 1] } : null;
-}
 
-function normalizeRecord(r) {
-  if (!r) return null;
-  const u = UM[r.billId];
-  const date = r.date || r.payDate || iso(TODAY());
-  const bill = r.bill || r.billName || (u ? u.name : 'Unknown');
-  const type = r.type || r.billType || (u ? u.type : 'Prepaid');
-  const month = String(r.month != null ? r.month : (r.billMonth != null ? r.billMonth : '')).trim();
-  const amount = +(r.amountNum != null ? r.amountNum : r.amount) || 0;
-  const fee = +(r.feeNum != null ? r.feeNum : r.fee) || 0;
-  const span = r.span || (u ? parseSpan(u, month) : null) || null;
-
-  let property = r.property;
-  if (property) {
-    if (property.includes('মাতু') || property.toLowerCase().includes('matuail')) property = 'matuail';
-    else if (property.includes('উত্তর') || property.toLowerCase().includes('uttar')) property = 'uttarkhan';
-    else if (property.includes('কেশুর') || property.toLowerCase().includes('keshur')) property = 'keshurbag';
-  }
-
-  return {
-    ...r,
-    uid: r.uid || genUid(),
-    billId: r.billId,
-    bill,
-    billName: bill,
-    type,
-    billType: type,
-    date,
-    payDate: date,
-    month,
-    billMonth: month,
-    amount,
-    amountNum: amount,
-    fee,
-    feeNum: fee,
-    totalPaid: amount + fee,
-    span,
-    property,
-    note: r.note || ''
-  };
-}
-
-function mergeRecords(primary, fallback) {
-  const map = new Map();
-  (fallback || []).forEach(r => {
-    const norm = normalizeRecord(r);
-    if (norm) map.set(norm.uid || (norm.billId + '_' + norm.date), norm);
-  });
-  (primary || []).forEach(r => {
-    const norm = normalizeRecord(r);
-    if (norm) map.set(norm.uid || (norm.billId + '_' + norm.date), norm);
-  });
-  return [...map.values()].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-}
 
 // ---- Fee splitting, Titas late fee, gym cycle, land-tax FY, duplicates ----
 const SPLIT_IDS = ['rupnagarDesco', 'uttaraDesco', 'rupnagarGas', 'factoryDpdc'];
@@ -1564,8 +1567,8 @@ const CloudAuth = (() => {
       const list = [];
       snap.forEach(doc => list.push(doc.data()));
       if (list.length) {
-        Store.records = list;
-        ls.set('billzy_firestore_cache', JSON.stringify(list));
+        Store.records = mergeRecords(list, SEED);
+        ls.set('billzy_firestore_cache', JSON.stringify(Store.records));
         Store.emit();
         if ($('#csCloudCount')) $('#csCloudCount').textContent = `${list.length} records`;
       }
