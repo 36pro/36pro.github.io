@@ -1197,33 +1197,36 @@ function normalizeRecord(r) {
   };
 }
 
+function isSeedRecord(r) {
+  return !r || String(r.uid || '').startsWith('seed-');
+}
+
+function cleanRecords(arr) {
+  return (arr || [])
+    .filter(r => !isSeedRecord(r))
+    .map(normalizeRecord)
+    .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+}
+
 function mergeRecords(primary, fallback) {
   const map = new Map();
   (fallback || []).forEach(r => {
-    const norm = normalizeRecord(r);
-    if (norm) map.set(norm.uid || (norm.billId + '_' + norm.date), norm);
+    if (!isSeedRecord(r)) {
+      const norm = normalizeRecord(r);
+      if (norm) map.set(norm.uid || (norm.billId + '_' + norm.date), norm);
+    }
   });
   (primary || []).forEach(r => {
-    const norm = normalizeRecord(r);
-    if (norm) map.set(norm.uid || (norm.billId + '_' + norm.date), norm);
+    if (!isSeedRecord(r)) {
+      const norm = normalizeRecord(r);
+      if (norm) map.set(norm.uid || (norm.billId + '_' + norm.date), norm);
+    }
   });
   return [...map.values()].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 }
 
-// ---- Seed records (replace with data.json / Firestore) ----
-let _n = 0;
-const R = (id, date, amount, fee, month, span, extra = {}) => ({ uid: 'seed-' + (++_n), billId: id, bill: UM[id].name, type: UM[id].type, date, amount, fee, month, span, note: '', ...extra });
-const SEED = [
-  R('uttaraDesco', '2026-10-21', 2500, 25, '', null), R('factoryDpdc', '2026-10-18', 2500, 25, '', null), R('rupnagarDesco', '2026-10-17', 1000, 0, '', null), R('uttaraDesco', '2026-10-16', 1000, 15, '', null),
-  R('rupnagarGas', '2026-10-15', 1000, 15, '', null), R('matuailGas', '2026-10-13', 7560, 80, 'March 2026 - September 2026', { from: '2026-03', to: '2026-09' }),
-  R('rupnagarDesco', '2026-10-10', 1000, 10, '', null), R('noakhaliPalli', '2026-10-05', 337, 0, 'September 2026', { from: '2026-09', to: '2026-09' }),
-  R('gym', '2026-10-04', 1700, 0, '20 Sept 2026 - 20 Oct 2026', { from: '2026-09-20', to: '2026-10-20' }),
-  R('inspireBroadband', '2026-09-30', 840, 0, 'October 2026', { from: '2026-10', to: '2026-10' }), R('inspireBroadband', '2026-08-30', 840, 0, 'September 2026', { from: '2026-09', to: '2026-09' }),
-  R('rupnagarGas', '2026-09-15', 1000, 15, '', null),
-  R('uttaraWater', '2026-09-30', 960, 0, 'August 2026', { from: '2026-08', to: '2026-08' }),
-  R('landTax', '2026-07-21', 96, 0, 'FY 26-27 (Apr 1 - Mar 31)', { from: 2026, to: 2026 }, { property: 'keshurbag' }),
-  R('landTax', '2026-05-05', 300, 0, 'FY 26-27 (Apr 1 - Mar 31)', { from: 2026, to: 2026 }, { property: 'matuail' })
-];
+// ---- Clean records: pure user database records only ----
+const SEED = [];
 
 // ---- Store (central state: Firestore sync, fallback cache, rates, subscribers) ----
 const ls = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) { } } };
@@ -1348,20 +1351,25 @@ const Store = {
   emit() { this.subs.forEach(f => f()); }
 };
 
-// Initialize Store records from cache + locals + SEED
-const rawCached = loadCache();
-const rawLocal = loadLocal();
-Store.records = mergeRecords(rawCached.length ? rawCached : rawLocal, SEED);
+// Initialize Store records from cache + locals (purging any legacy mock seed records)
+const rawCached = loadCache().filter(r => !isSeedRecord(r));
+const rawLocal = loadLocal().filter(r => !isSeedRecord(r));
+Store.records = rawCached.length ? cleanRecords(rawCached) : cleanRecords(rawLocal);
+if (rawCached.length) {
+  ls.set('billzy_firestore_cache', JSON.stringify(Store.records));
+}
 
-// Fallback load from data.json merging with current records
-fetch('./data.json')
-  .then(r => r.ok ? r.json() : null)
-  .then(data => {
-    if (Array.isArray(data) && data.length) {
-      Store.records = mergeRecords(data, Store.records);
-      Store.emit();
-    }
-  }).catch(() => {});
+// Fallback load from data.json only if store is completely empty
+if (!Store.records.length) {
+  fetch('./data.json')
+    .then(r => r.ok ? r.json() : null)
+    .then(data => {
+      if (Array.isArray(data) && data.length && !Store.records.length) {
+        Store.records = cleanRecords(data);
+        Store.emit();
+      }
+    }).catch(() => {});
+}
 
 
 
@@ -1567,7 +1575,7 @@ const CloudAuth = (() => {
       const list = [];
       snap.forEach(doc => list.push(doc.data()));
       if (list.length) {
-        Store.records = mergeRecords(list, SEED);
+        Store.records = cleanRecords(list);
         ls.set('billzy_firestore_cache', JSON.stringify(Store.records));
         Store.emit();
         if ($('#csCloudCount')) $('#csCloudCount').textContent = `${list.length} records`;
@@ -2145,23 +2153,158 @@ const Analytics = (() => {
 
 const Stats = (() => {
 
-// ---- Replace D with your real aggregates (everything below renders from it) ----
-const D = {
-  total: 77200, ytd: 74116, avg12: 13015, highest: ['Matuail Gas', 8740],
-  bills: [['Uttara DESCO', 24375, 24375], ['Factory DPDC', 18500, 18500], ['Matuail Gas', 16200, 16200], ['Rupnagar DESCO', 13480, 13480], ['Gym', 5701, 5701], ['Rupnagar Gas', 4537, 4537],
-          ['Uttara Water', 3926, 3926], ['Inspire Broadband', 3360, 3360], ['Land Tax', 3281, 396], ['Noakhali Palli', 1793, 1793]],
-  months: ['May 26', 'Jun 26', 'Jul 26', 'Aug 26', 'Sep 26', 'Oct 26'], monthly: [300, 7815, 15647, 10032, 15237, 16097],
-  y25: [0, 0, 0, 0, 0, 300, 0, 0, 0, 0, 0, 0], y26: [0, 0, 8640, 0, 300, 7815, 15647, 10032, 15237, 16097, null, null],
-  quarters: { 'Uttara DESCO': [0, 1050, 17445, 3500], 'Rupnagar DESCO': [0, 1300, 9965, 2000], 'Rupnagar Gas': [0, 1500, 1917, 1000], 'Matuail Gas': [8640, 0, 0, 7560],
-              'Noakhali Palli': [0, 835, 1300, 337], 'Gym': [0, 0, 4001, 1700], 'Uttara Water': [0, 3430, 2928, 0], 'Inspire Broadband': [0, 0, 3360, 0] },
-  days: [[1,3500],[1,800],[2,300],[3,300],[4,1700],[4,600],[4,250],[5,8600],[5,3500],[5,950],[5,300],[6,2300],[6,1700],[6,300],[7,1000],[8,900],[9,2000],[10,1000],
-         [13,7560],[14,1000],[15,3500],[15,3400],[15,1500],[15,1000],[15,400],[16,1000],[17,1000],[21,2500],[21,100],[23,1500],[24,1500],[24,1000],[25,3400],[26,3500],
-         [26,1900],[27,2000],[28,1000],[30,1000],[30,850],[31,800]],
-  avgPer: [['Matuail Gas', 8100], ['Uttara DESCO', 3047], ['Gym', 1900], ['Rupnagar DESCO', 1348], ['Rupnagar Gas', 1134], ['Uttara Water', 982], ['Inspire Broadband', 840], ['Land Tax', 656], ['Noakhali Palli', 299]],
-  season: { summer: 7570, winter: 16097 },
-  fees: { total: 739, pure: 76461, count: 24, by: [['Electricity', 279], ['Gas', 247], ['Other utilities', 213]], trend: [0, 65, 72, 52, 97, 143] },
-  eff: { avgDays: 64, cycles: 24, meters: [['Land Tax', 330], ['Noakhali Palli', 102], ['Inspire Broadband', 36], ['Uttara Water', 33], ['Rupnagar Gas', 33], ['Matuail Gas', 25.7], ['Gym', 22.5], ['Factory DPDC', 8.5, 'Winter'], ['Rupnagar DESCO', 7, 'Winter'], ['Uttara DESCO', 5, 'Winter']] }
-};
+function computeStats(records) {
+  const recs = (records || []).map(r => ({
+    ...r,
+    amount: +(r.amountNum != null ? r.amountNum : r.amount) || 0,
+    fee: +(r.feeNum != null ? r.feeNum : r.fee) || 0,
+    date: r.date || r.payDate || ''
+  }));
+
+  const now = new Date();
+  const curYear = now.getFullYear();
+  const total = recs.reduce((s, r) => s + r.amount + r.fee, 0);
+  const ytd = recs.filter(r => r.date.startsWith(String(curYear))).reduce((s, r) => s + r.amount + r.fee, 0);
+
+  let highest = ['-', 0];
+  recs.forEach(r => {
+    const tot = r.amount + r.fee;
+    if (tot > highest[1]) highest = [r.bill || r.billName || '-', tot];
+  });
+
+  const billMap = {};
+  recs.forEach(r => {
+    const bName = r.bill || r.billName || 'Unknown';
+    billMap[bName] = billMap[bName] || { total: 0, ytd: 0 };
+    const tot = r.amount + r.fee;
+    billMap[bName].total += tot;
+    if (r.date.startsWith(String(curYear))) billMap[bName].ytd += tot;
+  });
+  const bills = Object.entries(billMap)
+    .map(([n, d]) => [n, d.total, d.ytd])
+    .sort((a, b) => b[1] - a[1]);
+
+  const m6 = Array.from({ length: 6 }, (_, i) => new Date(now.getFullYear(), now.getMonth() - 5 + i, 1));
+  const months = m6.map(d => `${M3[d.getMonth()]} ${String(d.getFullYear()).slice(-2)}`);
+  const monthly = m6.map(d => {
+    const pfx = `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
+    return recs.filter(r => r.date.startsWith(pfx)).reduce((s, r) => s + r.amount + r.fee, 0);
+  });
+
+  const m12 = Array.from({ length: 12 }, (_, i) => new Date(now.getFullYear(), now.getMonth() - 11 + i, 1));
+  const m12Total = m12.map(d => {
+    const pfx = `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
+    return recs.filter(r => r.date.startsWith(pfx)).reduce((s, r) => s + r.amount + r.fee, 0);
+  }).reduce((a, b) => a + b, 0);
+  const avg12 = Math.round(m12Total / 12);
+
+  const y25 = Array.from({ length: 12 }, (_, i) => {
+    const pfx = `2025-${pad(i + 1)}`;
+    return recs.filter(r => r.date.startsWith(pfx)).reduce((s, r) => s + r.amount + r.fee, 0);
+  });
+  const y26 = Array.from({ length: 12 }, (_, i) => {
+    if (i > now.getMonth()) return null;
+    const pfx = `2026-${pad(i + 1)}`;
+    return recs.filter(r => r.date.startsWith(pfx)).reduce((s, r) => s + r.amount + r.fee, 0);
+  });
+
+  const quarters = {};
+  recs.forEach(r => {
+    if (r.date.startsWith(String(curYear))) {
+      const bName = r.bill || r.billName || 'Unknown';
+      const m = parseInt(r.date.slice(5, 7), 10) - 1;
+      const q = Math.floor(m / 3);
+      quarters[bName] = quarters[bName] || [0, 0, 0, 0];
+      quarters[bName][q] += r.amount + r.fee;
+    }
+  });
+
+  const dayMap = {};
+  recs.forEach(r => {
+    const d = parseInt(r.date.slice(8, 10), 10);
+    if (d > 0) dayMap[d] = (dayMap[d] || 0) + (r.amount + r.fee);
+  });
+  const days = Object.entries(dayMap).map(([d, a]) => [+d, a]).sort((a, b) => a[0] - b[0]);
+  if (!days.length) days.push([1, 0]);
+
+  const avgCounts = {}, avgSums = {};
+  recs.forEach(r => {
+    const bName = r.bill || r.billName || 'Unknown';
+    avgCounts[bName] = (avgCounts[bName] || 0) + 1;
+    avgSums[bName] = (avgSums[bName] || 0) + r.amount + r.fee;
+  });
+  const avgPer = Object.keys(avgCounts).map(n => [n, Math.round(avgSums[n] / avgCounts[n])]).sort((a, b) => b[1] - a[1]);
+
+  let sumSummer = 0, sumWinter = 0;
+  recs.forEach(r => {
+    const m = parseInt(r.date.slice(5, 7), 10);
+    if (m >= 3 && m <= 9) sumSummer += r.amount + r.fee;
+    else if (m > 0) sumWinter += r.amount + r.fee;
+  });
+  const season = { summer: sumSummer || 1, winter: sumWinter || 1 };
+
+  let eFees = 0, gFees = 0, oFees = 0, pureSpend = 0, feeCount = 0;
+  recs.forEach(r => {
+    pureSpend += r.amount;
+    const f = r.fee;
+    if (f > 0) {
+      feeCount++;
+      const u = UM[r.billId];
+      const cat = u ? u.cat : '';
+      if (cat === 'Electric') eFees += f;
+      else if (cat === 'Gas') gFees += f;
+      else oFees += f;
+    }
+  });
+  const feeTrend = m6.map(d => {
+    const pfx = `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
+    return recs.filter(r => r.date.startsWith(pfx)).reduce((s, r) => s + r.fee, 0);
+  });
+  const fees = {
+    total: eFees + gFees + oFees,
+    pure: pureSpend,
+    count: feeCount,
+    by: [['Electricity', eFees], ['Gas', gFees], ['Other utilities', oFees]],
+    trend: feeTrend
+  };
+
+  const effMeters = [];
+  let totDays = 0, totAmt = 0, totCycles = 0;
+  U.filter(u => u.kind === 'meter' || u.kind === 'monthly' || u.kind === 'matuail').forEach(u => {
+    const uRecs = recs.filter(r => r.billId === u.id && r.date).sort((a, b) => a.date.localeCompare(b.date));
+    if (uRecs.length >= 2) {
+      let uDays = 0, uAmt = 0, uCycles = 0;
+      for (let i = 0; i < uRecs.length - 1; i++) {
+        const d1 = isoD(uRecs[i].date), d2 = isoD(uRecs[i + 1].date);
+        const diff = dd(d1, d2);
+        if (diff > 0 && uRecs[i].amount > 0) {
+          uDays += diff;
+          uAmt += uRecs[i].amount;
+          uCycles++;
+        }
+      }
+      if (uCycles > 0 && uAmt > 0) {
+        const daysPer1k = Math.round((uDays / (uAmt / 1000)) * 10) / 10;
+        const isWinter = [10, 11, 12, 1, 2].includes(now.getMonth() + 1);
+        effMeters.push([u.name, daysPer1k, (u.cat === 'Electric' ? (isWinter ? 'Winter' : 'Summer') : null)]);
+        totDays += uDays;
+        totAmt += uAmt;
+        totCycles += uCycles;
+      }
+    }
+  });
+  effMeters.sort((a, b) => b[1] - a[1]);
+  if (!effMeters.length) effMeters.push(['No meter cycles yet', 0, null]);
+  const eff = {
+    avgDays: totAmt > 0 ? Math.round(totDays / (totAmt / 1000)) : 0,
+    cycles: totCycles,
+    meters: effMeters
+  };
+
+  return { total, ytd, avg12, highest, bills, months, monthly, y25, y26, quarters, days, avgPer, season, fees, eff };
+}
+
+let D = computeStats(Store.records);
 
 const $ = s => document.querySelector(s);
 const fmt = n => Math.round(n).toLocaleString('en-US');
@@ -2175,7 +2318,8 @@ const KC = { Electricity: '--accent', Gas: '--orange', Water: TEAL, Internet: PU
 
 // ---- Static (non-chart) blocks ----
 function rank(el, items, o = {}) {
-  const mx = Math.max(...items.map(i => i[1]));
+  if (!items || !items.length) { $(el).innerHTML = '<div style="color:var(--muted);padding:8px 0;font-size:12px">No payments logged yet.</div>'; return; }
+  const mx = Math.max(...items.map(i => i[1]), 1);
   $(el).innerHTML = items.map(([n, v, tag]) => `<div class="r${o.cls || ''}" style="--bar:${cv(o.color || '--accent')}"><div class="n">${n}${tag ? `<span class="chip accent">${tag}</span>` : ''}</div>
     <div class="t"><i style="width:${Math.max(v / mx * 100, 1.5)}%"></i></div><div class="v">${o.fmt ? o.fmt(v) : fmt(v)}</div></div>`).join('');
 }
@@ -2185,9 +2329,9 @@ const mini = (l, v, s, cls) => `<div class="mini"><div class="label">${l}</div><
 function renderStatic() {
   const mo = new Date().getMonth() + 1;
   const cat = {}; D.bills.forEach(([n, t]) => cat[KIND[n]] = (cat[KIND[n]] || 0) + t);
-  const catTotal = Object.values(cat).reduce((a, b) => a + b, 0), top = Object.entries(cat).sort((a, b) => b[1] - a[1])[0];
+  const catTotal = Object.values(cat).reduce((a, b) => a + b, 0), top = Object.entries(cat).sort((a, b) => b[1] - a[1])[0] || ['-', 0];
   const cnt = {}; D.days.forEach(([d]) => cnt[d] = (cnt[d] || 0) + 1);
-  const busy = Object.entries(cnt).sort((a, b) => b[1] - a[1] || a[0] - b[0])[0];
+  const busy = Object.entries(cnt).sort((a, b) => b[1] - a[1] || a[0] - b[0])[0] || [1, 0];
   $('#kpis').innerHTML = kpi('Total spend', fmt(D.total), 'All time', 'success') + kpi('YTD spend', fmt(D.ytd), 'Jan - Oct 2026', 'accent') +
     kpi('Highest bill', fmt(D.highest[1]), D.highest[0], 'warning') + kpi('Avg. monthly spend', fmt(D.avg12), 'Last 12 months', '');
   $('#insights').innerHTML = kpi('Projected 2026 spend', fmt(D.ytd / mo * 12), 'At current pace', 'accent', `Based on ${mo} months so far`) +
@@ -2202,7 +2346,7 @@ function renderStatic() {
   const lg = rows => rows.map(([c, l, v, p]) => `<div class="lgr"><i style="background:${cv(c)}"></i><span>${l}</span><b class="num">${fmt(v)}</b><small>${p}</small></div>`).join(''), pct = v => (v / all * 100).toFixed(1) + '%';
   $('#lg-split').innerHTML = lg([['--success', 'Pure utility spend', f.pure, pct(f.pure)], ['--orange', 'Gateway surcharges', f.total, pct(f.total)], ['--muted', 'Total paid', all, '100%']]);
   $('#lg-util').innerHTML = lg(f.by.map(([n, v], i) => [['--accent', '--orange', PINK][i % 3], n, v, (v / fsum * 100).toFixed(1) + '%']));
-  const m = D.eff.meters, best = m[0];
+  const m = D.eff.meters, best = m[0] || ['-', 0];
   $('#eff-minis').innerHTML = mini('Overall average', days(D.eff.avgDays), 'per 1,000 recharge', 't-success') + mini('Average daily burn rate', Math.round(1000 / D.eff.avgDays) + ' / day', 'Across all prepaid meters', 't-accent') +
     mini('Most efficient meter', days(best[1]), best[0], 't-warning') + mini('Total cycles analyzed', D.eff.cycles, 'Recharge intervals');
   const mx = Math.max(...m.map(x => x[1]));
@@ -2298,6 +2442,11 @@ function drawAll() {
 
 ['#t-light', '#t-dark'].forEach(s => $(s).addEventListener('click', () => setTimeout(drawAll)));
 addEventListener('resize', () => { const m = innerWidth < 760; if (m !== wasMobile) { wasMobile = m; drawAll(); } });
+Store.on(() => {
+  D = computeStats(Store.records);
+  renderStatic();
+  if (!dirty) drawAll();
+});
 renderStatic();
   return { show() { if (dirty) drawAll(); else Object.values(charts).forEach(c => c.resize()); } };
 
