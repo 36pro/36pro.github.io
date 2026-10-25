@@ -693,6 +693,11 @@ dialog#successModal { width: min(480px, calc(100vw - 32px)); text-align: center;
 dialog#successModal .s-anim { width: 140px; height: 140px; margin: 4px auto 10px; display: grid; place-items: center; }
 dialog#successModal .s-anim svg { width: 100%; height: 100%; display: block; }
 dialog#successModal .s-cloud-pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 14px; border-radius: 999px; background: color-mix(in oklab, var(--success) 14%, transparent); color: var(--success); font-size: 12px; font-weight: 600; margin-bottom: 6px; }
+dialog#successModal .s-cloud-pill.local { background: color-mix(in oklab, var(--warning) 14%, transparent); color: var(--warning); }
+.cloud-badge-tag { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 600; padding: 2px 9px; border-radius: 999px; text-decoration: none; vertical-align: middle; }
+.cloud-badge-tag.cloud { background: color-mix(in oklab, var(--success) 12%, transparent); color: var(--success); }
+.cloud-badge-tag.local { background: color-mix(in oklab, var(--warning) 12%, transparent); color: var(--warning); cursor: pointer; }
+.cloud-badge-tag.local:hover { filter: brightness(1.15); }
 dialog#successModal h3 { font-size: 21px; font-weight: 700; letter-spacing: -.02em; margin: 4px 0 2px; }
 dialog#successModal .s-sub { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
 .s-card { background: var(--surface-secondary); border-radius: calc(var(--radius) * 2.5); padding: 16px 18px; text-align: left; display: grid; gap: 10px; margin-bottom: 18px; border: 1px solid var(--separator); }
@@ -852,13 +857,13 @@ dialog#cloudSync { width: min(450px, calc(100vw - 32px)); border: 0; border-radi
   <div class="dbody" style="padding: 24px 28px 26px; text-align: center;">
     <div class="s-anim" id="successAnimBox"></div>
     <div style="display:flex; justify-content:center; margin-bottom: 6px;">
-      <span class="s-cloud-pill">
+      <span class="s-cloud-pill" id="sCloudPill">
         <span class="live-dot" style="background:#00E676;"></span>
         Cloud Database Verified
       </span>
     </div>
-    <h3>Payment Recorded!</h3>
-    <p class="s-sub">Synced to Google Cloud Firestore in real time</p>
+    <h3 id="sTitle">Payment Recorded!</h3>
+    <p class="s-sub" id="sSubText">Synced to Google Cloud Firestore in real time</p>
 
     <div class="s-card">
       <div class="s-hero-amt">
@@ -920,7 +925,7 @@ dialog#cloudSync { width: min(450px, calc(100vw - 32px)); border: 0; border-radi
 </dialog>
 
 <dialog id="pay"><form id="payForm" novalidate><div class="dbody">
-  <div class="mh"><h3>Add payment</h3><button type="button" class="icon-btn" data-close aria-label="Close"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+  <div class="mh"><div style="display:flex;align-items:center;gap:10px;"><h3>Add payment</h3><span id="payCloudBadge"></span></div><button type="button" class="icon-btn" data-close aria-label="Close"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
   <div class="utilpick" id="pickU" role="radiogroup" aria-label="Utility"></div><div class="acct" id="acct"></div>
   <div class="fields g6" id="payFields"></div>
   <div class="preview" id="payPrev" aria-live="polite"></div><div class="alert danger" id="payErr" role="alert" hidden></div>
@@ -1172,8 +1177,10 @@ function normalizeRecord(r) {
   const bill = r.bill || r.billName || (u ? u.name : 'Unknown');
   const type = r.type || r.billType || (u ? u.type : 'Prepaid');
   const month = String(r.month != null ? r.month : (r.billMonth != null ? r.billMonth : '')).trim();
-  const amount = +(r.amountNum != null ? r.amountNum : r.amount) || 0;
-  const fee = +(r.feeNum != null ? r.feeNum : r.fee) || 0;
+  const rawAmt = r.amountNum != null ? r.amountNum : r.amount;
+  const amount = Number(parseFloat(String(rawAmt || 0).replace(/[^0-9.-]+/g, '')) || 0);
+  const rawFee = r.feeNum != null ? r.feeNum : r.fee;
+  const fee = Number(parseFloat(String(rawFee || 0).replace(/[^0-9.-]+/g, '')) || 0);
   const span = r.span || (u ? parseSpan(u, month) : null) || null;
 
   let property = r.property;
@@ -1263,11 +1270,11 @@ const Store = {
     const record = {
       ...norm,
       uid,
-      amount: String(norm.amount),
-      amountNum: +norm.amount,
-      fee: String(norm.fee || 0),
-      feeNum: +(norm.fee || 0),
-      totalPaid: (+norm.amount) + (+(norm.fee || 0)),
+      amount: norm.amount,
+      amountNum: norm.amount,
+      fee: norm.fee,
+      feeNum: norm.fee,
+      totalPaid: norm.amount + norm.fee,
       savedAt: norm.savedAt || new Date().toISOString(),
       timestamp: norm.timestamp || Date.now()
     };
@@ -1308,9 +1315,14 @@ const Store = {
     const i = this.records.findIndex(x => x.uid === uid);
     const norm = normalizeRecord(r);
     const updated = {
-      ...this.records[i],
+      ...(i >= 0 ? this.records[i] : {}),
       ...norm,
       uid,
+      amount: norm.amount,
+      amountNum: norm.amount,
+      fee: norm.fee,
+      feeNum: norm.fee,
+      totalPaid: norm.amount + norm.fee,
       updatedAt: new Date().toISOString()
     };
     if (i >= 0) this.records[i] = updated;
@@ -1363,9 +1375,10 @@ const Store = {
 // Initialize Store records from cache + locals (purging any legacy mock seed records)
 const rawCached = loadCache().filter(r => !isSeedRecord(r));
 const rawLocal = loadLocal().filter(r => !isSeedRecord(r));
-Store.records = rawCached.length ? cleanRecords(rawCached) : cleanRecords(rawLocal);
-if (rawCached.length) {
+Store.records = mergeRecords(rawCached, rawLocal);
+if (Store.records.length) {
   ls.set('billzy_firestore_cache', JSON.stringify(Store.records));
+  ls.set('billzy_local_payments', JSON.stringify(Store.records.filter(r => r.local)));
 }
 
 // Fallback load from data.json only if store is completely empty
@@ -1494,15 +1507,38 @@ const SuccessModal = (() => {
   const animBox = $('#successAnimBox');
   let timer = null;
 
-  function show(r, u) {
+  function show(r, u, isCloud = false) {
     clearTimeout(timer);
     
     // Inject fresh copy of success.svg to trigger SMIL timeline from 0s
     const tpl = document.getElementById('tplSuccessSvg');
     if (tpl) {
       animBox.replaceChildren(tpl.content.cloneNode(true));
+      const s = animBox.querySelector('svg');
+      if (s && typeof s.setCurrentTime === 'function') {
+        try { s.setCurrentTime(0); } catch (e) {}
+      }
     } else {
-      animBox.innerHTML = `<img src="success.svg?t=${Date.now()}" alt="Success" style="width:100%;height:100%;">`;
+      animBox.innerHTML = `<img src="success.svg?t=${Date.now()}" alt="Success" style="width:140px;height:140px;display:block;margin:auto;">`;
+    }
+
+    const pill = $('#sCloudPill');
+    const sub = $('#sSubText');
+    if (pill) {
+      if (isCloud) {
+        pill.className = 's-cloud-pill';
+        pill.innerHTML = '<span class="live-dot" style="background:#00E676;"></span> Cloud Database Verified';
+      } else {
+        pill.className = 's-cloud-pill local';
+        pill.innerHTML = '<span class="live-dot" style="background:var(--warning);"></span> Saved to Local Database';
+      }
+    }
+    if (sub) {
+      if (isCloud) {
+        sub.innerHTML = 'Synced to Google Cloud Firestore in real time';
+      } else {
+        sub.innerHTML = `Saved locally · <a href="#cloudSync" onclick="$('#successModal').close(); $('#cloudSync').showModal();" style="color:var(--accent); text-decoration:underline; font-weight:600;">Sign in with Google</a> to sync to Cloud`;
+      }
     }
 
     const tot = (+r.amount) + (+(r.fee || 0));
@@ -1553,6 +1589,23 @@ const CloudAuth = (() => {
     if (authDot) {
       authDot.classList.toggle('active', isOnline);
       authDot.title = isOnline ? `Connected to Cloud: ${user.displayName || user.email}` : 'Offline / Signed Out';
+    }
+
+    const payBadge = $('#payCloudBadge');
+    if (payBadge) {
+      if (isOnline) {
+        payBadge.innerHTML = `<span class="cloud-badge-tag cloud" title="Signed in as ${user.displayName || user.email} · Payments sync to Google Cloud"><span class="live-dot" style="background:#00E676;"></span> Cloud Synced</span>`;
+      } else {
+        payBadge.innerHTML = `<a href="#cloudSync" onclick="$('#pay').close?.(); $('#cloudSync').showModal();" class="cloud-badge-tag local" title="Click to sign in with Google to sync payments to Cloud"><span class="live-dot" style="background:var(--warning);"></span> Local Mode (Click to Sign In)</a>`;
+      }
+    }
+    const billBadge = $('#billCloudBadge');
+    if (billBadge) {
+      if (isOnline) {
+        billBadge.innerHTML = `<span class="cloud-badge-tag cloud" title="Signed in as ${user.displayName || user.email} · Payments sync to Google Cloud"><span class="live-dot" style="background:#00E676;"></span> Cloud Synced</span>`;
+      } else {
+        billBadge.innerHTML = `<a href="#cloudSync" onclick="$('#cloudSync').showModal();" class="cloud-badge-tag local" title="Click to sign in with Google to sync payments to Cloud"><span class="live-dot" style="background:var(--warning);"></span> Local Mode (Click to Sign In)</a>`;
+      }
     }
 
     if (user) {
@@ -1762,10 +1815,10 @@ const Pay = (() => {
     try {
       const res = await Store.add(rec);
       dlg.close();
-      if (res && res.status === 'CLOUD_VERIFIED') {
-        SuccessModal.show(res.record, u);
-      } else {
-        toast(`Saved ${u.name}: ${fmt(rec.amount + rec.fee)} locally (Offline). Cloud sync pending.`, 'warning');
+      const isCloud = res && res.status === 'CLOUD_VERIFIED';
+      SuccessModal.show(res ? res.record : rec, u, isCloud);
+      if (!isCloud) {
+        toast(`Saved ${u.name}: ${fmt(rec.amount + rec.fee)} locally (Offline). Google Cloud sync pending.`, 'info');
       }
     } catch (err) {
       toast('Error saving payment: ' + (err.message || err), 'danger');
@@ -1774,7 +1827,7 @@ const Pay = (() => {
       saveBtn.innerHTML = oldText;
     }
   });
-  return { open(id) { u = UM[id] || u; build(); dlg.showModal(); } };
+  return { open(id) { u = UM[id] || u; build(); CloudAuth.updateUI(currentUser); dlg.showModal(); } };
 })();
 
 // ===================== Edit (universal record editor) =====================
@@ -1850,8 +1903,8 @@ const Board = (() => {
     <div class="ddue"><span class="lbl">${u.kind === 'meter' ? 'Billing' : 'Next due'}</span><span>${s.due ? fD(s.due) : 'Pay on recharge'}</span></div>
     <button class="btn btn-alt dpay" data-pay="${u.id}">Pay</button></div>`;
   function render() {
-    const all = U.map(u => ({ u, s: statusOf(u) })).sort((a, b) => (a.s.due || 9e15) - (b.s.due || 9e15)), n = ks => all.filter(x => ks.includes(x.s.kind)).length, ym = iso(TODAY()).slice(0, 7), paidNow = Store.records.filter(r => r.date.startsWith(ym));
-    $('#bsum').innerHTML = sumItem('Overdue', n(['overdue']), 't-danger', 'Pay now') + sumItem('Due within 5 days', n(['soon']), 't-warning', 'Coming up') + sumItem('Up to date', n(['ok', 'info']), 't-success', 'Covered') + sumItem(`Paid in ${MON[TODAY().getMonth()]}`, fmt(paidNow.reduce((a, r) => a + r.amount + r.fee, 0)), 't-accent', `${paidNow.length} payment${paidNow.length === 1 ? '' : 's'}`);
+    const all = U.map(u => ({ u, s: statusOf(u) })).sort((a, b) => (a.s.due || 9e15) - (b.s.due || 9e15)), n = ks => all.filter(x => ks.includes(x.s.kind)).length, ym = iso(TODAY()).slice(0, 7), paidNow = Store.records.filter(r => (r.date || '').startsWith(ym));
+    $('#bsum').innerHTML = sumItem('Overdue', n(['overdue']), 't-danger', 'Pay now') + sumItem('Due within 5 days', n(['soon']), 't-warning', 'Coming up') + sumItem('Up to date', n(['ok', 'info']), 't-success', 'Covered') + sumItem(`Paid in ${MON[TODAY().getMonth()]}`, fmt(paidNow.reduce((a, r) => a + (+r.amount || 0) + (+r.fee || 0), 0)), 't-accent', `${paidNow.length} payment${paidNow.length === 1 ? '' : 's'}`);
     $('#blist').innerHTML = GROUPS.map(([label, c, ks]) => { const rows = all.filter(x => ks.includes(x.s.kind)); return rows.length ? `<div class="dgrp"><span class="dot" style="--c:var(--${c})"></span>${label}<span class="chip">${rows.length}</span></div>` + rows.map(row).join('') : ''; }).join('');
   }
   Store.on(render); render();
@@ -1883,7 +1936,7 @@ const Database = (() => {
     return h + `<button class="pgb" data-p="${page + 1}" aria-label="Next page"${page >= pages ? ' disabled' : ''}><svg viewBox="0 0 24 24">${ICN.r}</svg></button>`;
   }
   function render() {
-    const list = filtered(), total = list.reduce((a, r) => a + r.amount + r.fee, 0), fees = list.reduce((a, r) => a + r.fee, 0), withFee = list.filter(r => r.fee).length;
+    const list = filtered(), total = list.reduce((a, r) => a + (+r.amount || 0) + (+r.fee || 0), 0), fees = list.reduce((a, r) => a + (+r.fee || 0), 0), withFee = list.filter(r => r.fee && +r.fee > 0).length;
     const pages = Math.max(1, Math.ceil(list.length / per)); page = Math.min(Math.max(1, page), pages); const from = (page - 1) * per, rows = list.slice(from, from + per);
     $('#dstats').innerHTML = item('Records', fmt(list.length), `${new Set(list.map(r => r.bill)).size} bills`) + item('Total paid', fmt(total), `incl. ${fmt(fees)} fees`) + item('Fees', fmt(fees), `${withFee} payments`);
     $('#rows').innerHTML = rows.map(r => { const u = UM[r.billId], ms = monthShort(r), nt = noteHTML(r); return `<tr data-id="${r.uid}"${ms ? '' : ' class="nomonth"'}>
@@ -1892,7 +1945,7 @@ const Database = (() => {
       <td class="c-month${ms ? '' : ' nil'}" data-l="Month" title="${esc(r.month)}">${ms || '-'}</td>
       <td class="c-amt n" data-l="Amount">${fmt(r.amount)}</td>
       <td class="c-fee n${r.fee ? '' : ' nil'}" data-l="Fee">${r.fee ? fmt(r.fee) : '-'}</td>
-      <td class="c-tot n" data-l="Total">${fmt(r.amount + r.fee)}</td>
+      <td class="c-tot n" data-l="Total">${fmt((+r.amount || 0) + (+r.fee || 0))}</td>
       <td class="c-acts"><span class="acts"><button class="rowbtn" data-a="edit" aria-label="Edit payment" title="Edit"><svg viewBox="0 0 24 24">${ICN.edit}</svg><span class="rl">Edit</span></button><button class="rowbtn del" data-a="del" aria-label="Delete payment" title="Delete"><svg viewBox="0 0 24 24">${ICN.del}</svg><span class="rl">Delete</span></button></span></td></tr>`; }).join('');
     $('#empty').hidden = list.length > 0; $('#clear').hidden = !active();
     $$('#v-database th[data-sort]').forEach(th => { const on = th.dataset.sort === sort.k; on ? th.setAttribute('aria-sort', sort.d > 0 ? 'ascending' : 'descending') : th.removeAttribute('aria-sort'); });
@@ -1982,9 +2035,9 @@ const Bill = (() => {
       <div class="bh-act">${pg && pg[0] ? `<a class="btn btn-soft" href="${pg[0]}" target="_blank" rel="noopener noreferrer">Open ${pg[1]} Portal${svg('ext')}</a>` : ''}<button class="btn btn-soft" data-rec>${svg('list')}View records</button><span class="sp"></span>
         ${DESCO_IDS.includes(id) ? `<a class="btn btn-soft success" href="#/bill/${id}/analytics"><span class="live-dot"></span>Live Analytics${svg('bars')}</a>` : `<a class="btn btn-alt" href="#/bill/${id}/analytics"><span class="t-accent">${svg('bars')}</span>Analytics</a>`}</div></div>`;
     h += `<div class="card bstrip"><div class="sstat"><span class="l">Status</span><span class="chip ${CLS[s.kind]}">${s.chip}</span><span class="sub">${s.detail}</span></div><div class="sgrid">${S.join('')}</div></div>`;
-    h += `<form class="card fcard" id="billForm" novalidate><div class="fh"><div><h2>${title}</h2><p class="sub">${subt}</p></div></div>${formHTML(u)}<p class="hint" id="billHint" aria-live="polite"></p><div class="alert danger" id="billErr" role="alert" hidden></div><div class="ff"><button class="btn btn-primary" id="billSave" disabled>Save Payment</button></div></form>`;
+    h += `<form class="card fcard" id="billForm" novalidate><div class="fh"><div style="display:flex;align-items:center;gap:10px;"><div><h2>${title}</h2><p class="sub">${subt}</p></div><span id="billCloudBadge"></span></div></div>${formHTML(u)}<p class="hint" id="billHint" aria-live="polite"></p><div class="alert danger" id="billErr" role="alert" hidden></div><div class="ff"><button class="btn btn-primary" id="billSave" disabled>Save Payment</button></div></form>`;
     h += `<div class="card hcard"><div class="fh"><h2>Payment history</h2><span class="chip">${recs.length} payment${recs.length === 1 ? '' : 's'}</span></div><div class="hist">${recs.slice(0, 10).map(r => `<div class="hr2"><span>${fD(isoD(r.date))}</span><span class="amt">${fmt(r.amount)}</span><span>${r.fee ? `<span class="chip orange">${fmt(r.fee)} fee</span>` : ''}</span><span class="sub">${r.property ? `<span class="bnFont">${PM[r.property].bn}</span> ` : ''}${monthShort(r)}</span></div>`).join('') || '<div class="empty">No payments yet.</div>'}</div></div>`;
-    host.innerHTML = h; recalc();
+    host.innerHTML = h; recalc(); CloudAuth.updateUI(currentUser);
   }
   function sumHTML(u, out, r, tot) {
     const x = out.sum || {}, L = u.kind === 'matuail' ? `<span class="chip accent">${x.chip || '-'}</span><b>${x.text || ''}</b>` : u.kind === 'land' ? `<span class="chip orange bnFont">${x.prop || ''}</span><b>${x.fy || ''}</b><span class="chip success">Next Due: ${x.next || '-'}</span>` : `<span>${x.text || ''}</span>`;
@@ -2019,10 +2072,10 @@ const Bill = (() => {
     saveBtn.innerHTML = `<span class="spin"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/></svg></span> Saving...`;
     try {
       const res = await Store.add(out.rec);
-      if (res && res.status === 'CLOUD_VERIFIED') {
-        SuccessModal.show(res.record, UM[id]);
-      } else {
-        toast(`Saved ${UM[id].name}: ${fmt(out.rec.amount + out.rec.fee)} locally (Offline). Cloud sync pending.`, 'warning');
+      const isCloud = res && res.status === 'CLOUD_VERIFIED';
+      SuccessModal.show(res ? res.record : out.rec, UM[id], isCloud);
+      if (!isCloud) {
+        toast(`Saved ${UM[id].name}: ${fmt(out.rec.amount + out.rec.fee)} locally (Offline). Google Cloud sync pending.`, 'info');
       }
     } catch (err) {
       toast('Error saving payment: ' + (err.message || err), 'danger');
@@ -2095,8 +2148,8 @@ const Analytics = (() => {
             }
           }
 
-          const avgUsage = validDailyCount > 0 ? (totalDailyUnits / validDailyCount) : (latestM.consumedUnit ? latestM.consumedUnit / 30 : 10);
-          const unitRate = (latestM.consumedUnit > 0) ? (latestM.consumedTaka / latestM.consumedUnit) : 7.5;
+          const avgUsage = validDailyCount > 0 ? (totalDailyUnits / validDailyCount) : (latestM.consumedUnit ? latestM.consumedUnit / 30 : 0);
+          const unitRate = (latestM.consumedUnit > 0) ? (latestM.consumedTaka / latestM.consumedUnit) : 0;
           const avgCost = Math.round(avgUsage * unitRate);
 
           const cost12 = monthlyRaw.map(m => Math.round(m.consumedTaka || 0));
@@ -2120,7 +2173,7 @@ const Analytics = (() => {
             owner: latestM.customerName || balanceData.customerName || 'Customer',
             meterNo: balanceData.meterNo || latestM.meterNo || '-',
             location: latestM.installationAddress || u.loc,
-            loadLimit: `${latestM.sanctionLoad || 2} kW`,
+            loadLimit: latestM.sanctionLoad ? `${latestM.sanctionLoad} kW` : '-',
             balance: +(balanceData.balance || 0),
             readingTime: balanceData.readingTime || '',
             avgUsage,
@@ -2211,7 +2264,7 @@ const Analytics = (() => {
   // ---- Generic analytics for accounts without a live data source (built from payment records) ----
   function paintG() {
     const u = UM[id], rs = Store.records.filter(r => r.billId === id).sort(byDate); state = 'generic';
-    const tot = rs.reduce((a, r) => a + r.amount + r.fee, 0), fees = rs.reduce((a, r) => a + r.fee, 0);
+    const tot = rs.reduce((a, r) => a + (+r.amount || 0) + (+r.fee || 0), 0), fees = rs.reduce((a, r) => a + (+r.fee || 0), 0);
     host.innerHTML = crumbs([['Home', '#/home'], [u.name, '#/bill/' + id], ['Analytics']]) + `<div class="top"><div><h1>Analytics</h1><p class="sub">${u.name}<span> · ${acno(u.acct)}</span></p></div><div class="grp2"><button class="btn btn-alt" data-rec>View records</button></div></div>` +
       (rs.length ? `<div class="g g4">${kpiCard('Total paid', fmt(tot), `${rs.length} payments`, 'accent')}${kpiCard('Average payment', fmt(tot / rs.length), 'Per payment', 'success')}${kpiCard('Fees paid', fmt(fees), tot ? (fees / tot * 100).toFixed(1) + '% of spend' : '', 'orange')}${kpiCard('Last paid', fD(isoD(rs[0].date)), dayWord(dd(isoD(rs[0].date), TODAY())), '')}</div>
       <div class="g g2"><div class="card"><h3>Monthly spend</h3><div class="cv"><canvas id="g-month"></canvas></div></div><div class="card"><h3>Payment history</h3><div class="cv"><canvas id="g-hist"></canvas></div></div></div>` : '<div class="card"><div class="empty">No payments recorded for this account yet.</div></div>');
@@ -2225,9 +2278,9 @@ const Analytics = (() => {
     const yy = (o = {}) => ({ grid: { color: sep }, border: { display: false }, beginAtZero: true, ...o }), xx = (o = {}) => ({ grid: { display: false }, border: { display: false }, ...o });
     const months = Array.from({ length: 12 }, (_, i) => new Date(now.getFullYear(), now.getMonth() - 11 + i, 1)), key = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
     const sumBy = f => months.map(m => rs.filter(r => r.date.startsWith(key(m))).reduce((a, r) => a + f(r), 0));
-    mk('g-month', { type: 'bar', data: { labels: months.map(m => M3[m.getMonth()]), datasets: [{ label: 'Paid', data: sumBy(r => r.amount), backgroundColor: C('--accent'), borderRadius: 6, stack: 's' }, { label: 'Fees', data: sumBy(r => r.fee), backgroundColor: C('--orange'), borderRadius: 6, stack: 's' }] },
+    mk('g-month', { type: 'bar', data: { labels: months.map(m => M3[m.getMonth()]), datasets: [{ label: 'Paid', data: sumBy(r => (+r.amount || 0)), backgroundColor: C('--accent'), borderRadius: 6, stack: 's' }, { label: 'Fees', data: sumBy(r => (+r.fee || 0)), backgroundColor: C('--orange'), borderRadius: 6, stack: 's' }] },
       options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'top', labels: { usePointStyle: true, pointStyle: 'rect', boxWidth: 12, boxHeight: 8, color: C('--foreground') } }, tooltip: tip }, scales: { x: xx({ stacked: true }), y: yy({ stacked: true }) } } });
-    mk('g-hist', { type: 'line', data: { labels: rs.map(r => fD(isoD(r.date)).slice(0, 6)), datasets: [{ label: 'Total paid', data: rs.map(r => r.amount + r.fee), borderColor: C('--success'), borderWidth: 2.5, tension: .3, pointRadius: 4, pointBackgroundColor: C('--success'), pointBorderColor: C('--surface'), pointBorderWidth: 2 }] },
+    mk('g-hist', { type: 'line', data: { labels: rs.map(r => fD(isoD(r.date)).slice(0, 6)), datasets: [{ label: 'Total paid', data: rs.map(r => (+r.amount || 0) + (+r.fee || 0)), borderColor: C('--success'), borderWidth: 2.5, tension: .3, pointRadius: 4, pointBackgroundColor: C('--success'), pointBorderColor: C('--surface'), pointBorderWidth: 2 }] },
       options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: tip }, scales: { x: xx(), y: yy() } } });
   }
   async function load() {
@@ -2328,7 +2381,7 @@ function computeStats(records) {
     avgCounts[bName] = (avgCounts[bName] || 0) + 1;
     avgSums[bName] = (avgSums[bName] || 0) + r.amount + r.fee;
   });
-  const avgPer = Object.keys(avgCounts).map(n => [n, Math.round(avgSums[n] / avgCounts[n])]).sort((a, b) => b[1] - a[1]);
+  const avgPer = Object.keys(avgCounts).map(n => [n, avgCounts[n] > 0 ? Math.round(avgSums[n] / avgCounts[n]) : 0]).sort((a, b) => b[1] - a[1]);
 
   let sumSummer = 0, sumWinter = 0;
   recs.forEach(r => {
@@ -2336,7 +2389,7 @@ function computeStats(records) {
     if (m >= 3 && m <= 9) sumSummer += r.amount + r.fee;
     else if (m > 0) sumWinter += r.amount + r.fee;
   });
-  const season = { summer: sumSummer || 1, winter: sumWinter || 1 };
+  const season = { summer: sumSummer, winter: sumWinter };
 
   let eFees = 0, gFees = 0, oFees = 0, pureSpend = 0, feeCount = 0;
   recs.forEach(r => {
@@ -2434,20 +2487,20 @@ function renderStatic() {
   $('#insights').innerHTML = kpi(`Projected ${curY} spend`, fmt(D.ytd / mo * 12), 'At current pace', 'accent', `Based on ${mo} months so far`) +
     kpi('Busiest payment day', busy[1] > 0 ? (busy[0] + ordinal(busy[0])) : '-', busy[1] + ' payments', 'warning', 'Most payments land on this day') +
     kpi(top[0] + ' share', catTotal > 0 ? (top[1] / catTotal * 100).toFixed(1) + '%' : '0%', 'Of all spend', 'success', `${fmt(top[1])} across its meters`) +
-    kpi('Winter premium', (D.season.summer > 0 ? (D.season.winter >= D.season.summer ? '+' : '') + Math.round((D.season.winter / D.season.summer - 1) * 100) + '%' : '0%'), 'vs. summer', 'danger', 'Average monthly spend, Oct-Feb vs. Mar-Sep');
+    kpi('Winter premium', (D.season.summer > 0 ? (D.season.winter >= D.season.summer ? '+' : '') + Math.round((D.season.winter / D.season.summer - 1) * 100) + '%' : (D.season.winter > 0 ? 'N/A' : '0%')), 'vs. summer', 'danger', 'Average monthly spend, Oct-Feb vs. Mar-Sep');
   rank('#r-total', [...D.bills].sort((a, b) => b[1] - a[1]).map(b => [b[0], b[1]]), { color: '--accent' });
   rank('#r-ytd', [...D.bills].sort((a, b) => b[2] - a[2]).map(b => [b[0], b[2]]), { color: '--success' });
   const f = D.fees, all = f.total + f.pure, fsum = f.by.reduce((a, b) => a + b[1], 0);
   $('#fee-minis').innerHTML = mini('Total surcharges paid', fmt(f.total), '', 't-orange') + mini('Pure utility spend', fmt(f.pure), '', 't-success') +
-    mini('Effective fee rate', (f.total / f.pure * 100).toFixed(2) + '%', '', 't-accent') + mini('Avg fee / transaction', (f.total / f.count).toFixed(1), `${f.count} payments with a fee`);
-  const lg = rows => rows.map(([c, l, v, p]) => `<div class="lgr"><i style="background:${cv(c)}"></i><span>${l}</span><b class="num">${fmt(v)}</b><small>${p}</small></div>`).join(''), pct = v => (v / all * 100).toFixed(1) + '%';
+    mini('Effective fee rate', f.pure > 0 ? (f.total / f.pure * 100).toFixed(2) + '%' : '0.00%', '', 't-accent') + mini('Avg fee / transaction', f.count > 0 ? (f.total / f.count).toFixed(1) : '0.0', `${f.count} payments with a fee`);
+  const lg = rows => rows.map(([c, l, v, p]) => `<div class="lgr"><i style="background:${cv(c)}"></i><span>${l}</span><b class="num">${fmt(v)}</b><small>${p}</small></div>`).join(''), pct = v => all > 0 ? (v / all * 100).toFixed(1) + '%' : '0%';
   $('#lg-split').innerHTML = lg([['--success', 'Pure utility spend', f.pure, pct(f.pure)], ['--orange', 'Gateway surcharges', f.total, pct(f.total)], ['--muted', 'Total paid', all, '100%']]);
-  $('#lg-util').innerHTML = lg(f.by.map(([n, v], i) => [['--accent', '--orange', PINK][i % 3], n, v, (v / fsum * 100).toFixed(1) + '%']));
+  $('#lg-util').innerHTML = lg(f.by.map(([n, v], i) => [['--accent', '--orange', PINK][i % 3], n, v, fsum > 0 ? (v / fsum * 100).toFixed(1) + '%' : '0%']));
   const m = D.eff.meters, best = m[0] || ['-', 0];
-  $('#eff-minis').innerHTML = mini('Overall average', days(D.eff.avgDays), 'per 1,000 recharge', 't-success') + mini('Average daily burn rate', Math.round(1000 / D.eff.avgDays) + ' / day', 'Across all prepaid meters', 't-accent') +
-    mini('Most efficient meter', days(best[1]), best[0], 't-warning') + mini('Total cycles analyzed', D.eff.cycles, 'Recharge intervals');
-  const mx = Math.max(...m.map(x => x[1]));
-  $('#r-eff').innerHTML = m.map(([n, v, tag]) => `<div class="mtile"><div class="mt"><span>${n}</span>${tag ? `<span class="chip accent">${tag}</span>` : ''}</div><div class="mv">${days(v)}</div><div class="mb"><i style="width:${Math.max(6, Math.sqrt(v / mx) * 100)}%"></i></div></div>`).join('');
+  $('#eff-minis').innerHTML = mini('Overall average', D.eff.avgDays > 0 ? days(D.eff.avgDays) : '-', 'per 1,000 recharge', 't-success') + mini('Average daily burn rate', D.eff.avgDays > 0 ? Math.round(1000 / D.eff.avgDays) + ' / day' : '-', 'Across all prepaid meters', 't-accent') +
+    mini('Most efficient meter', best[1] > 0 ? days(best[1]) : '-', best[0], 't-warning') + mini('Total cycles analyzed', D.eff.cycles, 'Recharge intervals');
+  const mx = Math.max(...m.map(x => x[1]), 1);
+  $('#r-eff').innerHTML = m.map(([n, v, tag]) => `<div class="mtile"><div class="mt"><span>${n}</span>${tag ? `<span class="chip accent">${tag}</span>` : ''}</div><div class="mv">${v > 0 ? days(v) : '-'}</div><div class="mb"><i style="width:${v > 0 ? Math.max(6, Math.sqrt(v / mx) * 100) : 0}%"></i></div></div>`).join('');
 }
 const ordinal = n => { n = +n; const r = n % 100; return r > 10 && r < 14 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] || 'th'; };
 
@@ -2509,7 +2562,12 @@ function drawAll() {
   mk('c-day', { type: 'bubble', data: { datasets: [{ data: pts, backgroundColor: C('--accent', .3), borderColor: C('--accent'), borderWidth: 2 }] },
     options: opt({}, { x: x({ min: 0, max: 32, ticks: { stepSize: 5 }, title: { display: true, text: 'Day of month' } }), y: y() }) });
 
-  const mom = D.monthly.slice(1).map((v, i) => Math.round((v / D.monthly[i] - 1) * 100)), pc = v => (v > 0 ? '+' : '') + v + '%';
+  const mom = D.monthly.slice(1).map((v, i) => {
+    const prev = D.monthly[i];
+    if (prev <= 0) return v > 0 ? 100 : 0;
+    return Math.round((v / prev - 1) * 100);
+  });
+  const pc = v => (v > 0 ? '+' : '') + v + '%';
   mk('c-mom', { type: 'line', data: { labels: D.months.slice(1), datasets: [line('--danger', mom, { fmt: pc, fill: true, backgroundColor: c => grad(c.chart, '--danger') })] },
     options: opt({ vl: { on: true, color: C('--danger') } }, { x: x(), y: y({ beginAtZero: false, ticks: { callback: pc } }) }) });
 
@@ -2524,13 +2582,13 @@ function drawAll() {
     options: opt({ vl: { on: true, color: C('--foreground'), right: true } }, { x: y({ ticks: { callback: v => k(v) } }), y: x() }, { indexAxis: 'y', layout: { padding: { right: 44, top: 4 } } }) });
 
   const cat = {}; D.bills.forEach(([n, t]) => cat[KIND[n]] = (cat[KIND[n]] || 0) + t); const ct = Object.values(cat).reduce((a, b) => a + b, 0);
-  mk('c-cat', { type: 'doughnut', data: { labels: Object.keys(cat), datasets: [{ data: Object.values(cat), backgroundColor: Object.keys(cat).map(c => C(KC[c])), borderColor: C('--surface'), borderWidth: 3, fmt: v => `${fmt(v)} (${(v / ct * 100).toFixed(1)}%)` }] },
+  mk('c-cat', { type: 'doughnut', data: { labels: Object.keys(cat), datasets: [{ data: Object.values(cat), backgroundColor: Object.keys(cat).map(c => C(KC[c])), borderColor: C('--surface'), borderWidth: 3, fmt: v => `${fmt(v)}${ct > 0 ? ' (' + (v / ct * 100).toFixed(1) + '%)' : ''}` }] },
     options: { responsive: true, maintainAspectRatio: false, cutout: '68%', plugins: { legend: leg(mob ? 'bottom' : 'right'), tooltip: tip } } });
 
   const ctr = (t1, t2) => ({ id: 'ctr', afterDraw(ch) { const a = ch.chartArea, x = (a.left + a.right) / 2, y = (a.top + a.bottom) / 2, c = ch.ctx; c.save(); c.textAlign = 'center'; c.fillStyle = C('--foreground'); c.font = '600 26px Outfit, Inter, sans-serif'; c.fillText(t1, x, y + 4); c.fillStyle = C('--muted'); c.font = '500 12px Inter, sans-serif'; c.fillText(t2, x, y + 24); c.restore(); } });
   const dn = (id, labels, vals, cols, t1, t2) => mk(id, { type: 'doughnut', data: { labels, datasets: [{ data: vals, backgroundColor: cols.map(c => C(c)), borderColor: C('--surface-secondary'), borderWidth: 3, fmt: v => fmt(v) }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '74%', plugins: { legend: { display: false }, tooltip: tip } }, plugins: [ctr(t1, t2)] });
   const FA = D.fees.total + D.fees.pure;
-  dn('c-feesplit', ['Pure utility spend', 'Gateway surcharges'], [D.fees.pure, D.fees.total], ['--success', '--orange'], (D.fees.pure / FA * 100).toFixed(1) + '%', 'pure spend');
+  dn('c-feesplit', ['Pure utility spend', 'Gateway surcharges'], [D.fees.pure, D.fees.total], ['--success', '--orange'], FA > 0 ? (D.fees.pure / FA * 100).toFixed(1) + '%' : '100%', 'pure spend');
   dn('c-feeutil', D.fees.by.map(b => b[0]), D.fees.by.map(b => b[1]), ['--accent', '--orange', PINK], fmt(D.fees.total), 'total fees');
   mk('c-fee', { type: 'bar', data: { labels: D.months, datasets: [{ data: D.fees.trend, backgroundColor: C('--orange', .85), borderRadius: 8 }] },
     options: opt({ vl: { on: true, color: C('--orange'), skip0: true } }, { x: x(), y: y() }) });
