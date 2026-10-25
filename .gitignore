@@ -4,3 +4,5 @@ dist/
 Thumbs.db
 billzy-v2/node_modules/
 billzy-v2/dist/
+*.backup.*
+*.legacy.*

@@ -10,7 +10,8 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['"Bricolage Grotesque"', 'system-ui', 'sans-serif'],
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        inter: ['Inter', 'system-ui', 'sans-serif'],
         bricolage: ['"Bricolage Grotesque"', 'system-ui', 'sans-serif'],
         outfit: ['Outfit', 'system-ui', 'sans-serif'],
         bangla: ['"Tiro Bangla"', 'serif'],
@@ -18,8 +19,8 @@ module.exports = {
         logo: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
       },
       borderRadius: {
-        DEFAULT: 'var(--radius, 0.125rem)',
-        card: 'var(--radius, 0.125rem)',
+        DEFAULT: 'var(--radius, 0.5rem)',
+        card: '1rem',
         field: 'var(--field-radius, 0.75rem)',
       },
       colors: {
@@ -70,9 +71,9 @@ module.exports = {
       addCommonColors: false,
       layout: {
         radius: {
-          small: "0.125rem",
-          medium: "0.125rem",
-          large: "0.125rem",
+          small: "0.375rem",
+          medium: "0.5rem",
+          large: "0.75rem",
         },
       },
     }),
