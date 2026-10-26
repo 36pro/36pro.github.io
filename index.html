@@ -2460,9 +2460,29 @@ const k = v => Math.abs(v) >= 1000 ? v / 1000 + 'k' : v;
 const cv = c => c.startsWith('--') ? `var(${c})` : c;
 const days = d => d >= 30 ? `${Math.floor(d / 30)}M ${Math.round(d % 30)} days` : `${d.toFixed(1)} days`;
 const PURPLE = 'oklch(68% 0.19 300)', PINK = 'oklch(72% 0.17 5)', INDIGO = 'oklch(65% 0.19 270)', TEAL = 'oklch(78% 0.13 190)', LIME = 'oklch(82% 0.16 125)';
-const BC = { 'Uttara DESCO': '--accent', 'Rupnagar DESCO': '--success', 'Factory DPDC': 'oklch(76% 0.17 210)', 'Rupnagar Gas': '--orange', 'Matuail Gas': PURPLE, 'Noakhali Palli': PINK, 'Gym': INDIGO, 'Uttara Water': TEAL, 'Inspire Broadband': LIME };
+const BC = { 'Uttara DESCO': '--accent', 'Rupnagar DESCO': '--success', 'Factory DPDC': 'oklch(76% 0.17 210)', 'Rupnagar Gas': '--orange', 'Matuail Gas': PURPLE, 'Noakhali Palli': PINK, 'Gym': INDIGO, 'Uttara Water': TEAL, 'Inspire Broadband': LIME, 'Land Tax': '--warning' };
 const KIND = { 'Uttara DESCO': 'Electricity', 'Rupnagar DESCO': 'Electricity', 'Factory DPDC': 'Electricity', 'Noakhali Palli': 'Electricity', 'Matuail Gas': 'Gas', 'Rupnagar Gas': 'Gas', 'Uttara Water': 'Water', 'Inspire Broadband': 'Internet', 'Gym': 'Other', 'Land Tax': 'Other' };
 const KC = { Electricity: '--accent', Gas: '--orange', Water: TEAL, Internet: PURPLE, Other: PINK };
+
+function billColor(name) {
+  if (BC[name]) return BC[name];
+  const u = Object.values(UM).find(x => x.name === name || x.id === name);
+  if (u && u.tint) return u.tint;
+  return '--accent';
+}
+
+function billKind(name) {
+  if (KIND[name]) return KIND[name];
+  const u = Object.values(UM).find(x => x.name === name || x.id === name);
+  if (u) {
+    if (u.cat === 'Electric') return 'Electricity';
+    if (u.cat === 'Gas') return 'Gas';
+    if (u.cat === 'Water') return 'Water';
+    if (u.cat === 'Internet') return 'Internet';
+    return 'Other';
+  }
+  return 'Other';
+}
 
 // ---- Static (non-chart) blocks ----
 function rank(el, items, o = {}) {
@@ -2478,7 +2498,7 @@ function renderStatic() {
   const mo = new Date().getMonth() + 1;
   const curY = new Date().getFullYear();
   if ($('#ytdChip')) $('#ytdChip').textContent = `Jan - ${M3[mo - 1]} ${curY}`;
-  const cat = {}; D.bills.forEach(([n, t]) => cat[KIND[n]] = (cat[KIND[n]] || 0) + t);
+  const cat = {}; D.bills.forEach(([n, t]) => { const k = billKind(n); cat[k] = (cat[k] || 0) + t; });
   const catTotal = Object.values(cat).reduce((a, b) => a + b, 0), top = Object.entries(cat).sort((a, b) => b[1] - a[1])[0] || ['-', 0];
   const cnt = {}; D.days.forEach(([d]) => cnt[d] = (cnt[d] || 0) + 1);
   const busy = Object.entries(cnt).sort((a, b) => b[1] - a[1] || a[0] - b[0])[0] || [1, 0];
@@ -2507,9 +2527,22 @@ const ordinal = n => { n = +n; const r = n % 100; return r > 10 && r < 14 ? 'th'
 // ---- Charts ----
 const px = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
 function C(v, a = 1) {
-  const raw = v.startsWith('--') ? getComputedStyle(document.documentElement).getPropertyValue(v).trim() : v;
-  px.clearRect(0, 0, 1, 1); px.fillStyle = '#000'; px.fillStyle = raw; px.fillRect(0, 0, 1, 1);
-  const [r, g, b] = px.getImageData(0, 0, 1, 1).data; return `rgba(${r},${g},${b},${a})`;
+  if (!v) v = '--accent';
+  let raw = String(v).trim();
+  if (raw.startsWith('var(')) raw = raw.slice(4, -1).trim();
+  if (raw.startsWith('--')) {
+    raw = getComputedStyle(document.documentElement).getPropertyValue(raw).trim() || '#00E676';
+  }
+  try {
+    px.clearRect(0, 0, 1, 1);
+    px.fillStyle = '#000';
+    px.fillStyle = raw || '#00E676';
+    px.fillRect(0, 0, 1, 1);
+    const [r, g, b] = px.getImageData(0, 0, 1, 1).data;
+    return `rgba(${r},${g},${b},${a})`;
+  } catch (e) {
+    return `rgba(0, 230, 118, ${a})`;
+  }
 }
 const grad = (ch, c) => { const a = ch.chartArea; if (!a) return C(c, .2); const g = ch.ctx.createLinearGradient(0, a.top, 0, a.bottom); g.addColorStop(0, C(c, .35)); g.addColorStop(1, C(c, 0)); return g; };
 if (typeof Chart !== 'undefined') Chart.register({ id: 'vl', afterDatasetsDraw(ch, _a, o) {
@@ -2572,7 +2605,7 @@ function drawAll() {
     options: opt({ vl: { on: true, color: C('--danger') } }, { x: x(), y: y({ beginAtZero: false, ticks: { callback: pc } }) }) });
 
   const qs = Object.entries(D.quarters);
-  mk('c-q', { type: 'bar', data: { labels: ['Q1', 'Q2', 'Q3', 'Q4'], datasets: qs.map(([n, v]) => ({ label: n, data: v, backgroundColor: C(BC[n]) })) },
+  mk('c-q', { type: 'bar', data: { labels: ['Q1', 'Q2', 'Q3', 'Q4'], datasets: qs.map(([n, v]) => ({ label: n, data: v, backgroundColor: C(billColor(n)) })) },
     options: opt({ legend: leg('bottom') }, { x: x({ stacked: true }), y: y({ stacked: true }) }) });
 
   mk('c-season', { type: 'bar', data: { labels: ['Summer (Mar-Sep)', 'Winter (Oct-Feb)'], datasets: [{ data: [D.season.summer, D.season.winter], backgroundColor: [C('--warning'), C('--accent')], borderRadius: 10, barPercentage: .5 }] },
@@ -2581,12 +2614,29 @@ function drawAll() {
   mk('c-avg', { type: 'bar', data: { labels: D.avgPer.map(a => a[0]), datasets: [{ data: D.avgPer.map(a => a[1]), backgroundColor: C(PURPLE), borderRadius: 8, barPercentage: .7 }] },
     options: opt({ vl: { on: true, color: C('--foreground'), right: true } }, { x: y({ ticks: { callback: v => k(v) } }), y: x() }, { indexAxis: 'y', layout: { padding: { right: 44, top: 4 } } }) });
 
-  const cat = {}; D.bills.forEach(([n, t]) => cat[KIND[n]] = (cat[KIND[n]] || 0) + t); const ct = Object.values(cat).reduce((a, b) => a + b, 0);
-  mk('c-cat', { type: 'doughnut', data: { labels: Object.keys(cat), datasets: [{ data: Object.values(cat), backgroundColor: Object.keys(cat).map(c => C(KC[c])), borderColor: C('--surface'), borderWidth: 3, fmt: v => `${fmt(v)}${ct > 0 ? ' (' + (v / ct * 100).toFixed(1) + '%)' : ''}` }] },
+  const cat = {}; D.bills.forEach(([n, t]) => { const k = billKind(n); cat[k] = (cat[k] || 0) + t; }); const ct = Object.values(cat).reduce((a, b) => a + b, 0);
+  mk('c-cat', { type: 'doughnut', data: { labels: Object.keys(cat), datasets: [{ data: Object.values(cat), backgroundColor: Object.keys(cat).map(c => C(KC[c] || PINK)), borderColor: C('--surface'), borderWidth: 3, fmt: v => `${fmt(v)}${ct > 0 ? ' (' + (v / ct * 100).toFixed(1) + '%)' : ''}` }] },
     options: { responsive: true, maintainAspectRatio: false, cutout: '68%', plugins: { legend: leg(mob ? 'bottom' : 'right'), tooltip: tip } } });
 
-  const ctr = (t1, t2) => ({ id: 'ctr', afterDraw(ch) { const a = ch.chartArea, x = (a.left + a.right) / 2, y = (a.top + a.bottom) / 2, c = ch.ctx; c.save(); c.textAlign = 'center'; c.fillStyle = C('--foreground'); c.font = '600 26px Outfit, Inter, sans-serif'; c.fillText(t1, x, y + 4); c.fillStyle = C('--muted'); c.font = '500 12px Inter, sans-serif'; c.fillText(t2, x, y + 24); c.restore(); } });
-  const dn = (id, labels, vals, cols, t1, t2) => mk(id, { type: 'doughnut', data: { labels, datasets: [{ data: vals, backgroundColor: cols.map(c => C(c)), borderColor: C('--surface-secondary'), borderWidth: 3, fmt: v => fmt(v) }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '74%', plugins: { legend: { display: false }, tooltip: tip } }, plugins: [ctr(t1, t2)] });
+  const ctr = (id, t1, t2) => ({ id: 'ctr_' + id, afterDraw(ch) { const a = ch.chartArea; if (!a) return; const x = (a.left + a.right) / 2, y = (a.top + a.bottom) / 2, c = ch.ctx; c.save(); c.textAlign = 'center'; c.fillStyle = C('--foreground'); c.font = '600 26px Outfit, Inter, sans-serif'; c.fillText(t1, x, y + 4); c.fillStyle = C('--muted'); c.font = '500 12px Inter, sans-serif'; c.fillText(t2, x, y + 24); c.restore(); } });
+  const dn = (id, labels, vals, cols, t1, t2) => {
+    const empty = !vals.length || vals.every(v => !v);
+    return mk(id, {
+      type: 'doughnut',
+      data: {
+        labels: empty ? ['No spend'] : labels,
+        datasets: [{
+          data: empty ? [1] : vals,
+          backgroundColor: empty ? [C('--separator', 0.4)] : cols.map(c => C(c)),
+          borderColor: C('--surface-secondary'),
+          borderWidth: 3,
+          fmt: v => empty ? '0' : fmt(v)
+        }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, cutout: '74%', plugins: { legend: { display: false }, tooltip: empty ? { enabled: false } : tip } },
+      plugins: [ctr(id, t1, t2)]
+    });
+  };
   const FA = D.fees.total + D.fees.pure;
   dn('c-feesplit', ['Pure utility spend', 'Gateway surcharges'], [D.fees.pure, D.fees.total], ['--success', '--orange'], FA > 0 ? (D.fees.pure / FA * 100).toFixed(1) + '%' : '100%', 'pure spend');
   dn('c-feeutil', D.fees.by.map(b => b[0]), D.fees.by.map(b => b[1]), ['--accent', '--orange', PINK], fmt(D.fees.total), 'total fees');
